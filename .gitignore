@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+
+# Backend (Python)
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.env
+backend/dev.db
+backend/dev.db-journal
+
+# Frontend (Node)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env
+frontend/*.local
+
+# Claude Code local runtime state (not shared project config)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
