@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in */CLAUDE.md) other=\".github/copilot-instructions.md\";; */.github/copilot-instructions.md) other=\"CLAUDE.md\";; *) exit 0;; esac; jq -n --arg msg \"You just edited $f. Per the sync-project-docs skill, check whether $other needs the same update to stay in sync, and apply it now if so.\" '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:$msg}}'"
+          }
+        ]
+      }
+    ]
+  }
+}
