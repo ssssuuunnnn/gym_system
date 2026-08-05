@@ -29,6 +29,25 @@ export async function listReservations(memberId?: number) {
   return data;
 }
 
+export interface ReservationCreatePayload {
+  member_id: number;
+  coach_id?: number | null;
+  course_id?: number | null;
+  product_id: number;
+  purchase_id?: number | null;
+  booking_date: string;
+  start_hour: number;
+  people_count: number;
+  notes?: string | null;
+}
+
+export async function createReservation(payload: ReservationCreatePayload, asAdmin: boolean) {
+  const { data } = await apiClient.post<Reservation>('/reservations', payload, {
+    params: { as_admin: asAdmin },
+  });
+  return data;
+}
+
 export async function reviewReservation(id: number, status: ReservationStatus) {
   const { data } = await apiClient.post<Reservation>(`/reservations/${id}/review`, { status });
   return data;
