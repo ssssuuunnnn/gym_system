@@ -112,8 +112,13 @@ def create_reservation(
         source = ReservationSource.member_submitted
         initial_status = ReservationStatus.pending
 
+    payload_data = payload.model_dump()
+    if not as_admin:
+        # 非管理員送出申請一律歸屬自己，忽略／覆寫傳入的 member_id，避免冒名建立他人預約。
+        payload_data["member_id"] = current_user.id
+
     reservation = Reservation(
-        **payload.model_dump(),
+        **payload_data,
         source=source,
         status=initial_status,
     )
