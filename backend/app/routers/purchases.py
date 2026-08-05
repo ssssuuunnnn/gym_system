@@ -2,23 +2,29 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.deps import require_admin
+from app.deps import get_current_user, require_admin
 from app.models.product import Product
 from app.models.purchase import Purchase
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.purchase import PurchaseCreate, PurchaseOut
 
-router = APIRouter(prefix="/purchases", tags=["purchases"], dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/purchases", tags=["purchases"])
 
 
 @router.get("", response_model=list[PurchaseOut])
-def list_purchases(user_id: int | None = None, db: Session = Depends(get_db)):
+def list_purchases(
+    user_id: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
-    對應「教練購買紀錄查詢」：可用 user_id 篩選單一會員。已確認購買對象不限教練身份，
-    學員與場租教練皆可查詢。
+    對應「教練購買紀錄查詢」（管理員，可用 user_id 篩選單一會員，購買對象不限教練身份）
+    與「我的商品／庫存」（會員，僅能查詢自己的購買紀錄）。
     """
     query = db.query(Purchase)
-    if user_id is not None:
+    if current_user.role != UserRole.admin:
+        query = query.filter(Purchase.user_id == current_user.id)
+    elif user_id is not None:
         query = query.filter(Purchase.user_id == user_id)
     return query.all()
 

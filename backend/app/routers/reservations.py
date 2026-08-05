@@ -15,7 +15,7 @@ from app.models.reservation import (
     ReservationStatus,
 )
 from app.models.time_slot import TimeSlot
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.reservation import (
     ReservationAddonCreate,
     ReservationAddonOut,
@@ -73,9 +73,14 @@ def list_reservations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """對應「預約審核列表」（管理員，看全部）與「我的預約列表」（會員，帶 member_id 篩選自己）。"""
+    """
+    對應「預約審核列表」（管理員，看全部，可用 member_id 篩選）與「我的預約列表」
+    （會員，僅能查詢自己的預約，忽略／覆寫傳入的 member_id）。
+    """
     query = db.query(Reservation)
-    if member_id is not None:
+    if current_user.role != UserRole.admin:
+        query = query.filter(Reservation.member_id == current_user.id)
+    elif member_id is not None:
         query = query.filter(Reservation.member_id == member_id)
     return query.order_by(Reservation.booking_date, Reservation.start_hour).all()
 
