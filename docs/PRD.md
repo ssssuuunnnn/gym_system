@@ -480,7 +480,7 @@ Base URL：`/api/v1`（見 `backend/app/core/config.py` 的 `API_V1_PREFIX`）�
 
 /admin/*  (RequireRole role="admin")
   reservations              → BookingReviewList     [已完成]
-  reservations/create       → CreateBooking          [佔位]
+  reservations/create       → CreateBooking          [已完成]
   reservations/:id          → BookingReviewDetail    [佔位]
   coaches                   → CoachList              [已完成]
   coaches/new, coaches/:id/edit → CoachForm           [佔位]
@@ -561,7 +561,7 @@ flowchart TD
     J -->|否| L[維持已確認，可被教練加購臨時加人]
 ```
 
-對應畫面：`BookingReviewList`（已完成）— 表格列出所有預約（會員/商品/教練/課程名稱皆為前端 lookup），`待確認` 狀態顯示「核准／拒絕」按鈕，`已確認` 狀態顯示「取消」按鈕，並提供「管理員建立預約」入口（連到尚未實作的 `CreateBooking`）。
+對應畫面：`BookingReviewList`（已完成）— 表格列出所有預約（會員/商品/教練/課程名稱皆為前端 lookup），`待確認` 狀態顯示「核准／拒絕」按鈕，`已確認` 狀態顯示「取消」按鈕，並提供「管理員建立預約」入口（`CreateBooking`，已完成：選會員/商品/教練/課程/關聯購買紀錄、日期時段，以 `as_admin=true` 建立即為已確認狀態）。
 
 ### 7.4 管理員：建立商品與登錄購買紀錄
 
@@ -605,11 +605,11 @@ flowchart TD
 
 ### 8.2 前端（21 個畫面）
 
-**已完成（10）**：Login、Register（common）；CoachList、ProductList、CourseList、MemberList、BookingReviewList、SlotSettings（admin）；MyBookings、MyProducts（member）。
+**已完成（11）**：Login、Register（common）；CoachList、ProductList、CourseList、MemberList、BookingReviewList、SlotSettings、CreateBooking（admin）；MyBookings、MyProducts（member）。
 
-**佔位頁面尚未實作（11）**，皆為 `Card` + TODO 文字的空頁面：
+**佔位頁面尚未實作（10）**，皆為 `Card` + TODO 文字的空頁面：
 
-- 管理員：`CoachForm`、`CoachPurchaseQuery`、`ProductForm`、`PurchaseEntry`、`CourseForm`、`CreateBooking`、`BookingReviewDetail`、`MemberDetail`
+- 管理員：`CoachForm`、`CoachPurchaseQuery`、`ProductForm`、`PurchaseEntry`、`CourseForm`、`BookingReviewDetail`、`MemberDetail`
 - 會員：`Dashboard`、`SubmitBooking`、`AddPerson`
 
 實作這些表單頁時，請先核對對應後端 router 的實際能力（例如 `courses`／`products` 無 DELETE）。
@@ -623,4 +623,4 @@ flowchart TD
 3. **手機版時段選擇器**：`SlotPicker` 僅有桌面格狀版面，窄螢幕橫向滑動/列表式呈現尚未實作。
 4. **自動化測試**：無 unit / e2e 測試，變更後仰賴手動 `curl` 驗證與人工瀏覽器測試。
 5. **CI/CD**：尚無自動化流程，Docker 本機一鍵啟動已驗證可正常 build/run。
-6. **11 個表單/詳情頁**：見 8.2，是目前最大宗的未完成工作，多數畫面缺了表單就無法從 UI 完整走完對應情境（第 7 節多處情境仍需靠直接呼叫 API）。
+6. **10 個表單/詳情頁**：見 8.2，是目前最大宗的未完成工作，多數畫面缺了表單就無法從 UI 完整走完對應情境（第 7 節多處情境仍需靠直接呼叫 API）。
