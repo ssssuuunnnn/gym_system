@@ -21,6 +21,20 @@ interface AuthState {
   logout: () => void;
 }
 
+/**
+ * 從 JWT payload 的 `sub` claim 取出使用者 id（不驗證簽章，僅供前端顯示/預填用途，
+ * 例如送出預約申請時需要帶入自己的 member_id）。
+ */
+export function decodeUserId(token: string | null): number | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.sub ? Number(payload.sub) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({

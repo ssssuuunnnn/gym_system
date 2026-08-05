@@ -18,3 +18,16 @@ export async function listPurchases(userId?: number) {
   });
   return data;
 }
+
+export interface PurchaseCreatePayload {
+  user_id: number;
+  product_id: number;
+  quantity: number;
+  purchase_date: string;
+  amount: number;
+}
+
+export async function createPurchase(payload: PurchaseCreatePayload) {
+  const { data } = await apiClient.post<Purchase>('/purchases', payload);
+  return data;
+}
