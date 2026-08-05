@@ -118,7 +118,7 @@ docker compose up --build
 | `/products` | 任何登入者 | 全部（商品目錄，會員瀏覽/預約需要） | 僅 admin |
 | `/courses` | 任何登入者 | 全部（課程目錄） | 僅 admin |
 | `/purchases` | 任何登入者 | **強制限縮為自己** | 僅 admin（僅 POST，無 PUT/DELETE） |
-| `/reservations` | 任何登入者 | **強制限縮為自己（`member_id`）** | 建立：任何登入者（`as_admin` 參數區分行為）；審核/取消：僅 admin |
+| `/reservations` | 任何登入者 | **強制限縮為自己（`member_id`）** | 建立：任何登入者（`as_admin` 參數區分行為；`as_admin=false` 時後端強制以 `current_user.id` 覆寫 `member_id`，忽略傳入值，避免冒名建立他人預約）；審核/取消：僅 admin |
 | `/time-slots` | 任何登入者 | 全部（單一時段開放來源，各角色畫面都要讀） | 僅 admin |
 | `/users` | 僅 admin | — | 僅 admin |
 
@@ -486,8 +486,8 @@ Base URL：`/api/v1`（見 `backend/app/core/config.py` 的 `API_V1_PREFIX`）�
   coaches/new, coaches/:id/edit → CoachForm           [佔位]
   coaches/purchases         → CoachPurchaseQuery      [佔位]
   products                  → ProductList            [已完成]
-  products/new, products/:id/edit → ProductForm       [佔位]
-  products/purchase-entry   → PurchaseEntry           [佔位]
+  products/new, products/:id/edit → ProductForm       [已完成]
+  products/purchase-entry   → PurchaseEntry           [已完成]
   courses                   → CourseList             [已完成]
   courses/new, courses/:id/edit → CourseForm          [佔位]
   members                   → MemberList             [已完成]
@@ -498,7 +498,7 @@ Base URL：`/api/v1`（見 `backend/app/core/config.py` 的 `API_V1_PREFIX`）�
   dashboard                  → Dashboard              [佔位]
   products                   → MyProducts             [已完成]
   bookings                   → MyBookings             [已完成]
-  bookings/submit            → SubmitBooking          [佔位]
+  bookings/submit            → SubmitBooking          [已完成]
   bookings/:id/add-person    → AddPerson              [佔位]
 ```
 
@@ -532,7 +532,7 @@ sequenceDiagram
     BE-->>FE: 列表含狀態標籤
 ```
 
-目前限制：「送出預約申請」（`SubmitBooking`）畫面尚未實作，此情境的申請步驟目前只能透過 API 直接呼叫完成；查看購買/預約結果的兩個列表頁（我的商品、我的預約）已完成。
+「送出預約申請」（`SubmitBooking`，已完成）：學員選商品（依身份過濾，見下）、選填教練/課程/欲扣抵的購買紀錄、預約日期與時段、人數、備註，以 `as_admin=false` 送出，`member_id` 由後端依登入者自動帶入。商品清單過濾規則：「臨時加人」僅能透過加購流程使用，不列入可直接預約的商品；「場租1對1」「包場」屬教練租用場地類型，僅場租教練身份顯示，學員看不到。
 
 ### 7.2 場租教練：登入 → 送出預約 → 加購臨時加人
 
@@ -565,8 +565,8 @@ flowchart TD
 
 ### 7.4 管理員：建立商品與登錄購買紀錄
 
-1. 「商品管理列表」（已完成）建立/檢視商品（`ProductForm` 表單頁尚未實作，目前只能透過 API 建立，畫面已有「新增商品」入口但點進去是佔位頁）。
-2. 「登錄購買紀錄」入口（`PurchaseEntry`，尚未實作）：選會員、選商品、數量、購買日期、金額 → 呼叫 `POST /purchases`，`remaining_hours` 由後端依 `session_hours * quantity` 自動計算。
+1. 「商品管理列表」＋「新增／編輯商品」（`ProductForm`，已完成）：商品名稱、分類、堂數、價格、上架狀態。後端無 `GET /products/{id}`，編輯模式從既有列表快取中找出該筆資料帶入表單。
+2. 「登錄購買紀錄」（`PurchaseEntry`，已完成）：選會員、選商品、數量、購買日期、金額（金額依「商品單價 × 數量」自動帶入，可手動調整）→ 呼叫 `POST /purchases`，`remaining_hours` 由後端依 `session_hours * quantity` 自動計算。送出後表單清空但停留在原頁，方便連續登錄多筆購買。
 3. 會員之後可在「我的商品」看到這筆購買與剩餘堂數。
 
 ### 7.5 管理員：時段開放設定
@@ -605,12 +605,12 @@ flowchart TD
 
 ### 8.2 前端（21 個畫面）
 
-**已完成（11）**：Login、Register（common）；CoachList、ProductList、CourseList、MemberList、BookingReviewList、SlotSettings、CreateBooking（admin）；MyBookings、MyProducts（member）。
+**已完成（14）**：Login、Register（common）；CoachList、ProductList、CourseList、MemberList、BookingReviewList、SlotSettings、CreateBooking、ProductForm、PurchaseEntry（admin）；MyBookings、MyProducts、SubmitBooking（member）。
 
-**佔位頁面尚未實作（10）**，皆為 `Card` + TODO 文字的空頁面：
+**佔位頁面尚未實作（7）**，皆為 `Card` + TODO 文字的空頁面：
 
-- 管理員：`CoachForm`、`CoachPurchaseQuery`、`ProductForm`、`PurchaseEntry`、`CourseForm`、`BookingReviewDetail`、`MemberDetail`
-- 會員：`Dashboard`、`SubmitBooking`、`AddPerson`
+- 管理員：`CoachForm`、`CoachPurchaseQuery`、`CourseForm`、`BookingReviewDetail`、`MemberDetail`
+- 會員：`Dashboard`、`AddPerson`
 
 實作這些表單頁時，請先核對對應後端 router 的實際能力（例如 `courses`／`products` 無 DELETE）。
 
@@ -623,4 +623,4 @@ flowchart TD
 3. **手機版時段選擇器**：`SlotPicker` 僅有桌面格狀版面，窄螢幕橫向滑動/列表式呈現尚未實作。
 4. **自動化測試**：無 unit / e2e 測試，變更後仰賴手動 `curl` 驗證與人工瀏覽器測試。
 5. **CI/CD**：尚無自動化流程，Docker 本機一鍵啟動已驗證可正常 build/run。
-6. **10 個表單/詳情頁**：見 8.2，是目前最大宗的未完成工作，多數畫面缺了表單就無法從 UI 完整走完對應情境（第 7 節多處情境仍需靠直接呼叫 API）。
+6. **7 個表單/詳情頁**：見 8.2，多數畫面缺了表單就無法從 UI 完整走完對應情境（第 7 節部分情境仍需靠直接呼叫 API，例如建立教練資料、課程）。
