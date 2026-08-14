@@ -1,0 +1,23 @@
+<!-- @dsCard group="Components" viewport="700x200" name="Forms" subtitle="Input, Select, Checkbox, Radio, Switch" -->
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<div id="root" style="padding:20px;height:100%"></div>
+<script type="text/babel">
+const {Input,Select,Checkbox,Radio,Switch}=window.PulseFitDesignSystem_325e30;
+function Demo(){
+const [c,setC]=React.useState(true);const [r,setR]=React.useState('month');const [s,setS]=React.useState(true);
+return (<div style={{display:'flex',gap:24,alignItems:'center',flexWrap:'wrap'}}>
+<Input placeholder="搜尋會員姓名或電話" prefix={<i className="ri-search-line"/>}/>
+<Select options={[{label:'本週',value:'week'},{label:'本月',value:'month'}]} value={r} onChange={setR}/>
+<Checkbox checked={c} onChange={setC}>自動續約</Checkbox>
+<Radio checked={r==='month'} onChange={()=>setR('month')}>月繳</Radio>
+<Radio checked={r==='week'} onChange={()=>setR('week')}>週繳</Radio>
+<Switch checked={s} onChange={setS}/>
+</div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>

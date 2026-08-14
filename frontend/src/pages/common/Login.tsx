@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/auth';
 
 /**
  * 登入頁：管理員與教練（會員）共用登入入口。
- * 登入後依角色導向：管理員 → 預約審核列表；教練/學員 → 教練儀表板。
+ * 登入後依角色導向：管理員 → 管理員儀表板；教練/學員 → 會員儀表板。
  */
 export default function Login() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function Login() {
     try {
       const data = await loginApi(values.username, values.password);
       login({ token: data.access_token, role: data.role, isCoach: data.is_coach, username: values.username });
-      navigate(data.role === 'admin' ? '/admin/reservations' : '/member/dashboard');
+      navigate(data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
     } catch (err) {
       message.error('帳號或密碼錯誤');
     } finally {

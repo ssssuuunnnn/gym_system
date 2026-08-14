@@ -5,6 +5,7 @@ import RequireRole from './RequireRole';
 import Login from '../pages/common/Login';
 import Register from '../pages/common/Register';
 
+import Dashboard from '../pages/admin/Dashboard';
 import CoachList from '../pages/admin/CoachList';
 import CoachForm from '../pages/admin/CoachForm';
 import ProductList from '../pages/admin/ProductList';
@@ -20,7 +21,7 @@ import SlotSettings from '../pages/admin/SlotSettings';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 
-import Dashboard from '../pages/member/Dashboard';
+import MemberDashboard from '../pages/member/Dashboard';
 import MyProducts from '../pages/member/MyProducts';
 import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
@@ -41,7 +42,8 @@ export const router = createBrowserRouter([
         path: '/admin',
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="reservations" replace /> },
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: 'dashboard', element: <Dashboard /> },
           { path: 'reservations', element: <BookingReviewList /> },
           { path: 'reservations/create', element: <CreateBooking /> },
           { path: 'reservations/:id', element: <BookingReviewDetail /> },
@@ -72,7 +74,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'dashboard', element: <MemberDashboard /> },
           { path: 'products', element: <MyProducts /> },
           { path: 'bookings', element: <MyBookings /> },
           { path: 'bookings/submit', element: <SubmitBooking /> },
