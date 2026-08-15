@@ -5,6 +5,7 @@ import RequireRole from './RequireRole';
 import Login from '../pages/common/Login';
 import Register from '../pages/common/Register';
 
+import AdminDashboard from '../pages/admin/Dashboard';
 import CoachList from '../pages/admin/CoachList';
 import CoachForm from '../pages/admin/CoachForm';
 import ProductList from '../pages/admin/ProductList';
@@ -41,7 +42,8 @@ export const router = createBrowserRouter([
         path: '/admin',
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="reservations" replace /> },
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: 'dashboard', element: <AdminDashboard /> },
           { path: 'reservations', element: <BookingReviewList /> },
           { path: 'reservations/create', element: <CreateBooking /> },
           { path: 'reservations/:id', element: <BookingReviewDetail /> },
