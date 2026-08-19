@@ -7,9 +7,13 @@ import { useAuthStore, type Role } from '../store/auth';
 export default function RequireRole({ role }: { role: Role }) {
   const { token, role: currentRole } = useAuthStore();
 
-  if (!token) return <Navigate to="/login" replace />;
-  if (currentRole !== role) {
-    return <Navigate to={currentRole === 'admin' ? '/admin/reservations' : '/member/dashboard'} replace />;
+  if (!token) {
+    return <Navigate to="/login" replace />;
   }
+  
+  if (currentRole !== role) {
+    return <Navigate to={currentRole === 'admin' ? '/admin/dashboard' : '/member/dashboard'} replace />;
+  }
+
   return <Outlet />;
 }
