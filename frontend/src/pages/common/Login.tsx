@@ -18,7 +18,7 @@ export default function Login() {
     try {
       const data = await loginApi(values.username, values.password);
       login({ token: data.access_token, role: data.role, isCoach: data.is_coach, username: values.username });
-      navigate(data.role === 'admin' ? '/admin/reservations' : '/member/dashboard');
+      navigate(data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
     } catch (err) {
       message.error('帳號或密碼錯誤');
     } finally {

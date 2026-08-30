@@ -83,7 +83,7 @@ frontend 收到回應 → useAuthStore.login()（store/auth.ts）
         │            寫入 token/role/isCoach，並持久化到 localStorage
         ▼
 Login.tsx 依 role 導向不同首頁
-   （admin → /admin/reservations，member → /member/dashboard）
+   （admin → /admin/dashboard） → /member/dashboard）
 ```
 
 之後每一次呼叫其他 API，`apiClient` 的 request 攔截器都會自動把 token 塞進 `Authorization: Bearer` header；後端則透過 `deps.py` 的 `get_current_user`（解碼 JWT、查 `users` 表）→ 視路由需要再疊加 `require_admin` 或 `require_coach` 做權限檢查。若後端回 401，`apiClient` 的 response 攔截器會自動觸發登出。

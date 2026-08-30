@@ -1,43 +1,93 @@
+import { useEffect, useState } from 'react';
 import { Layout, Menu, Button, Typography } from 'antd';
+import {
+  DashboardOutlined,
+  AuditOutlined,
+  UserSwitchOutlined,
+  ShoppingOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+  ClockCircleOutlined,
+} from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 
 const { Header, Sider, Content } = Layout;
 
+// 版面度量與毛玻璃效果數值，對應 gym-system-design/DESIGN_GUIDELINES.md 第 6、7.3 節
+const HEADER_HEIGHT = 64;
+const SIDER_WIDTH = 208;
+const SIDER_COLLAPSED_WIDTH = 56;
+const CONTENT_PADDING = 24;
+const SCROLL_BLUR_THRESHOLD = 4;
+
 /**
  * 共用版型：依角色顯示不同側邊欄。
  * 導覽結構採用「對照 Claude Design 視覺化 Mockup」章節確認的精簡版分組：
- * 管理員 6 大類、會員（場租教練）3 大類。畫面本身數量不變，只是入口收合。
+ * 管理員 6 大類（含儀表板）、會員（場租教練）3 大類。畫面本身數量不變，只是入口收合。
  */
 const adminMenuItems = [
-  { key: '/admin/reservations', label: '預約審核' },
-  { key: '/admin/coaches', label: '教練管理' },
-  { key: '/admin/products', label: '商品管理' },
-  { key: '/admin/courses', label: '課程管理' },
-  { key: '/admin/members', label: '會員管理' },
-  { key: '/admin/slot-settings', label: '時段設定' },
+  { key: '/admin/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
+  { key: '/admin/reservations', label: '預約審核', icon: <AuditOutlined /> },
+  { key: '/admin/coaches', label: '教練管理', icon: <UserSwitchOutlined /> },
+  { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
+  { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
+  { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
+  { key: '/admin/slot-settings', label: '時段設定', icon: <ClockCircleOutlined /> },
 ];
 
 const memberMenuItems = [
-  { key: '/member/dashboard', label: '儀表板' },
-  { key: '/member/products', label: '我的商品' },
-  { key: '/member/bookings', label: '我的預約' },
+  { key: '/member/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
+  { key: '/member/products', label: '我的商品', icon: <ShoppingOutlined /> },
+  { key: '/member/bookings', label: '我的預約', icon: <CalendarOutlined /> },
 ];
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, username, logout, isCoach } = useAuthStore();
+  const [collapsed, setCollapsed] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > SCROLL_BLUR_THRESHOLD);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const items = role === 'admin' ? adminMenuItems : memberMenuItems;
   const selectedKey = items.find((item) => location.pathname.startsWith(item.key))?.key;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0">
-        <div style={{ color: '#fff', padding: 16, fontWeight: 600 }}>健身工作室管理系統</div>
+      <Sider
+        theme="light"
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        breakpoint="lg"
+        collapsedWidth={SIDER_COLLAPSED_WIDTH}
+        width={SIDER_WIDTH}
+        style={{ borderRight: '1px solid #f0f0f0' }}
+      >
+        <div
+          style={{
+            height: HEADER_HEIGHT,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            padding: collapsed ? 0 : '0 20px',
+            fontWeight: 600,
+            fontSize: 16,
+            color: 'rgba(0,0,0,0.88)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+          }}
+        >
+          {collapsed ? '健' : '健身工作室管理系統'}
+        </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={selectedKey ? [selectedKey] : []}
           items={items}
@@ -45,13 +95,38 @@ export default function AppLayout() {
         />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
+        <Header
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            height: HEADER_HEIGHT,
+            lineHeight: `${HEADER_HEIGHT}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 24px',
+            background: scrolled ? 'rgba(255,255,255,0.45)' : '#ffffff',
+            backdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
+            boxShadow: scrolled ? '0 1px 4px rgba(0,21,41,0.08)' : 'none',
+            borderBottom: scrolled ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
+            transition: 'background .25s, box-shadow .25s',
+          }}
+        >
           <Typography.Text>
             {username}（{role === 'admin' ? '管理員' : isCoach ? '場租教練' : '學員'}）
           </Typography.Text>
-          <Button onClick={() => { logout(); navigate('/login'); }}>登出</Button>
+          <Button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+          >
+            登出
+          </Button>
         </Header>
-        <Content style={{ margin: 16 }}>
+        <Content style={{ margin: CONTENT_PADDING }}>
           <Outlet />
         </Content>
       </Layout>
