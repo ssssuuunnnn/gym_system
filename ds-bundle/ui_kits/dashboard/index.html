@@ -1,0 +1,27 @@
+<!-- @dsCard group="Dashboard" viewport="1280x760" name="Analysis Dashboard" subtitle="Ant Design Pro–style layout: sider nav, header, stat cards, revenue chart, ranking" -->
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" data-bg-color="#1677ff"><rect width="200" height="200" fill="#1677ff"/><text x="100" y="115" font-family="sans-serif" font-size="64" font-weight="700" fill="#fff" text-anchor="middle">P</text></svg></template>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<div id="root"></div>
+<script type="text/babel" src="DashboardLayout.jsx"></script>
+<script type="text/babel" src="DashboardContent.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS={"range":"今日"};
+const RANGE_KEY={'今日':'today','本週':'week','本月':'month','本年':'year'};
+function App(){
+const [t,setTweak]=useTweaks(TWEAK_DEFAULTS);
+const [active,setActive]=React.useState('dash');
+const {DashboardLayout,DashboardContent}=window.PulseFitUIKit;
+return React.createElement(React.Fragment,null,
+React.createElement(DashboardLayout,{active,onNav:setActive},React.createElement(DashboardContent,{range:RANGE_KEY[t.range]})),
+React.createElement(TweaksPanel,null,
+React.createElement(TweakSection,{label:'時間範圍'}),
+React.createElement(TweakRadio,{label:'區間',value:t.range,options:['今日','本週','本月','本年'],onChange:v=>setTweak('range',v)})));
+}
+(function wait(){if(window.PulseFitUIKit&&window.PulseFitUIKit.DashboardContent&&window.TweaksPanel){ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));}else{setTimeout(wait,30);}})();
+</script>

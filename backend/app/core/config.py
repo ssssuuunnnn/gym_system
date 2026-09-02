@@ -21,5 +21,8 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # 教練照片等上傳檔案的存放目錄，透過 /media 靜態路徑對外提供。
+    MEDIA_DIR: str = "media"
+
 
 settings = Settings()

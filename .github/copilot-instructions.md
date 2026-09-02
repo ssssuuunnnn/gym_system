@@ -28,7 +28,7 @@ Every backend resource follows the same triad: `models/X.py` (table) → `schema
 
 ## Data model (8 tables)
 
-`users` (admin/member, `is_coach` is a **derived** value — true iff a `coaches` row references the user, not a stored column) · `coaches` · `products` (catalog: category enum, `session_hours`, price) · `purchases` (a member's purchased session-hours, `remaining_hours` decremented/incremented as reservations are created/cancelled) · `time_slots` (weekly open/closed template, `day_of_week` 1–6 + `start_hour` 10–21, **row absence = open by default**) · `courses` (recurring group class template bound to a coach) · `reservations` (status: 待確認/已確認/已拒絕/已取消; source: member_submitted/admin_created) · `reservation_addons` (coach-only "臨時加人" add-on).
+`users` (admin/member, `is_coach` is a **derived** value — true iff a `coaches` row references the user, not a stored column; `is_blacklisted` and `must_change_password` are stored flags the admin sets from 會員詳情) · `coaches` (`user_id` bind is unique; plus `name`, `alias` 授課名稱, `line_name`, `phone`, `bank_code`/`bank_account` 匯款帳號, `specialty` 專長, `photo_url`) · `products` (catalog: category enum, `session_hours`, price) · `purchases` (a member's purchased session-hours, `remaining_hours` decremented/incremented as reservations are created/cancelled) · `time_slots` (weekly open/closed template, `day_of_week` 1–6 + `start_hour` 10–21, **row absence = open by default**) · `courses` (recurring group class template bound to a coach) · `reservations` (status: 待確認/已確認/已拒絕/已取消; source: member_submitted/admin_created) · `reservation_addons` (coach-only "臨時加人" add-on).
 
 ## Auth & permission model
 
@@ -40,6 +40,10 @@ JWT bearer tokens (`app/core/security.py`), role = `admin` | `member`. Key depen
 **Established pattern for list/read endpoints that both admins and members need** (see `routers/purchases.py`, `reservations.py`, `coaches.py`, `products.py`, `courses.py`): the route itself only requires `get_current_user`; inside the handler, non-admins are **silently scoped to their own data** (e.g. `purchases`/`reservations` force-filter by `current_user.id`, ignoring any different id passed in). Mutations (`POST`/`PUT`/`DELETE`) stay `require_admin`-gated per-route. Follow this pattern rather than gating an entire router with a single `dependencies=[Depends(require_admin)]` — several routers used to do that and it silently broke member-facing pages that needed read access to catalog data (coaches/products/courses) or their own purchases/reservations.
 
 `time_slots` is the single source of truth for slot availability — read by the settings screen, the reservation-review screens, and reservation creation (both member submit and admin create) alike.
+
+**File uploads**: `POST /coaches/upload-photo` (multipart, admin-only, jpg/png ≤ 2MB) saves under `settings.MEDIA_DIR` (`/app/media`, a named volume `coach_media`) and returns a `/media/...` URL; `main.py` mounts that dir as StaticFiles at `/media`, and `frontend/nginx.conf` proxies `/media/` to the backend. Store the returned URL in `coaches.photo_url`. This is the pattern for any future upload.
+
+**Forced password change**: when an admin resets a member's password from 會員詳情 with "會員下次登入時必須自行修改密碼" ticked, `POST /users/{id}/reset-password` sets `users.must_change_password`. `/auth/login` returns that flag in the token response; the frontend stores it and `AppLayout` redirects to `/member/change-password` (rendered outside `AppLayout`) until the member calls `POST /auth/change-password` (verifies current password, clears the flag). Enforcement is frontend-only — the API token still works elsewhere.
 
 ## Frontend conventions
 
@@ -58,7 +62,9 @@ Every list page follows the same shape (see `pages/admin/CoachList.tsx`, `Bookin
 
 **Done**: all list/read screens — CoachList, ProductList, CourseList, MemberList, BookingReviewList, SlotSettings (admin); MyBookings, MyProducts, Dashboard stub aside (member); Login/Register.
 
-**Still stub placeholders** (`Card` with a TODO paragraph, ~16 lines) — these are the next things to implement when asked: `CoachForm`, `ProductForm`, `CourseForm`, `PurchaseEntry`, `CoachPurchaseQuery`, `CreateBooking`, `BookingReviewDetail`, `MemberDetail` (admin); `SubmitBooking`, `AddPerson`, `Dashboard` (member). When implementing a form page, check the matching router in `backend/app/routers/` first — several resources (`courses`, `products`) have no `DELETE` endpoint by design.
+Also done: `ProductForm`, `PurchaseEntry`, `SubmitBooking`, `BookingReviewDetail`, `MemberDetail`, `CoachForm`. `MemberDetail` (帳號/密碼/黑名單維護) is the reference for the 會員詳情 design handoff — controlled local state + a sticky save bar that fires only the mutations for fields that actually changed (`PUT /users/{id}` for username, `POST /users/{id}/reset-password`, `PUT /users/{id}/blacklist`). `CoachForm` serves both `/admin/coaches/new` and `/admin/coaches/:id/edit` (edit prefills from the `['coaches']` list cache, shows 綁定帳號 read-only with a 不可變更 tag, adds a card-`extra` id/created line, a dirty-gated 儲存變更, and a 刪除教練資料 button that opens a confirm `Modal` → `DELETE /coaches/{id}`) — same sticky-save-bar shape; on new, 綁定帳號 is a keyword search over `['members']` that dims accounts already bound to a coach.
+
+**Still stub placeholders** (`Card` with a TODO paragraph, ~16 lines) — these are the next things to implement when asked: `CourseForm`, `CoachPurchaseQuery`, `CreateBooking` (admin); `AddPerson`, `Dashboard` (member). When implementing a form page, check the matching router in `backend/app/routers/` first — several resources (`courses`, `products`) have no `DELETE` endpoint by design.
 
 **Known backend gaps** (see README "尚未實作"): purchase/reservation creation aren't wrapped in a single DB transaction; add-on people (`reservation_addons`) don't yet decrement `purchase.remaining_hours`; no automated test suite yet.
 

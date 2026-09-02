@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -14,7 +14,18 @@ class Coach(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # 授課名稱：課表與預約畫面對會員顯示的稱呼，留空則顯示姓名
+    alias: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Line ID 或顯示名稱，僅供管理員聯繫用
+    line_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     phone: Mapped[str] = mapped_column(String(30), nullable=False)
+    # 匯款帳號：教練鐘點費撥款用，僅管理員可見
+    bank_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    bank_account: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # 專長：擅長項目、證照、適合的學員類型
+    specialty: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 教練照片：以 /media 靜態路徑對外提供的相對網址
+    photo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="coach_profile", foreign_keys=[user_id])

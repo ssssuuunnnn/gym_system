@@ -17,7 +17,16 @@ interface AuthState {
   role: Role | null;
   isCoach: boolean;
   username: string | null;
-  login: (params: { token: string; role: Role; isCoach: boolean; username: string }) => void;
+  /** 管理員曾重設密碼並要求會員自行修改：完成修改前僅能停留在修改密碼頁 */
+  mustChangePassword: boolean;
+  login: (params: {
+    token: string;
+    role: Role;
+    isCoach: boolean;
+    username: string;
+    mustChangePassword: boolean;
+  }) => void;
+  clearMustChangePassword: () => void;
   logout: () => void;
 }
 
@@ -42,8 +51,12 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       isCoach: false,
       username: null,
-      login: ({ token, role, isCoach, username }) => set({ token, role, isCoach, username }),
-      logout: () => set({ token: null, role: null, isCoach: false, username: null }),
+      mustChangePassword: false,
+      login: ({ token, role, isCoach, username, mustChangePassword }) =>
+        set({ token, role, isCoach, username, mustChangePassword }),
+      clearMustChangePassword: () => set({ mustChangePassword: false }),
+      logout: () =>
+        set({ token: null, role: null, isCoach: false, username: null, mustChangePassword: false }),
     }),
     { name: 'auth-storage' },
   ),
