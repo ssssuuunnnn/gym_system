@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { theme } from 'antd';
+import { DEFAULT_HOUR_HEIGHT, formatMinutes } from './shared';
 
 /**
  * 日／週格上標示當下時間的紅色水平線與圓點，只在今天那一欄渲染。
@@ -9,7 +10,7 @@ import { theme } from 'antd';
 export interface NowIndicatorProps {
   /** 自午夜起算的分鐘數。 */
   minutes: number;
-  /** 須與時間格的 hourHeight 一致，預設 52。 */
+  /** 須與時間格的 hourHeight 一致，預設 `DEFAULT_HOUR_HEIGHT`。 */
   hourHeight?: number;
   /** 時間格渲染的第一個小時，預設 0。 */
   startHour?: number;
@@ -24,14 +25,10 @@ export interface NowIndicatorProps {
   style?: CSSProperties;
 }
 
-function pad(n: number): string {
-  return n < 10 ? '0' + n : '' + n;
-}
-
 export function NowIndicator(props: NowIndicatorProps) {
   const {
     minutes = 0,
-    hourHeight = 52,
+    hourHeight = DEFAULT_HOUR_HEIGHT,
     startHour = 0,
     label,
     showLabel = false,
@@ -41,7 +38,7 @@ export function NowIndicator(props: NowIndicatorProps) {
   } = props;
   const { token } = theme.useToken();
   const top = ((minutes - startHour * 60) / 60) * hourHeight;
-  const text = label || pad(Math.floor(minutes / 60)) + ':' + pad(minutes % 60);
+  const text = label || formatMinutes(minutes);
 
   return (
     <>

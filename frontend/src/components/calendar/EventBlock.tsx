@@ -1,6 +1,6 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import { theme } from 'antd';
-import type { EventTone } from './EventChip';
+import { DEFAULT_HOUR_HEIGHT, eventToneStyle, type EventTone } from './shared';
 
 /**
  * 一筆預約，在日欄裡以絕對定位的方塊呈現。
@@ -36,7 +36,7 @@ export function EventBlock(props: EventBlockProps) {
     metaText,
     tone = 'blue',
     top = 0,
-    height = 52,
+    height = DEFAULT_HOUR_HEIGHT,
     colIndex = 0,
     colCount = 1,
     continued = false,
@@ -44,19 +44,7 @@ export function EventBlock(props: EventBlockProps) {
     style,
   } = props;
   const { token } = theme.useToken();
-  const TONES: Record<EventTone, { bg: string; bd: string; fg: string; dot: string }> = {
-    blue: { bg: token.blue1, bd: token.blue3, fg: token.blue8, dot: token.blue6 },
-    purple: { bg: token.purple1, bd: token.purple3, fg: token.purple8, dot: token.purple6 },
-    gold: { bg: token.gold1, bd: token.gold3, fg: token.gold8, dot: token.gold6 },
-    green: { bg: token.green1, bd: token.green3, fg: token.green8, dot: token.green6 },
-    gray: {
-      bg: token.colorFillTertiary,
-      bd: token.colorBorder,
-      fg: token.colorTextSecondary,
-      dot: token.colorTextTertiary,
-    },
-  };
-  const t = TONES[tone] || TONES.blue;
+  const t = eventToneStyle(token, tone);
   const h = Math.max(22, height);
 
   const line: CSSProperties = {

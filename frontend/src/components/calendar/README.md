@@ -1,9 +1,21 @@
 # calendar — 排程日曆原子組件
 
 從 PulseFit 設計系統（`Agnes's Gym System Design`）匯入的 8 個原子組件，用來組出日／週／月排程日曆。
-顏色、圓角、字體一律走 `theme.useToken()`（antd v6），不寫全域 CSS。
+規範見 `.claude/skills/component-conventions/SKILL.md`：
 
-事件色系 `tone`（EventBlock / EventChip / MonthDayCell 共用，跨檢視顏色不變）：
+- 顏色、圓角、字體一律走 `theme.useToken()`（antd v6），不寫全域 CSS、不寫死 hex。
+- 共用常數、日期工具、色系集中在 **`shared.ts`**，各組件一律 import，不在個別檔案重覆宣告：
+  - `DEFAULT_HOUR_HEIGHT`（時間格垂直尺規的唯一預設值，`TimeAxis` / `TimeSlotCell` /
+    `EventBlock` / `NowIndicator` 共用）
+  - `WEEKDAY_LABELS`（星期標籤，週一為首）
+  - `EventTone` 型別與 `eventToneStyle(token, tone)`（色系 → token 顏色）
+  - `dateKey` / `startOfWeekMon` / `formatHour` / `formatMinutes`（皆基於 `dayjs`，不手刻日期運算）
+- 每個組件都是受控、props 驅動：typed props interface + 逐欄 JSDoc、內部只留 transient state
+  （如 `TimeSlotCell` 的 hover）、留 `style?` 逃生口並最後展開。
+- `MiniCalendar` 與 antd `DatePicker` 面板功能重疊，之後可考慮改用 antd 原生元件；新的日期選擇
+  需求優先用 antd（如篩選用 `DatePicker.RangePicker`），不要再自刻。
+
+事件色系 `tone`（`EventBlock` / `EventChip` / `MonthDayCell` 共用，跨檢視顏色不變；定義於 `shared.ts`）：
 
 | tone | 用途 |
 |---|---|

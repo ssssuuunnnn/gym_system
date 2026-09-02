@@ -79,6 +79,8 @@ Every list page follows the same shape (see `pages/admin/CoachList.tsx`, `Bookin
 
 `components/SlotPicker.tsx` is the canonical weekly grid (週一–週六 × 10:00–21:00) — reused for both the read-only reservation views and the admin `SlotSettings` toggle-to-open/close screen. Extend its `SlotState` union rather than building a parallel grid component.
 
+When **authoring or reviewing a UI component** (not a page screen), follow the `component-conventions` skill: where it lives (shared `frontend/src/components/` for 2+ consumers vs. page-scoped `frontend/src/pages/<Area>/<Page>/components/` for a single consumer), reach for an Ant Design component before hand-rolling, colours/radius via `theme.useToken()` (no hardcoded hex), `dayjs` for all date work, one shared source for constants/helpers, controlled props-driven components, and "one concept, one component". The layout shell (`AppLayout.tsx`, header, sidebar) has its own `layout-conventions` skill.
+
 ## Implementation status
 
 **Done**: all list/read screens — CoachList, ProductList, CourseList, MemberList, BookingReviewList, SlotSettings (admin); MyBookings, MyProducts (member); Login/Register.

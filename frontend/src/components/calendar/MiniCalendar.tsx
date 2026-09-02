@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react';
 import { theme } from 'antd';
+import dayjs from 'dayjs';
+import { WEEKDAY_LABELS, dateKey, startOfWeekMon } from './shared';
 
 /**
  * 日曆側欄用的小月曆，週一為首，標示今天與主檢視目前的範圍。
@@ -22,15 +24,6 @@ export interface MiniCalendarProps {
   style?: CSSProperties;
 }
 
-const DOW = ['一', '二', '三', '四', '五', '六', '日'];
-
-function pad(n: number): string {
-  return n < 10 ? '0' + n : '' + n;
-}
-function keyOf(d: Date): string {
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-}
-
 function Chevron({ dir }: { dir: 'left' | 'right' }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -43,8 +36,9 @@ export function MiniCalendar(props: MiniCalendarProps) {
   const { year, month, todayKey, selectedKeys = [], weeks = 6, onSelect, onPrev, onNext, style } = props;
   const { token } = theme.useToken();
 
-  const first = new Date(year, month, 1);
-  const start = new Date(year, month, 1 - ((first.getDay() + 6) % 7));
+  // 先設為 1 號再改年月，避免當日為 31 而目標月僅 30 天時跨月
+  const firstOfMonth = dayjs().date(1).year(year).month(month).startOf('day');
+  const gridStart = startOfWeekMon(firstOfMonth);
 
   const navStyle: CSSProperties = {
     width: 20,
@@ -60,15 +54,15 @@ export function MiniCalendar(props: MiniCalendarProps) {
 
   const cells = [];
   for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const k = keyOf(d);
+    const cell = gridStart.add(i, 'day');
+    const k = dateKey(cell);
     const isToday = k === todayKey;
     const sel = selectedKeys.indexOf(k) >= 0;
-    const other = d.getMonth() !== month;
+    const other = cell.month() !== month;
     cells.push(
       <div
         key={k}
-        onClick={onSelect ? () => onSelect(k, d) : undefined}
+        onClick={onSelect ? () => onSelect(k, cell.toDate()) : undefined}
         style={{
           textAlign: 'center',
           fontSize: 11,
@@ -84,7 +78,7 @@ export function MiniCalendar(props: MiniCalendarProps) {
           background: isToday ? token.colorPrimary : sel ? token.colorPrimaryBg : 'transparent',
         }}
       >
-        {d.getDate()}
+        {cell.date()}
       </div>,
     );
   }
@@ -95,7 +89,7 @@ export function MiniCalendar(props: MiniCalendarProps) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: token.colorText }}>
-          {year + ' 年 ' + (month + 1) + ' 月'}
+          {firstOfMonth.format('YYYY 年 M 月')}
         </div>
         <div style={{ display: 'flex', gap: 2 }}>
           <div onClick={onPrev} style={navStyle}>
@@ -107,7 +101,7 @@ export function MiniCalendar(props: MiniCalendarProps) {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1 }}>
-        {DOW.map((d) => (
+        {WEEKDAY_LABELS.map((d) => (
           <div
             key={d}
             style={{

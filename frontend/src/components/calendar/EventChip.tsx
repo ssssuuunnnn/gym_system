@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react';
 import { theme } from 'antd';
+import { eventToneStyle, type EventTone } from './shared';
 
-/** 事件色系，對應預約類型：blue 團體課程 / purple 私人教練 / gold 場地租借 / green 已完成 / gray 場館維護。 */
-export type EventTone = 'blue' | 'purple' | 'gold' | 'green' | 'gray';
+export type { EventTone };
 
 /**
  * 預約的單行版本，用於月檢視格或任何塞不下 EventBlock 的窄清單。
@@ -20,14 +20,7 @@ export interface EventChipProps {
 export function EventChip(props: EventChipProps) {
   const { label, tone = 'blue', onClick, style } = props;
   const { token } = theme.useToken();
-  const TONES: Record<EventTone, { bg: string; fg: string; dot: string }> = {
-    blue: { bg: token.blue1, fg: token.blue8, dot: token.blue6 },
-    purple: { bg: token.purple1, fg: token.purple8, dot: token.purple6 },
-    gold: { bg: token.gold1, fg: token.gold8, dot: token.gold6 },
-    green: { bg: token.green1, fg: token.green8, dot: token.green6 },
-    gray: { bg: token.colorFillTertiary, fg: token.colorTextSecondary, dot: token.colorTextTertiary },
-  };
-  const t = TONES[tone] || TONES.blue;
+  const t = eventToneStyle(token, tone);
 
   return (
     <div

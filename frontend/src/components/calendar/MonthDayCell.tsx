@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { theme } from 'antd';
-import { EventChip, type EventTone } from './EventChip';
+import { EventChip } from './EventChip';
+import type { EventTone } from './shared';
 
 /**
  * 月檢視的單日格：日期數字＋最多 N 個 EventChip＋「還有 N 筆」溢出計數。
