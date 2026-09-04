@@ -14,6 +14,7 @@ import PurchaseEntry from '../pages/admin/PurchaseEntry';
 import CoachPurchaseQuery from '../pages/admin/CoachPurchaseQuery';
 import BookingReviewList from '../pages/admin/BookingReviewList';
 import BookingReviewDetail from '../pages/admin/BookingReviewDetail';
+import GroupCourseList from '../pages/admin/GroupCourseList';
 import CourseList from '../pages/admin/CourseList';
 import CourseForm from '../pages/admin/CourseForm';
 import CreateBooking from '../pages/admin/CreateBooking';
@@ -56,9 +57,10 @@ export const router = createBrowserRouter([
           { path: 'products/new', element: <ProductForm /> },
           { path: 'products/:id/edit', element: <ProductForm /> },
           { path: 'products/purchase-entry', element: <PurchaseEntry /> },
-          { path: 'courses', element: <CourseList /> },
+          { path: 'courses', element: <GroupCourseList /> },
           { path: 'courses/new', element: <CourseForm /> },
           { path: 'courses/:id/edit', element: <CourseForm /> },
+          { path: 'private-courses', element: <CourseList /> },
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           { path: 'slot-settings', element: <SlotSettings /> },

@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listCourses, type Course } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
-
-const WEEKDAY_LABEL = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+import { weekdayLabel } from '../../lib/weekday';
 
 /**
  * 課程管理列表：對應「課程管理列表」。後端目前僅提供 list/create/update，無刪除 API。
@@ -28,7 +27,7 @@ export default function CourseList() {
     {
       title: '時段',
       key: 'time',
-      render: (_, record) => `${WEEKDAY_LABEL[record.day_of_week] ?? record.day_of_week} ${record.start_hour}:00`,
+      render: (_, record) => `${weekdayLabel(record.day_of_week)} ${record.start_hour}:00`,
     },
     { title: '人數上限', dataIndex: 'max_capacity' },
     {

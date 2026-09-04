@@ -1,6 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.course import CourseStatus
 
 
 class CourseCreate(BaseModel):
@@ -8,7 +10,15 @@ class CourseCreate(BaseModel):
     coach_id: int
     day_of_week: int
     start_hour: int
-    max_capacity: int = Field(ge=3, le=8)
+    duration_minutes: int = 60
+    min_capacity: int = Field(default=1, ge=1, le=100)
+    max_capacity: int = Field(ge=1, le=100)
+    session_count: int = Field(default=0, ge=0)
+    description: str | None = None
+    cover_image_url: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    status: CourseStatus = CourseStatus.draft
 
 
 class CourseUpdate(BaseModel):
@@ -16,7 +26,19 @@ class CourseUpdate(BaseModel):
     coach_id: int | None = None
     day_of_week: int | None = None
     start_hour: int | None = None
-    max_capacity: int | None = Field(default=None, ge=3, le=8)
+    duration_minutes: int | None = Field(default=None, ge=1)
+    min_capacity: int | None = Field(default=None, ge=1, le=100)
+    max_capacity: int | None = Field(default=None, ge=1, le=100)
+    session_count: int | None = Field(default=None, ge=0)
+    description: str | None = None
+    cover_image_url: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    status: CourseStatus | None = None
+
+
+class CourseStatusUpdate(BaseModel):
+    status: CourseStatus
 
 
 class CourseOut(BaseModel):
@@ -24,8 +46,20 @@ class CourseOut(BaseModel):
 
     id: int
     name: str
+    code: str | None
     coach_id: int
     day_of_week: int
     start_hour: int
+    duration_minutes: int
+    min_capacity: int
     max_capacity: int
+    session_count: int
+    description: str | None
+    cover_image_url: str | None
+    start_date: date | None
+    end_date: date | None
+    status: CourseStatus
+    enrolled_count: int = 0
     created_at: datetime
+    updated_at: datetime
+    updated_by_name: str | None

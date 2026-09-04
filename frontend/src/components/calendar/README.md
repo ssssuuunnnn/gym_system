@@ -7,9 +7,9 @@
 - 共用常數、日期工具、色系集中在 **`shared.ts`**，各組件一律 import，不在個別檔案重覆宣告：
   - `DEFAULT_HOUR_HEIGHT`（時間格垂直尺規的唯一預設值，`TimeAxis` / `TimeSlotCell` /
     `EventBlock` / `NowIndicator` 共用）
-  - `WEEKDAY_LABELS`（星期標籤，週一為首）
   - `EventTone` 型別與 `eventToneStyle(token, tone)`（色系 → token 顏色）
   - `dateKey` / `startOfWeekMon` / `formatHour` / `formatMinutes`（皆基於 `dayjs`，不手刻日期運算）
+  - 星期標籤走 `src/lib/weekday.ts`（`WEEKDAY_SHORT_MON_FIRST` / `weekdayLabel`）—— 全專案共用
 - 每個組件都是受控、props 驅動：typed props interface + 逐欄 JSDoc、內部只留 transient state
   （如 `TimeSlotCell` 的 hover）、留 `style?` 逃生口並最後展開。
 - `MiniCalendar` 與 antd `DatePicker` 面板功能重疊，之後可考慮改用 antd 原生元件；新的日期選擇

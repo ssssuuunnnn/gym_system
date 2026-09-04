@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react';
 import { theme } from 'antd';
 import dayjs from 'dayjs';
-import { WEEKDAY_LABELS, dateKey, startOfWeekMon } from './shared';
+import { WEEKDAY_SHORT_MON_FIRST } from '../../lib/weekday';
+import { dateKey, startOfWeekMon } from './shared';
 
 /**
  * 日曆側欄用的小月曆，週一為首，標示今天與主檢視目前的範圍。
@@ -101,7 +102,7 @@ export function MiniCalendar(props: MiniCalendarProps) {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1 }}>
-        {WEEKDAY_LABELS.map((d) => (
+        {WEEKDAY_SHORT_MON_FIRST.map((d) => (
           <div
             key={d}
             style={{
