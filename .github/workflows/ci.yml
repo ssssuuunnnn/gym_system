@@ -1,0 +1,5 @@
+- name: Check Alembic Single Head
+  run: |
+    # 檢查 Alembic 是否存在 multiple heads
+    # 如果有 multiple heads，這個指令會傳回非 0 狀態碼，直接把 CI 打爆阻擋 Merge
+    python -m alembic heads | wc -l | grep -q "^1$"
