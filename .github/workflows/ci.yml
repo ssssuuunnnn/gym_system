@@ -12,16 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11' # 請換成專案使用的 Python 版本
-
-      - name: Install dependencies
+      - name: Build Backend Docker Image
         run: |
-          pip install -r requirements.txt # 或 poetry/pipenv 安裝指令
+          docker build -t backend-image ./backend
 
       - name: Check Alembic Single Head
         run: |
-          # 檢查 Alembic 是否存在 multiple heads
-          python -m alembic heads | wc -l | grep -q "^1$"
+          docker run --rm backend-image python -m alembic heads | wc -l | grep -q "^1$"
