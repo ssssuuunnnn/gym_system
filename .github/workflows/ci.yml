@@ -1,5 +1,27 @@
-- name: Check Alembic Single Head
-  run: |
-    # 檢查 Alembic 是否存在 multiple heads
-    # 如果有 multiple heads，這個指令會傳回非 0 狀態碼，直接把 CI 打爆阻擋 Merge
-    python -m alembic heads | wc -l | grep -q "^1$"
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  alembic-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # 請換成專案使用的 Python 版本
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt # 或 poetry/pipenv 安裝指令
+
+      - name: Check Alembic Single Head
+        run: |
+          # 檢查 Alembic 是否存在 multiple heads
+          python -m alembic heads | wc -l | grep -q "^1$"
