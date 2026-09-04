@@ -9,7 +9,7 @@ import {
   TeamOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 
 const { Header, Sider, Content } = Layout;
@@ -45,7 +45,7 @@ const memberMenuItems = [
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { role, username, logout, isCoach } = useAuthStore();
+  const { role, username, logout, isCoach, mustChangePassword } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -54,6 +54,11 @@ export default function AppLayout() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 管理員在「會員詳情」重設密碼並要求會員自行修改：完成修改前僅能停留在修改密碼頁
+  if (mustChangePassword) {
+    return <Navigate to="/member/change-password" replace />;
+  }
 
   const items = role === 'admin' ? adminMenuItems : memberMenuItems;
   const selectedKey = items.find((item) => location.pathname.startsWith(item.key))?.key;

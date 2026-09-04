@@ -1,12 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
 from app.models.coach import Coach
-from app.schemas.coach import CoachCreate, CoachOut, CoachUpdate
+from app.models.user import User
+from app.schemas.coach import CoachCreate, CoachOut, CoachPhotoOut, CoachUpdate
 
 router = APIRouter(prefix="/coaches", tags=["coaches"])
+
+# 教練照片：僅接受 jpg、png，單檔 2MB 以內（與「新增教練」設計稿一致）
+PHOTO_CONTENT_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
+PHOTO_MAX_BYTES = 2 * 1024 * 1024
 
 
 @router.get("", response_model=list[CoachOut], dependencies=[Depends(get_current_user)])
@@ -18,9 +27,37 @@ def list_coaches(db: Session = Depends(get_db)):
     return db.query(Coach).all()
 
 
+@router.post(
+    "/upload-photo",
+    response_model=CoachPhotoOut,
+    dependencies=[Depends(require_admin)],
+)
+async def upload_photo(file: UploadFile = File(...)):
+    """對應「新增教練」教練照片上傳：存檔後回傳 /media 相對網址供寫入 photo_url。"""
+    ext = PHOTO_CONTENT_TYPES.get(file.content_type or "")
+    if ext is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅支援 jpg、png 格式")
+
+    data = await file.read()
+    if len(data) > PHOTO_MAX_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="檔案超過 2MB，請壓縮後再上傳")
+
+    target_dir = os.path.join(settings.MEDIA_DIR, "coaches")
+    os.makedirs(target_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(target_dir, filename), "wb") as fh:
+        fh.write(data)
+
+    return CoachPhotoOut(url=f"/media/coaches/{filename}")
+
+
 @router.post("", response_model=CoachOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_coach(payload: CoachCreate, db: Session = Depends(get_db)):
-    """對應「建立／編輯教練資料」：綁定會員帳號、名稱、電話。一帳號僅能綁定一筆教練資料。"""
+    """對應「建立／編輯教練資料」：綁定會員帳號、名稱、電話等。一帳號僅能綁定一筆教練資料。"""
+    member = db.get(User, payload.user_id)
+    if not member:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="找不到要綁定的會員帳號")
+
     existing = db.query(Coach).filter(Coach.user_id == payload.user_id).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此帳號已綁定教練資料")

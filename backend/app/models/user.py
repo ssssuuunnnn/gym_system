@@ -27,6 +27,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_blacklisted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # 由管理員在「會員詳情」重設密碼時勾選：會員下次登入須先自行修改密碼才能使用其他功能
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     coach_profile: Mapped["Coach | None"] = relationship(
         "Coach", back_populates="user", uselist=False, foreign_keys="Coach.user_id"

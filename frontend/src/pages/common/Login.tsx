@@ -17,8 +17,18 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await loginApi(values.username, values.password);
-      login({ token: data.access_token, role: data.role, isCoach: data.is_coach, username: values.username });
-      navigate(data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+      login({
+        token: data.access_token,
+        role: data.role,
+        isCoach: data.is_coach,
+        username: values.username,
+        mustChangePassword: data.must_change_password,
+      });
+      if (data.must_change_password) {
+        navigate('/member/change-password');
+      } else {
+        navigate(data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+      }
     } catch (err) {
       message.error('帳號或密碼錯誤');
     } finally {

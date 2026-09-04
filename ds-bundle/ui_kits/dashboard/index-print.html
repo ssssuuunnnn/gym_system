@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="omelette-print-source" content="v1786695663193307 ui_kits/dashboard/index.html">
+<title>PulseFit Dashboard</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" src="DashboardContent.jsx"></script>
+<script src="./doc-page.js"></script>
+<style>
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+* { animation-delay: -99s !important; animation-duration: .001s !important; animation-iteration-count: 1 !important; animation-fill-mode: both !important; animation-play-state: running !important; transition-duration: 0s !important; }
+doc-page:not(:defined){visibility:hidden}
+</style>
+</head>
+<body>
+<doc-page content-width="1280px" content-height="1900px" orientation="landscape" size="letter">
+<div id="root"></div>
+</doc-page>
+<script type="text/babel">
+function PrintLayout(){
+const {Menu,Avatar,Input,Badge}=window.PulseFitDesignSystem_325e30;
+const items=[{key:'dash',label:'儀表板',icon:'ri-dashboard-line'},{key:'member',label:'會員管理',icon:'ri-team-line'},
+{key:'class',label:'課程排程',icon:'ri-calendar-line'},{key:'coach',label:'教練管理',icon:'ri-user-star-line'},
+{key:'finance',label:'財務報表',icon:'ri-bar-chart-2-line'},{key:'settings',label:'系統設定',icon:'ri-settings-3-line'}];
+return React.createElement('div',{style:{display:'flex',minHeight:'100%',background:'var(--bg-layout)',fontFamily:'var(--font-family)'}},
+React.createElement('div',{style:{width:'var(--layout-sider-width)',background:'var(--sider-bg)',borderRight:'1px solid var(--sider-border)',display:'flex',flexDirection:'column',flexShrink:0}},
+React.createElement('div',{style:{height:'var(--layout-header-height)',display:'flex',alignItems:'center',gap:10,padding:'0 20px',flexShrink:0}},
+React.createElement('div',{style:{width:28,height:28,borderRadius:'var(--radius-sm)',background:'var(--color-primary)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:14,flexShrink:0}},'P'),
+React.createElement('span',{style:{fontSize:16,fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap'}},'PulseFit')),
+React.createElement('div',null,React.createElement(Menu,{items,activeKey:'dash',onChange:()=>{}}))),
+React.createElement('div',{style:{flex:1,minWidth:0}},
+React.createElement('div',{style:{height:'var(--layout-header-height)',background:'var(--header-bg)',borderBottom:'1px solid var(--border-secondary)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px'}},
+React.createElement(Input,{placeholder:'搜尋會員姓名或電話',prefix:React.createElement('i',{className:'ri-search-line'}),style:{width:280}}),
+React.createElement('div',{style:{display:'flex',alignItems:'center',gap:20}},
+React.createElement(Badge,{count:3},React.createElement('i',{className:'ri-notification-line',style:{fontSize:18,color:'var(--text-secondary)'}})),
+React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},React.createElement(Avatar,{size:28},'王'),
+React.createElement('span',{style:{fontSize:14,color:'var(--text-primary)'}},'王教練'),React.createElement('i',{className:'ri-arrow-down-s-line',style:{color:'var(--text-tertiary)'}})))),
+React.createElement('div',{style:{padding:'var(--layout-content-padding)'}},React.createElement(window.PulseFitUIKit.DashboardContent,{range:'today'}))));
+}
+(function wait(){if(window.PulseFitUIKit&&window.PulseFitUIKit.DashboardContent&&window.PulseFitDesignSystem_325e30){ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(PrintLayout));}else{setTimeout(wait,30);}})();
+</script>
+</body>
+</html>

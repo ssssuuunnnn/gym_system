@@ -6,9 +6,19 @@ from app.db.session import get_db
 from app.deps import require_admin
 from app.models.coach import Coach
 from app.models.user import User, UserRole
-from app.schemas.user import UserBlacklistUpdate, UserOut, UserResetPassword
+from app.schemas.user import (
+    UserBlacklistUpdate,
+    UserOut,
+    UserResetPassword,
+    UserUpdate,
+)
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
+
+
+def _to_out(member: User, db: Session) -> UserOut:
+    coach = db.query(Coach).filter(Coach.user_id == member.id).first()
+    return UserOut(**member.__dict__, is_coach=coach is not None)
 
 
 @router.get("", response_model=list[UserOut])
@@ -28,8 +38,28 @@ def get_member(user_id: int, db: Session = Depends(get_db)):
     member = db.get(User, user_id)
     if not member:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
-    coach = db.query(Coach).filter(Coach.user_id == user_id).first()
-    return UserOut(**member.__dict__, is_coach=coach is not None)
+    return _to_out(member, db)
+
+
+@router.put("/{user_id}", response_model=UserOut)
+def update_member(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
+    """對應「會員詳情」會員資料卡：目前僅可變更帳號，帳號須為系統內唯一值。"""
+    member = db.get(User, user_id)
+    if not member:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
+
+    username = payload.username.strip()
+    if not username:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號不可空白")
+
+    taken = db.query(User).filter(User.username == username, User.id != user_id).first()
+    if taken:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號已被使用")
+
+    member.username = username
+    db.commit()
+    db.refresh(member)
+    return _to_out(member, db)
 
 
 @router.put("/{user_id}/blacklist", response_model=UserOut)
@@ -41,15 +71,15 @@ def update_blacklist(user_id: int, payload: UserBlacklistUpdate, db: Session = D
     member.is_blacklisted = payload.is_blacklisted
     db.commit()
     db.refresh(member)
-    coach = db.query(Coach).filter(Coach.user_id == user_id).first()
-    return UserOut(**member.__dict__, is_coach=coach is not None)
+    return _to_out(member, db)
 
 
 @router.post("/{user_id}/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 def reset_password(user_id: int, payload: UserResetPassword, db: Session = Depends(get_db)):
-    """對應「會員詳情」重設密碼按鈕。"""
+    """對應「會員詳情」登入密碼卡的「由管理員設定新密碼」。"""
     member = db.get(User, user_id)
     if not member:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
     member.password_hash = hash_password(payload.new_password)
+    member.must_change_password = payload.must_change_password
     db.commit()

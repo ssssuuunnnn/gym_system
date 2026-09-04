@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN chmod +x docker-entrypoint.sh \
+    && mkdir -p /app/media \
     && adduser --disabled-password --gecos "" appuser \
     && chown -R appuser:appuser /app
 

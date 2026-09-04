@@ -1,10 +1,17 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.routers import auth, coaches, courses, products, purchases, reservations, time_slots, users
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+# 上傳檔案（教練照片等）以靜態路徑 /media 對外提供
+os.makedirs(settings.MEDIA_DIR, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
 app.add_middleware(
     CORSMiddleware,

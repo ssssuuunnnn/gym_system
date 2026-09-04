@@ -1,0 +1,8 @@
+{
+  "shape": "package",
+  "offScript": true,
+  "readmeHeader": ".design-sync/conventions.md",
+  "notes": "This repo has no design-system build (Storybook or component library). The synced bundle is gym-system-design/project/ — an existing Claude Design export of the PulseFit Design System (19 Antd-derived primitives + tokens + guidelines + dashboard ui_kit) — with a hand-added 'App Components' group (StatusTag, SlotPicker, AppLayout) ported from frontend/src/components/. The converter is not used; ds-bundle/ is assembled and patched by hand. See NOTES.md.",
+  "namespace": "PulseFitDesignSystem_325e30",
+  "localDir": "./ds-bundle"
+}

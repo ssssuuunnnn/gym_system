@@ -1,0 +1,22 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Feedback" subtitle="Modal, Tooltip, Alert" -->
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<div id="root" style="padding:20px;height:100%"></div>
+<script type="text/babel">
+const {Modal,Tooltip,Alert,Button}=window.PulseFitDesignSystem_325e30;
+function Demo(){
+const [open,setOpen]=React.useState(false);
+return (<div style={{display:'flex',flexDirection:'column',gap:16}}>
+<Alert type="warning" message="3 位會員的方案將於本週到期" description="請提前發送續約通知"/>
+<div style={{display:'flex',gap:16,alignItems:'center'}}>
+<Tooltip content="編輯會員資料"><i className="ri-edit-line" style={{fontSize:18,color:'var(--text-secondary)'}}/></Tooltip>
+<Button type="primary" onClick={()=>setOpen(true)}>開啟對話框</Button>
+</div>
+<Modal open={open} title="新增會員" onClose={()=>setOpen(false)} footer={<><Button onClick={()=>setOpen(false)}>取消</Button><Button type="primary">確認</Button></>}>請輸入會員基本資料。</Modal>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>

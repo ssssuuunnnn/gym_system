@@ -1,0 +1,6 @@
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-family);font-size:var(--font-size-base);line-height:var(--line-height-base);color:var(--text-primary);background:var(--bg-layout);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5{margin:0;font-weight:var(--font-weight-semibold);color:var(--text-primary)}
+a{color:var(--color-link);text-decoration:none}
+a:hover{color:var(--color-link-hover)}
+@keyframes spin{to{transform:rotate(360deg)}}

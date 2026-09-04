@@ -8,7 +8,7 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.db.session import get_db
 from app.deps import get_coach_profile, get_current_user
 from app.models.user import User, UserRole
-from app.schemas.user import Token, UserOut, UserRegister
+from app.schemas.user import ChangePassword, Token, UserOut, UserRegister
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -47,7 +47,26 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     db.commit()
 
     token = create_access_token(user_id=user.id, role=user.role.value, is_coach=is_coach)
-    return Token(access_token=token, role=user.role, is_coach=is_coach)
+    return Token(
+        access_token=token,
+        role=user.role,
+        is_coach=is_coach,
+        must_change_password=user.must_change_password,
+    )
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePassword,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """對應「會員修改密碼頁」：驗證目前密碼後設定新密碼，並解除「須自行修改密碼」狀態。"""
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="目前密碼不正確")
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.must_change_password = False
+    db.commit()
 
 
 @router.get("/me", response_model=UserOut)

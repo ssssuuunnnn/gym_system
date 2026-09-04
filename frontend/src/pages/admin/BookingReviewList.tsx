@@ -84,10 +84,13 @@ export default function BookingReviewList() {
     {
       title: '操作',
       key: 'actions',
-      render: (_, record) => {
-        if (record.status === '待確認') {
-          return (
-            <Space>
+      render: (_, record) => (
+        <Space>
+          <Button size="small" onClick={() => navigate(`/admin/reservations/${record.id}`)}>
+            詳情
+          </Button>
+          {record.status === '待確認' && (
+            <>
               <Button
                 size="small"
                 type="primary"
@@ -104,20 +107,17 @@ export default function BookingReviewList() {
                   拒絕
                 </Button>
               </Popconfirm>
-            </Space>
-          );
-        }
-        if (record.status === '已確認') {
-          return (
+            </>
+          )}
+          {record.status === '已確認' && (
             <Popconfirm title="確定要取消這筆預約？" onConfirm={() => cancelMutation.mutate(record.id)}>
               <Button size="small" danger loading={cancelMutation.isPending}>
                 取消
               </Button>
             </Popconfirm>
-          );
-        }
-        return null;
-      },
+          )}
+        </Space>
+      ),
     },
   ];
 

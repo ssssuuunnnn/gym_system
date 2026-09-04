@@ -26,6 +26,7 @@ import MyProducts from '../pages/member/MyProducts';
 import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
+import ChangePassword from '../pages/member/ChangePassword';
 
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
@@ -69,6 +70,8 @@ export const router = createBrowserRouter([
   {
     element: <RequireRole role="member" />,
     children: [
+      // 強制修改密碼頁：不套用 AppLayout（無側邊欄／導覽），完成修改前會員無法進入其他畫面
+      { path: '/member/change-password', element: <ChangePassword /> },
       {
         path: '/member',
         element: <AppLayout />,

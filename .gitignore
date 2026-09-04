@@ -20,3 +20,6 @@ frontend/*.local
 # Claude Code local runtime state (not shared project config)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Root env (local secrets)
+/.env
