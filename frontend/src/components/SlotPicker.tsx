@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { weekdayLabel } from '../lib/weekday';
 
 /**
  * 時段選擇器（格狀時間表），對應「共用元件」章節規格：
@@ -21,7 +22,7 @@ const STATE_STYLE: Record<SlotState, React.CSSProperties> = {
   closed: { background: '#ff7a45', color: '#fff' }, // 管理員關閉
 };
 
-const DAYS = ['一', '二', '三', '四', '五', '六'];
+const DAY_NUMS = [1, 2, 3, 4, 5, 6] as const; // 週一～週六（週日不顯示），對應 day_of_week
 const HOURS = Array.from({ length: 12 }, (_, i) => 10 + i); // 10:00–21:00 起始
 
 export default function SlotPicker({ cellState, onCellClick }: SlotPickerProps) {
@@ -29,7 +30,7 @@ export default function SlotPicker({ cellState, onCellClick }: SlotPickerProps) 
     () =>
       HOURS.map((hour) => ({
         hour,
-        cells: DAYS.map((_, dayIdx) => ({ dayOfWeek: dayIdx + 1, state: cellState(dayIdx + 1, hour) })),
+        cells: DAY_NUMS.map((dayOfWeek) => ({ dayOfWeek, state: cellState(dayOfWeek, hour) })),
       })),
     [cellState],
   );
@@ -40,8 +41,8 @@ export default function SlotPicker({ cellState, onCellClick }: SlotPickerProps) 
         <thead>
           <tr>
             <th style={{ width: 60 }} />
-            {DAYS.map((d) => (
-              <th key={d} style={{ padding: 4, fontSize: 12 }}>週{d}</th>
+            {DAY_NUMS.map((n) => (
+              <th key={n} style={{ padding: 4, fontSize: 12 }}>{weekdayLabel(n)}</th>
             ))}
           </tr>
         </thead>

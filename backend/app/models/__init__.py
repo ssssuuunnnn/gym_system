@@ -4,7 +4,7 @@ create_all 使用）。對應「資料庫結構設計」章節的 9 張資料表
 """
 
 from app.models.coach import Coach  # noqa: F401
-from app.models.course import Course  # noqa: F401
+from app.models.course import Course, CourseStatus  # noqa: F401
 from app.models.product import Product, ProductCategory  # noqa: F401
 from app.models.purchase import Purchase  # noqa: F401
 from app.models.reservation import (  # noqa: F401

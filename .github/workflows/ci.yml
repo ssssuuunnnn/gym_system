@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  alembic-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t backend-image ./backend
+
+      - name: Check Alembic Single Head
+        run: |
+          docker run --rm backend-image python -m alembic heads | wc -l | grep -q "^1$"
