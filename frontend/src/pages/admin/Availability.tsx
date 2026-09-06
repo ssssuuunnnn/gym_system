@@ -241,7 +241,8 @@ export default function Availability() {
 
   const legend: Array<{ label: string; swatch: CSSProperties }> = [
     { label: '開放中', swatch: { background: '#fff', border: `1px solid ${token.colorBorder}` } },
-    { label: '已關閉', swatch: { background: token.volcano2 } },
+    { label: '已關閉(已過期)', swatch: { background: token.red1 } },
+    { label: '已關閉', swatch: { background: token.red2 } },
   ];
 
   // 純文字總覽：本週每日已關閉的時段，合併連續小時為區間，用「, 」串接，句尾接一次「已關閉」。

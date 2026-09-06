@@ -5,8 +5,8 @@ import { theme } from 'antd';
 /**
  * 日欄裡一格可點的空白時段。
  * hover 時反藍並加內框；`disabled` 為不可設定的時段（擋點擊，例如過去日期）；
- * `closed` 為已關閉的時段——`disabled && closed`（過去且曾經關閉）用 `token.volcano1`
- * 呈現、不可點擊；非 disabled 的 `closed`（現在／未來，仍可點擊切回開放）用 `token.volcano2`，
+ * `closed` 為已關閉的時段——`disabled && closed`（過去且曾經關閉）用 `token.red1`
+ * 呈現、不可點擊；非 disabled 的 `closed`（現在／未來，仍可點擊切回開放）用 `token.red2`，
  * hover 轉錯誤色提示會重新開放。
  * 每欄放數格，置於 `position:relative` 容器內，再疊上 EventBlock 與 NowIndicator。
  */
@@ -31,12 +31,12 @@ export function TimeSlotCell(props: TimeSlotCellProps) {
 
   const background = disabled
     ? closed
-      ? token.volcano1
+      ? token.red1
       : token.colorFillAlter
     : closed
       ? on
         ? token.colorErrorBg
-        : token.volcano2
+        : token.red2
       : on
         ? token.colorPrimaryBg
         : 'transparent';
