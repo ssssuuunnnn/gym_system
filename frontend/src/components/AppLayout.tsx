@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Layout, Menu, Button, Typography } from 'antd';
+import { Layout, Menu, Button, Typography, theme } from 'antd';
 import {
   DashboardOutlined,
   AuditOutlined,
@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
+import { usePageActionBarStore } from '../store/pageActionBar';
 
 const { Header, Sider, Content } = Layout;
 
@@ -33,7 +34,7 @@ const adminMenuItems = [
   { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
-  { key: '/admin/slot-settings', label: '時段設定', icon: <ClockCircleOutlined /> },
+  { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },
 ];
 
 const memberMenuItems = [
@@ -46,6 +47,8 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, username, logout, isCoach, mustChangePassword } = useAuthStore();
+  const { token } = theme.useToken();
+  const actionBarContent = usePageActionBarStore((s) => s.content);
   const [collapsed, setCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -134,6 +137,24 @@ export default function AppLayout() {
         <Content style={{ margin: CONTENT_PADDING }}>
           <Outlet />
         </Content>
+        {actionBarContent ? (
+          <div
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 10,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12,
+              padding: '14px 24px',
+              background: token.colorBgContainer,
+              borderTop: `1px solid ${token.colorBorderSecondary}`,
+              boxShadow: token.boxShadowSecondary,
+            }}
+          >
+            {actionBarContent}
+          </div>
+        ) : null}
       </Layout>
     </Layout>
   );

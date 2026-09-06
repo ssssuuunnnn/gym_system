@@ -36,10 +36,10 @@ CAPACITY_BY_CATEGORY = {
 }
 
 
-def _check_slot_open(db: Session, day_of_week: int, start_hour: int) -> None:
+def _check_slot_open(db: Session, slot_date, start_hour: int) -> None:
     slot = (
         db.query(TimeSlot)
-        .filter(TimeSlot.day_of_week == day_of_week, TimeSlot.start_hour == start_hour)
+        .filter(TimeSlot.slot_date == slot_date, TimeSlot.start_hour == start_hour)
         .first()
     )
     # 尚未建立紀錄視為預設開放；已建立且 is_open=False 則不可預約（管理員建立預約亦受此限制）。
@@ -94,14 +94,14 @@ def create_reservation(
 ):
     """
     as_admin=true 時對應「管理員建立預約」（source=admin_created，狀態直接為已確認，
-    仍須通過 time_slots 開放檢查）；否則對應「送出預約申請」（source=member_submitted，
-    狀態為待確認）。
+    仍須通過 time_slots 開放檢查）；否則對應「送出預約申請」
+    （source=member_submitted，狀態為待確認）。
     """
     product = db.get(Product, payload.product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到商品")
 
-    _check_slot_open(db, payload.booking_date.isoweekday(), payload.start_hour)
+    _check_slot_open(db, payload.booking_date, payload.start_hour)
 
     if as_admin:
         require_admin(current_user)

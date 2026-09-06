@@ -19,7 +19,7 @@ frontend/src/
   pages/admin/    admin-only screens
   pages/member/   member-only screens
   pages/common/   Login, Register
-  components/     shared UI: AppLayout (sidebar+header), SlotPicker (weekly grid), StatusTag
+  components/     shared UI: AppLayout (sidebar+header), SlotPicker (week grid), StatusTag; calendar/ (排程原子組件)
   store/auth.ts   zustand store, persisted to localStorage (login survives refresh)
   router/index.tsx   route table; RequireRole.tsx guards by role
 ```
@@ -60,7 +60,9 @@ Every list page follows the same shape (see `pages/admin/CoachList.tsx`, `Bookin
 
 `api/*.ts` files are thin: exported TS interfaces mirroring the backend `XOut` schema, plus one async function per endpoint using the shared `apiClient` (axios instance in `api/client.ts` with JWT-injecting request interceptor and 401→logout response interceptor).
 
-`components/SlotPicker.tsx` is the canonical weekly grid (週一–週六 × 10:00–21:00) — reused for both the read-only reservation views and the admin `SlotSettings` toggle-to-open/close screen. Extend its `SlotState` union rather than building a parallel grid component.
+`components/SlotPicker.tsx` is the canonical week grid — a dated 7-day time grid (`dates: Dayjs[]` × 10:00–21:00) composed from the `components/calendar/` atoms (`TimeAxis`, `DayHeaderCell`, `TimeSlotCell`, `NowIndicator`, `EventBlock`); `SlotState` = `open | closed | holiday`. Optional `cellEvents(date, hour) => SlotEvent[]` prop overlays `EventBlock`s (side-by-side via `colIndex`/`colCount`, `pointerEvents:none` so the cell stays clickable) — `SlotSettings` uses it to show existing reservations + courses on closed/holiday cells. `SlotSettings` owns the week nav + `MiniCalendar` + legend layout. Extend `SlotPicker`/`TimeSlotCell` rather than building a parallel grid component.
+
+`components/calendar/` holds 8 presentational scheduling atoms imported from the PulseFit design system (`TimeAxis`, `TimeSlotCell`, `DayHeaderCell`, `EventBlock`, `EventChip`, `NowIndicator`, `MonthDayCell`, `MiniCalendar`) — colours/radius/font via `theme.useToken()`, no global CSS. See `components/calendar/README.md`.
 
 When **authoring or reviewing a UI component** (not a page screen), follow `.claude/skills/component-conventions/SKILL.md`: where it lives (shared `frontend/src/components/` for 2+ consumers vs. page-scoped `frontend/src/pages/<Area>/<Page>/components/` for a single consumer), reach for an Ant Design component before hand-rolling, colours/radius via `theme.useToken()` (no hardcoded hex), `dayjs` for all date work, one shared source for constants/helpers, controlled props-driven components, and "one concept, one component". The layout shell (`AppLayout.tsx`, header, sidebar) has its own `.claude/skills/layout-conventions/SKILL.md`.
 
