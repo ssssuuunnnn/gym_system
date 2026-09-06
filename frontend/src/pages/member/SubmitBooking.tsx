@@ -1,7 +1,7 @@
 import { Card, Typography, Form, Select, DatePicker, InputNumber, Input, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Dayjs } from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { isAxiosError } from 'axios';
 import { createReservation } from '../../api/reservations';
 import { listProducts, type ProductCategory } from '../../api/products';
@@ -49,9 +49,11 @@ export default function SubmitBooking() {
 
   const overridesByKey = buildOverrideMap(slots);
   const bookingDate = Form.useWatch('booking_date', form);
-  const availableHours = bookingDate
-    ? HOURS.filter((h) => resolveAvailability(bookingDate, h, overridesByKey) === 'open')
-    : HOURS;
+  const now = dayjs();
+  // 可選時段＝「公休設定」未關閉（開放中）且尚未過去；當天只留下還沒開始的整點。
+  const hourSelectable = (d: Dayjs, h: number) =>
+    resolveAvailability(d, h, overridesByKey) === 'open' && !(d.isSame(now, 'day') && h <= now.hour());
+  const availableHours = bookingDate ? HOURS.filter((h) => hourSelectable(bookingDate, h)) : HOURS;
 
   const availableProducts = (products ?? []).filter((p) => {
     if (ADDON_ONLY_CATEGORIES.includes(p.category)) return false;
@@ -145,7 +147,7 @@ export default function SubmitBooking() {
           <DatePicker
             style={{ width: '100%' }}
             onChange={() => form.setFieldValue('start_hour', undefined)}
-            disabledDate={(d) => HOURS.every((h) => resolveAvailability(d, h, overridesByKey) !== 'open')}
+            disabledDate={(d) => d.isBefore(now, 'day') || HOURS.every((h) => !hourSelectable(d, h))}
           />
         </Form.Item>
 

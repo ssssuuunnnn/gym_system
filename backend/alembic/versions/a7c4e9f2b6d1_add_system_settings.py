@@ -1,7 +1,7 @@
 """add system settings
 
 Revision ID: a7c4e9f2b6d1
-Revises: b2f1a9c4d7e3
+Revises: a7ba476c988e
 Create Date: 2026-09-05 10:00:00.000000
 
 新增「系統設定 → 基本資料」所需的 system_settings 表：全站僅一筆（singleton），
@@ -15,7 +15,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'a7c4e9f2b6d1'
-down_revision: Union[str, None] = 'b2f1a9c4d7e3'
+down_revision: Union[str, None] = 'a7ba476c988e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -39,7 +39,6 @@ const adminMenuItems = [
   { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
-  { key: '/admin/slot-settings', label: '時段設定', icon: <ClockCircleOutlined /> },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },
   { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },
 ];
@@ -58,7 +57,6 @@ export default function AppLayout() {
   const actionBarContent = usePageActionBarStore((s) => s.content);
   const [collapsed, setCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { token } = theme.useToken();
   // 供任何已登入身份讀取，讓管理員與會員側欄皆能顯示系統設定所維護的品牌名稱／LOGO
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
   const brandName = settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME;

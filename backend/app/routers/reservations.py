@@ -149,7 +149,7 @@ def update_reservation(
 
     new_booking_date = payload.booking_date if payload.booking_date is not None else reservation.booking_date
     new_start_hour = payload.start_hour if payload.start_hour is not None else reservation.start_hour
-    _check_slot_open(db, new_booking_date.isoweekday(), new_start_hour)
+    _check_slot_open(db, new_booking_date, new_start_hour)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():

@@ -64,7 +64,7 @@ export const router = createBrowserRouter([
           { path: 'private-courses', element: <CourseList /> },
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
-          { path: 'slot-settings', element: <SlotSettings /> },
+          // { path: 'slot-settings', element: <SlotSettings /> },
           { path: 'settings', element: <SystemSettings /> },
           { path: 'availability', element: <Availability /> },
         ],

@@ -1,7 +1,7 @@
 """drop recurring_closures table
 
 Revision ID: 2cd565e061e5
-Revises: a7ba476c988e
+Revises: a7c4e9f2b6d1
 Create Date: 2026-09-05 14:54:53.928835
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
 revision: str = '2cd565e061e5'
-down_revision: Union[str, None] = 'a7ba476c988e'
+down_revision: Union[str, None] = 'a7c4e9f2b6d1'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
