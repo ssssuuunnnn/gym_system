@@ -18,7 +18,7 @@ import GroupCourseList from '../pages/admin/GroupCourseList';
 import CourseList from '../pages/admin/CourseList';
 import CourseForm from '../pages/admin/CourseForm';
 import CreateBooking from '../pages/admin/CreateBooking';
-import SlotSettings from '../pages/admin/SlotSettings';
+import Availability from '../pages/admin/Availability';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 
@@ -63,7 +63,7 @@ export const router = createBrowserRouter([
           { path: 'private-courses', element: <CourseList /> },
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
-          { path: 'slot-settings', element: <SlotSettings /> },
+          { path: 'availability', element: <Availability /> },
         ],
       },
     ],

@@ -26,11 +26,11 @@ def upsert_time_slot(payload: TimeSlotUpdate, admin: User = Depends(require_admi
     """對應「時段開放設定」：逐格點擊切換開放／關閉。僅管理員可操作。"""
     slot = (
         db.query(TimeSlot)
-        .filter(TimeSlot.day_of_week == payload.day_of_week, TimeSlot.start_hour == payload.start_hour)
+        .filter(TimeSlot.slot_date == payload.slot_date, TimeSlot.start_hour == payload.start_hour)
         .first()
     )
     if slot is None:
-        slot = TimeSlot(day_of_week=payload.day_of_week, start_hour=payload.start_hour)
+        slot = TimeSlot(slot_date=payload.slot_date, start_hour=payload.start_hour)
         db.add(slot)
 
     slot.is_open = payload.is_open
