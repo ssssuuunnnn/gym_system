@@ -18,7 +18,7 @@ import GroupCourseList from '../pages/admin/GroupCourseList';
 import CourseList from '../pages/admin/CourseList';
 import CourseForm from '../pages/admin/CourseForm';
 import CreateBooking from '../pages/admin/CreateBooking';
-import SlotSettings from '../pages/admin/SlotSettings';
+import Availability from '../pages/admin/Availability';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 import SystemSettings from '../pages/admin/SystemSettings';
@@ -66,6 +66,7 @@ export const router = createBrowserRouter([
           { path: 'members/:id', element: <MemberDetail /> },
           { path: 'slot-settings', element: <SlotSettings /> },
           { path: 'settings', element: <SystemSettings /> },
+          { path: 'availability', element: <Availability /> },
         ],
       },
     ],

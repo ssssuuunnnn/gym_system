@@ -8,6 +8,8 @@ import { listProducts, type ProductCategory } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
 import { listPurchases } from '../../api/purchases';
+import { listTimeSlots } from '../../api/timeSlots';
+import { buildOverrideMap, resolveAvailability } from '../../lib/availability';
 import { useAuthStore, decodeUserId } from '../../store/auth';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => 10 + i); // 10:00–21:00
@@ -43,6 +45,13 @@ export default function SubmitBooking() {
   const { data: coaches, isLoading: coachesLoading } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const { data: courses, isLoading: coursesLoading } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
   const { data: purchases } = useQuery({ queryKey: ['my-purchases'], queryFn: () => listPurchases() });
+  const { data: slots } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+
+  const overridesByKey = buildOverrideMap(slots);
+  const bookingDate = Form.useWatch('booking_date', form);
+  const availableHours = bookingDate
+    ? HOURS.filter((h) => resolveAvailability(bookingDate, h, overridesByKey) === 'open')
+    : HOURS;
 
   const availableProducts = (products ?? []).filter((p) => {
     if (ADDON_ONLY_CATEGORIES.includes(p.category)) return false;
@@ -133,12 +142,19 @@ export default function SubmitBooking() {
         </Form.Item>
 
         <Form.Item name="booking_date" label="預約日期" rules={[{ required: true, message: '請選擇日期' }]}>
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker
+            style={{ width: '100%' }}
+            onChange={() => form.setFieldValue('start_hour', undefined)}
+            disabledDate={(d) => HOURS.every((h) => resolveAvailability(d, h, overridesByKey) !== 'open')}
+          />
         </Form.Item>
 
         <Form.Item name="start_hour" label="時段" rules={[{ required: true, message: '請選擇時段' }]}>
-          <Select placeholder="選擇時段" options={HOURS.map((h) => ({ value: h, label: `${h}:00` }))} />
+          <Select placeholder="選擇時段" options={availableHours.map((h) => ({ value: h, label: `${h}:00` }))} />
         </Form.Item>
+        <Typography.Text type="secondary" style={{ display: 'block', marginTop: -16, marginBottom: 16, fontSize: 12 }}>
+          僅顯示可預約時段
+        </Typography.Text>
 
         <Form.Item name="people_count" label="人數" rules={[{ required: true, message: '請輸入人數' }]}>
           <InputNumber min={1} style={{ width: '100%' }} />

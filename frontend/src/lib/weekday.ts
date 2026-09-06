@@ -2,7 +2,7 @@
  * 星期標籤的單一來源。
  *
  * 慣例：`day_of_week` 採 ISO-8601 週日編號 —— **1 = 週一 … 7 = 週日**。
- * `courses.day_of_week` 與 `time_slots.day_of_week`（1–6，無週日）皆用此軸。
+ * `courses.day_of_week`（1–6，無週日）皆用此軸；公休設定頁「快速設定」的星期選單（1–7，含週日）亦同。
  *
  * 用途：
  * - 表頭 `.map()` → `WEEKDAY_SHORT_MON_FIRST`

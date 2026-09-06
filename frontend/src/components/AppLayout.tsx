@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/auth';
 import { getSettings } from '../api/settings';
 
 const DEFAULT_BRAND_NAME = '健身工作室管理系統';
+import { usePageActionBarStore } from '../store/pageActionBar';
 
 const { Header, Sider, Content } = Layout;
 
@@ -40,6 +41,7 @@ const adminMenuItems = [
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
   { key: '/admin/slot-settings', label: '時段設定', icon: <ClockCircleOutlined /> },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },
+  { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },
 ];
 
 const memberMenuItems = [
@@ -52,6 +54,8 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, username, logout, isCoach, mustChangePassword } = useAuthStore();
+  const { token } = theme.useToken();
+  const actionBarContent = usePageActionBarStore((s) => s.content);
   const [collapsed, setCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { token } = theme.useToken();
@@ -180,6 +184,24 @@ export default function AppLayout() {
         <Content style={{ margin: CONTENT_PADDING }}>
           <Outlet />
         </Content>
+        {actionBarContent ? (
+          <div
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 10,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12,
+              padding: '14px 24px',
+              background: token.colorBgContainer,
+              borderTop: `1px solid ${token.colorBorderSecondary}`,
+              boxShadow: token.boxShadowSecondary,
+            }}
+          >
+            {actionBarContent}
+          </div>
+        ) : null}
       </Layout>
     </Layout>
   );

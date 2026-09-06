@@ -8,8 +8,8 @@ import { theme } from 'antd';
 export interface DayHeaderCellProps {
   /** 星期文字，例如 "星期三"。 */
   dow: string;
-  /** 日期文字，例如 "9/3"。 */
-  label: string;
+  /** 日期文字，例如 "9/3"；省略時只顯示星期（例如固定公休範本這種不綁定實際日期的檢視）。 */
+  label?: string;
   /** 標示今天：欄底淡藍、日期用主色圓標。 */
   isToday?: boolean;
   /** 週六／週日欄頭加灰底。 */
@@ -40,21 +40,23 @@ export function DayHeaderCell(props: DayHeaderCellProps) {
       }}
     >
       <div style={{ fontSize: 12, color: token.colorTextTertiary, lineHeight: 1.6 }}>{dow}</div>
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 600,
-          lineHeight: '26px',
-          display: 'inline-block',
-          minWidth: 26,
-          padding: '0 8px',
-          borderRadius: 100,
-          background: isToday ? token.colorPrimary : 'transparent',
-          color: isToday ? token.colorWhite : token.colorText,
-        }}
-      >
-        {label}
-      </div>
+      {label ? (
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            lineHeight: '26px',
+            display: 'inline-block',
+            minWidth: 26,
+            padding: '0 8px',
+            borderRadius: 100,
+            background: isToday ? token.colorPrimary : 'transparent',
+            color: isToday ? token.colorWhite : token.colorText,
+          }}
+        >
+          {label}
+        </div>
+      ) : null}
     </div>
   );
 }
