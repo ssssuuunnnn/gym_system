@@ -22,6 +22,7 @@ from app.schemas.reservation import (
     ReservationCreate,
     ReservationOut,
     ReservationReview,
+    ReservationUpdate,
 )
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
@@ -128,6 +129,37 @@ def create_reservation(
     return reservation
 
 
+@router.put("/{reservation_id}", response_model=ReservationOut)
+def update_reservation(
+    reservation_id: int,
+    payload: ReservationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """對應「我的預約」編輯：會員／教練僅能編輯自己、且僅待確認狀態的預約。"""
+    reservation = db.get(Reservation, reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+
+    if current_user.role != UserRole.admin and reservation.member_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅能編輯自己的預約")
+
+    if reservation.status != ReservationStatus.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅待確認狀態可編輯")
+
+    new_booking_date = payload.booking_date if payload.booking_date is not None else reservation.booking_date
+    new_start_hour = payload.start_hour if payload.start_hour is not None else reservation.start_hour
+    _check_slot_open(db, new_booking_date.isoweekday(), new_start_hour)
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(reservation, field, value)
+
+    db.commit()
+    db.refresh(reservation)
+    return reservation
+
+
 @router.post("/{reservation_id}/review", response_model=ReservationOut, dependencies=[Depends(require_admin)])
 def review_reservation(reservation_id: int, payload: ReservationReview, db: Session = Depends(get_db)):
     """對應「預約審核列表／詳情」：核准／拒絕。核准前需再次確認容量。"""
@@ -146,15 +178,25 @@ def review_reservation(reservation_id: int, payload: ReservationReview, db: Sess
     return reservation
 
 
-@router.post("/{reservation_id}/cancel", response_model=ReservationOut, dependencies=[Depends(require_admin)])
-def cancel_reservation(reservation_id: int, db: Session = Depends(get_db)):
+@router.post("/{reservation_id}/cancel", response_model=ReservationOut)
+def cancel_reservation(
+    reservation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
-    對應「預約審核列表」取消按鈕：教練口頭／通知管理員取消後，由管理員在此操作
-    （非教練端自助取消）。
+    對應「預約審核列表」取消按鈕（管理員）與「我的預約」取消（會員／教練自助取消自己的
+    待確認／已確認預約）。
     """
     reservation = db.get(Reservation, reservation_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+
+    if current_user.role != UserRole.admin and reservation.member_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅能取消自己的預約")
+
+    if reservation.status not in (ReservationStatus.pending, ReservationStatus.confirmed):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此預約狀態無法取消")
 
     reservation.status = ReservationStatus.cancelled
     reservation.cancelled_at = datetime.utcnow()

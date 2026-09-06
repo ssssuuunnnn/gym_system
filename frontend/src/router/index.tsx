@@ -21,6 +21,7 @@ import CreateBooking from '../pages/admin/CreateBooking';
 import SlotSettings from '../pages/admin/SlotSettings';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
+import SystemSettings from '../pages/admin/SystemSettings';
 
 import Dashboard from '../pages/member/Dashboard';
 import MyProducts from '../pages/member/MyProducts';
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           { path: 'slot-settings', element: <SlotSettings /> },
+          { path: 'settings', element: <SystemSettings /> },
         ],
       },
     ],

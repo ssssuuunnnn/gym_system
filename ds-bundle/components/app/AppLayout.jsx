@@ -14,6 +14,7 @@ const ADMIN_MENU = [
   { key: '/admin/courses', label: '課程管理', icon: 'ri-calendar-line' },
   { key: '/admin/members', label: '會員管理', icon: 'ri-team-line' },
   { key: '/admin/slot-settings', label: '時段設定', icon: 'ri-time-line' },
+  { key: '/admin/settings', label: '系統設定', icon: 'ri-settings-3-line' },
 ];
 const MEMBER_MENU = [
   { key: '/member/dashboard', label: '儀表板', icon: 'ri-dashboard-line' },
@@ -24,6 +25,7 @@ export function AppLayout(props) {
   const {
     role = 'admin', username = '', isCoach = false, activeKey,
     scrolled = false, defaultCollapsed = false, onNavigate, onLogout, children,
+    brandName = '健身工作室管理系統', brandLogoUrl,
   } = props;
   const ns = (typeof window !== 'undefined' && window.PulseFitDesignSystem_325e30) || {};
   const Menu = ns.Menu;
@@ -31,6 +33,7 @@ export function AppLayout(props) {
   const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
   const items = role === 'admin' ? ADMIN_MENU : MEMBER_MENU;
   const roleLabel = role === 'admin' ? '管理員' : (isCoach ? '場租教練' : '學員');
+  const brandInitial = (brandName || '').charAt(0).toUpperCase();
   return React.createElement('div', {
     style: { display: 'flex', minHeight: '100%', fontFamily: 'var(--font-family)', background: 'var(--bg-layout)' },
   },
@@ -44,10 +47,29 @@ export function AppLayout(props) {
       React.createElement('div', {
         style: {
           height: HEADER_HEIGHT, display: 'flex', alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? 0 : '0 20px',
-          fontWeight: 600, fontSize: 16, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden',
+          justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
+          padding: collapsed ? 0 : '0 20px', overflow: 'hidden',
         },
-      }, collapsed ? '健' : '健身工作室管理系統'),
+      },
+        brandLogoUrl
+          ? React.createElement('img', {
+              src: brandLogoUrl, alt: '',
+              style: { width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)', objectFit: 'contain' },
+            })
+          : React.createElement('div', {
+              style: {
+                width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)',
+                background: 'var(--color-primary)', color: '#fff', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14,
+              },
+            }, brandInitial),
+        !collapsed && React.createElement('span', {
+          style: {
+            fontWeight: 600, fontSize: 16, color: 'var(--text-primary)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          },
+        }, brandName),
+      ),
       Menu && React.createElement(Menu, {
         items: items, activeKey: activeKey, collapsed: collapsed,
         onChange: (key) => onNavigate && onNavigate(key),

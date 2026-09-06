@@ -9,7 +9,7 @@
 <script type="text/babel">
 const {StatusTag,SlotPicker,AppLayout}=window.PulseFitDesignSystem_325e30;
 function Demo(){
-  const [active,setActive]=React.useState('/admin/slot-settings');
+  const [active,setActive]=React.useState('/admin/settings');
   const preset={'2-10':'booked','4-19':'group','3-12':'closed','5-18':'closed','6-15':'buyout'};
   const cellState=(d,h)=>preset[d+'-'+h]||'empty';
   return (
@@ -21,9 +21,9 @@ function Demo(){
         <SlotPicker cellState={cellState} onCellClick={()=>{}}/>
       </div>
       <div style={{height:300,border:'1px solid var(--border-secondary)',borderRadius:'var(--radius-lg)',overflow:'hidden'}}>
-        <AppLayout role="admin" username="王小明" activeKey={active} onNavigate={setActive} onLogout={()=>{}}>
-          <h3 style={{marginBottom:8}}>時段設定</h3>
-          <p style={{color:'var(--text-secondary)'}}>點格子切換時段開放 / 關閉。</p>
+        <AppLayout role="admin" username="王小明" activeKey={active} onNavigate={setActive} onLogout={()=>{}} brandName="極限健身">
+          <h3 style={{marginBottom:8}}>系統設定</h3>
+          <p style={{color:'var(--text-secondary)'}}>公司名稱與 LOGO 會顯示於後台側欄、會員 App 與通知信件。</p>
         </AppLayout>
       </div>
     </div>

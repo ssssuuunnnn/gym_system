@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"PulseFitDesignSystem_325e30","components":[{"name":"Avatar","sourcePath":"components/data-display/Avatar.jsx"},{"name":"Badge","sourcePath":"components/data-display/Badge.jsx"},{"name":"Card","sourcePath":"components/data-display/Card.jsx"},{"name":"Progress","sourcePath":"components/data-display/Progress.jsx"},{"name":"Statistic","sourcePath":"components/data-display/Statistic.jsx"},{"name":"Table","sourcePath":"components/data-display/Table.jsx"},{"name":"Tag","sourcePath":"components/data-display/Tag.jsx"},{"name":"Alert","sourcePath":"components/feedback/Alert.jsx"},{"name":"Modal","sourcePath":"components/feedback/Modal.jsx"},{"name":"Tooltip","sourcePath":"components/feedback/Tooltip.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"Input","sourcePath":"components/forms/Input.jsx"},{"name":"Radio","sourcePath":"components/forms/Radio.jsx"},{"name":"Select","sourcePath":"components/forms/Select.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"Button","sourcePath":"components/general/Button.jsx"},{"name":"Breadcrumb","sourcePath":"components/navigation/Breadcrumb.jsx"},{"name":"Menu","sourcePath":"components/navigation/Menu.jsx"},{"name":"Tabs","sourcePath":"components/navigation/Tabs.jsx"},{"name":"StatusTag","sourcePath":"components/app/StatusTag.jsx"},{"name":"SlotPicker","sourcePath":"components/app/SlotPicker.jsx"},{"name":"AppLayout","sourcePath":"components/app/AppLayout.jsx"}],"sourceHashes":{"components/app/StatusTag.jsx":"e5f5bce0ecc2","components/app/SlotPicker.jsx":"a1ab085cec2a","components/app/AppLayout.jsx":"b9785b538a60","components/data-display/Avatar.jsx":"65c58e7cb491","components/data-display/Badge.jsx":"8d6aff68be87","components/data-display/Card.jsx":"cf25fe554148","components/data-display/Progress.jsx":"3f9b8444971b","components/data-display/Statistic.jsx":"1d1c76465a71","components/data-display/Table.jsx":"f59843d515e1","components/data-display/Tag.jsx":"a8e989914d93","components/feedback/Alert.jsx":"2efeeaf36200","components/feedback/Modal.jsx":"9d6f8e7e6a74","components/feedback/Tooltip.jsx":"bedeb461c0f1","components/forms/Checkbox.jsx":"7070d4dd9965","components/forms/Input.jsx":"6c0b6cce219b","components/forms/Radio.jsx":"87639e59caa1","components/forms/Select.jsx":"45b82ad6c292","components/forms/Switch.jsx":"caa793241782","components/general/Button.jsx":"75b94f30af2f","components/navigation/Breadcrumb.jsx":"9dee5f0d8fb4","components/navigation/Menu.jsx":"a13d451ff683","components/navigation/Tabs.jsx":"2316a2ba3877","ui_kits/dashboard/DashboardContent.jsx":"62719566a698","ui_kits/dashboard/DashboardLayout.jsx":"8d6adb7a2cd5","ui_kits/dashboard/doc-page.js":"371bab66f42d","ui_kits/dashboard/tweaks-panel.jsx":"d259e3a86f73"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"PulseFitDesignSystem_325e30","components":[{"name":"Avatar","sourcePath":"components/data-display/Avatar.jsx"},{"name":"Badge","sourcePath":"components/data-display/Badge.jsx"},{"name":"Card","sourcePath":"components/data-display/Card.jsx"},{"name":"Progress","sourcePath":"components/data-display/Progress.jsx"},{"name":"Statistic","sourcePath":"components/data-display/Statistic.jsx"},{"name":"Table","sourcePath":"components/data-display/Table.jsx"},{"name":"Tag","sourcePath":"components/data-display/Tag.jsx"},{"name":"Alert","sourcePath":"components/feedback/Alert.jsx"},{"name":"Modal","sourcePath":"components/feedback/Modal.jsx"},{"name":"Tooltip","sourcePath":"components/feedback/Tooltip.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"Input","sourcePath":"components/forms/Input.jsx"},{"name":"Radio","sourcePath":"components/forms/Radio.jsx"},{"name":"Select","sourcePath":"components/forms/Select.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"Button","sourcePath":"components/general/Button.jsx"},{"name":"Breadcrumb","sourcePath":"components/navigation/Breadcrumb.jsx"},{"name":"Menu","sourcePath":"components/navigation/Menu.jsx"},{"name":"Tabs","sourcePath":"components/navigation/Tabs.jsx"},{"name":"StatusTag","sourcePath":"components/app/StatusTag.jsx"},{"name":"SlotPicker","sourcePath":"components/app/SlotPicker.jsx"},{"name":"AppLayout","sourcePath":"components/app/AppLayout.jsx"}],"sourceHashes":{"components/app/StatusTag.jsx":"e5f5bce0ecc2","components/app/SlotPicker.jsx":"a1ab085cec2a","components/app/AppLayout.jsx":"16cd60da7b84","components/data-display/Avatar.jsx":"65c58e7cb491","components/data-display/Badge.jsx":"8d6aff68be87","components/data-display/Card.jsx":"cf25fe554148","components/data-display/Progress.jsx":"3f9b8444971b","components/data-display/Statistic.jsx":"1d1c76465a71","components/data-display/Table.jsx":"f59843d515e1","components/data-display/Tag.jsx":"a8e989914d93","components/feedback/Alert.jsx":"2efeeaf36200","components/feedback/Modal.jsx":"9d6f8e7e6a74","components/feedback/Tooltip.jsx":"bedeb461c0f1","components/forms/Checkbox.jsx":"7070d4dd9965","components/forms/Input.jsx":"6c0b6cce219b","components/forms/Radio.jsx":"87639e59caa1","components/forms/Select.jsx":"45b82ad6c292","components/forms/Switch.jsx":"caa793241782","components/general/Button.jsx":"75b94f30af2f","components/navigation/Breadcrumb.jsx":"9dee5f0d8fb4","components/navigation/Menu.jsx":"a13d451ff683","components/navigation/Tabs.jsx":"2316a2ba3877","ui_kits/dashboard/DashboardContent.jsx":"62719566a698","ui_kits/dashboard/DashboardLayout.jsx":"8d6adb7a2cd5","ui_kits/dashboard/doc-page.js":"371bab66f42d","ui_kits/dashboard/tweaks-panel.jsx":"d259e3a86f73"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -1065,17 +1065,19 @@ const ADMIN_MENU = [
   { key: '/admin/products', label: '商品管理', icon: 'ri-shopping-bag-3-line' },
   { key: '/admin/courses', label: '課程管理', icon: 'ri-calendar-line' },
   { key: '/admin/members', label: '會員管理', icon: 'ri-team-line' },
-  { key: '/admin/slot-settings', label: '時段設定', icon: 'ri-time-line' }
+  { key: '/admin/slot-settings', label: '時段設定', icon: 'ri-time-line' },
+  { key: '/admin/settings', label: '系統設定', icon: 'ri-settings-3-line' },
 ];
 const MEMBER_MENU = [
   { key: '/member/dashboard', label: '儀表板', icon: 'ri-dashboard-line' },
   { key: '/member/products', label: '我的商品', icon: 'ri-shopping-bag-3-line' },
-  { key: '/member/bookings', label: '我的預約', icon: 'ri-calendar-line' }
+  { key: '/member/bookings', label: '我的預約', icon: 'ri-calendar-line' },
 ];
 function AppLayout(props) {
   const {
     role = 'admin', username = '', isCoach = false, activeKey,
-    scrolled = false, defaultCollapsed = false, onNavigate, onLogout, children
+    scrolled = false, defaultCollapsed = false, onNavigate, onLogout, children,
+    brandName = '健身工作室管理系統', brandLogoUrl,
   } = props;
   const ns = (typeof window !== 'undefined' && window.PulseFitDesignSystem_325e30) || {};
   const Menu = ns.Menu;
@@ -1083,36 +1085,56 @@ function AppLayout(props) {
   const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
   const items = role === 'admin' ? ADMIN_MENU : MEMBER_MENU;
   const roleLabel = role === 'admin' ? '管理員' : (isCoach ? '場租教練' : '學員');
+  const brandInitial = (brandName || '').charAt(0).toUpperCase();
   return React.createElement('div', {
-    style: { display: 'flex', minHeight: '100%', fontFamily: 'var(--font-family)', background: 'var(--bg-layout)' }
+    style: { display: 'flex', minHeight: '100%', fontFamily: 'var(--font-family)', background: 'var(--bg-layout)' },
   },
     React.createElement('div', {
       style: {
         width: collapsed ? SIDER_COLLAPSED_WIDTH : SIDER_WIDTH, flexShrink: 0,
         background: 'var(--sider-bg)', borderRight: '1px solid var(--sider-border)',
-        display: 'flex', flexDirection: 'column', transition: 'width .2s'
-      }
+        display: 'flex', flexDirection: 'column', transition: 'width .2s',
+      },
     },
       React.createElement('div', {
         style: {
           height: HEADER_HEIGHT, display: 'flex', alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? 0 : '0 20px',
-          fontWeight: 600, fontSize: 16, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden'
-        }
-      }, collapsed ? '健' : '健身工作室管理系統'),
+          justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
+          padding: collapsed ? 0 : '0 20px', overflow: 'hidden',
+        },
+      },
+        brandLogoUrl
+          ? React.createElement('img', {
+              src: brandLogoUrl, alt: '',
+              style: { width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)', objectFit: 'contain' },
+            })
+          : React.createElement('div', {
+              style: {
+                width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)',
+                background: 'var(--color-primary)', color: '#fff', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14,
+              },
+            }, brandInitial),
+        !collapsed && React.createElement('span', {
+          style: {
+            fontWeight: 600, fontSize: 16, color: 'var(--text-primary)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          },
+        }, brandName),
+      ),
       Menu && React.createElement(Menu, {
         items: items, activeKey: activeKey, collapsed: collapsed,
-        onChange: (key) => onNavigate && onNavigate(key)
+        onChange: (key) => onNavigate && onNavigate(key),
       }),
       React.createElement('div', {
         onClick: () => setCollapsed((c) => !c),
         style: {
           marginTop: 'auto', height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-secondary)'
-        }
+          cursor: 'pointer', color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-secondary)',
+        },
       }, React.createElement('i', {
-        className: collapsed ? 'ri-menu-unfold-line' : 'ri-menu-fold-line', style: { fontSize: 16 }
-      }))
+        className: collapsed ? 'ri-menu-unfold-line' : 'ri-menu-fold-line', style: { fontSize: 16 },
+      })),
     ),
     React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 } },
       React.createElement('div', {
@@ -1124,15 +1146,15 @@ function AppLayout(props) {
           WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
           boxShadow: scrolled ? 'var(--shadow-header)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
-          transition: 'background .25s, box-shadow .25s'
-        }
+          transition: 'background .25s, box-shadow .25s',
+        },
       },
         React.createElement('span', { style: { color: 'var(--text-secondary)', fontSize: 14 } },
           username + '（' + roleLabel + '）'),
-        Button && React.createElement(Button, { onClick: () => onLogout && onLogout() }, '登出')
+        Button && React.createElement(Button, { onClick: () => onLogout && onLogout() }, '登出'),
       ),
-      React.createElement('div', { style: { margin: CONTENT_PADDING, flex: 1 } }, children)
-    )
+      React.createElement('div', { style: { margin: CONTENT_PADDING, flex: 1 } }, children),
+    ),
   );
 }
 Object.assign(__ds_scope, { AppLayout });

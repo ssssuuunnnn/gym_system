@@ -28,6 +28,15 @@ class ReservationReview(BaseModel):
     status: ReservationStatus
 
 
+class ReservationUpdate(BaseModel):
+    """對應「我的預約」編輯：僅待確認狀態可編輯，且僅開放日期／時段／人數／備註。"""
+
+    booking_date: date | None = None
+    start_hour: int | None = None
+    people_count: int | None = None
+    notes: str | None = None
+
+
 class ReservationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

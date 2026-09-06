@@ -1,6 +1,6 @@
 import React from 'react';
 export interface AppLayoutProps {
-  /** 目前使用者角色，決定側邊欄選單（管理員 7 項 / 會員 3 項） */
+  /** 目前使用者角色，決定側邊欄選單（管理員 8 項 / 會員 3 項） */
   role?: 'admin' | 'member';
   /** 頁首顯示的使用者名稱 */
   username?: string;
@@ -12,6 +12,10 @@ export interface AppLayoutProps {
   scrolled?: boolean;
   /** 側邊欄初始是否收合 */
   defaultCollapsed?: boolean;
+  /** 側欄品牌名稱（來自系統設定的公司名稱／顯示簡稱），預設「健身工作室管理系統」 */
+  brandName?: string;
+  /** 側欄品牌 LOGO 網址；未提供時以品牌名稱首字作為徽章 */
+  brandLogoUrl?: string;
   /** 點擊選單項目的回呼，參數為該項 key */
   onNavigate?: (key: string) => void;
   /** 點擊「登出」的回呼 */

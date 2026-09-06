@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Layout, Menu, Button, Typography } from 'antd';
+import { Layout, Menu, Button, Typography, theme } from 'antd';
 import {
   DashboardOutlined,
   AuditOutlined,
@@ -8,9 +8,14 @@ import {
   CalendarOutlined,
   TeamOutlined,
   ClockCircleOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth';
+import { getSettings } from '../api/settings';
+
+const DEFAULT_BRAND_NAME = '健身工作室管理系統';
 
 const { Header, Sider, Content } = Layout;
 
@@ -34,6 +39,7 @@ const adminMenuItems = [
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
   { key: '/admin/slot-settings', label: '時段設定', icon: <ClockCircleOutlined /> },
+  { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },
 ];
 
 const memberMenuItems = [
@@ -48,6 +54,11 @@ export default function AppLayout() {
   const { role, username, logout, isCoach, mustChangePassword } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { token } = theme.useToken();
+  // 供任何已登入身份讀取，讓管理員與會員側欄皆能顯示系統設定所維護的品牌名稱／LOGO
+  const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
+  const brandName = settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME;
+  const brandInitial = brandName.charAt(0).toUpperCase();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > SCROLL_BLUR_THRESHOLD);
@@ -81,15 +92,50 @@ export default function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
+            gap: 10,
             padding: collapsed ? 0 : '0 20px',
-            fontWeight: 600,
-            fontSize: 16,
-            color: 'rgba(0,0,0,0.88)',
-            whiteSpace: 'nowrap',
             overflow: 'hidden',
           }}
         >
-          {collapsed ? '健' : '健身工作室管理系統'}
+          {settings?.logo_url ? (
+            <img
+              src={settings.logo_url}
+              alt=""
+              style={{ width: 28, height: 28, flex: 'none', borderRadius: token.borderRadiusSM, objectFit: 'contain' }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                flex: 'none',
+                borderRadius: token.borderRadiusSM,
+                background: token.colorPrimary,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              {brandInitial}
+            </div>
+          )}
+          {!collapsed && (
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: 16,
+                color: 'rgba(0,0,0,0.88)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {brandName}
+            </span>
+          )}
         </div>
         <Menu
           theme="light"

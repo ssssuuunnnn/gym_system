@@ -57,3 +57,15 @@ export async function cancelReservation(id: number) {
   const { data } = await apiClient.post<Reservation>(`/reservations/${id}/cancel`);
   return data;
 }
+
+export interface ReservationUpdatePayload {
+  booking_date?: string;
+  start_hour?: number;
+  people_count?: number;
+  notes?: string | null;
+}
+
+export async function updateReservation(id: number, payload: ReservationUpdatePayload) {
+  const { data } = await apiClient.put<Reservation>(`/reservations/${id}`, payload);
+  return data;
+}
