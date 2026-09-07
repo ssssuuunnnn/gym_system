@@ -8,6 +8,7 @@ import Register from '../pages/common/Register';
 import AdminDashboard from '../pages/admin/Dashboard';
 import CoachList from '../pages/admin/CoachList';
 import CoachForm from '../pages/admin/CoachForm';
+import CoachCourses from '../pages/admin/CoachCourses';
 import ProductList from '../pages/admin/ProductList';
 import ProductForm from '../pages/admin/ProductForm';
 import PurchaseEntry from '../pages/admin/PurchaseEntry';
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { path: 'coaches', element: <CoachList /> },
           { path: 'coaches/new', element: <CoachForm /> },
           { path: 'coaches/:id/edit', element: <CoachForm /> },
+          { path: 'coaches/:id/courses', element: <CoachCourses /> },
           { path: 'coaches/purchases', element: <CoachPurchaseQuery /> },
           { path: 'products', element: <ProductList /> },
           { path: 'products/new', element: <ProductForm /> },

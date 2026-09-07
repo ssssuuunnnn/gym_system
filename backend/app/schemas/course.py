@@ -101,3 +101,17 @@ class CourseOut(BaseModel):
 
 class CourseDetailOut(CourseOut):
     sessions: list[CourseSessionOut] = Field(default_factory=list)
+
+
+class CoachCourseSessionOut(BaseModel):
+    """對應「教練課程」頁：某教練所有未封存課程的逐堂課堂（含所屬課程名稱）。"""
+
+    course_id: int
+    course_name: str
+    course_code: str | None
+    course_status: CourseStatus
+    session_date: date
+    start_minute: int
+    duration_minutes: int
+    source: SessionSource
+    is_cancelled: bool

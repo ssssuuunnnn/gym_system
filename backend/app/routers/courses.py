@@ -19,6 +19,7 @@ from app.models.course import (
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
 from app.schemas.course import (
+    CoachCourseSessionOut,
     CourseCoverOut,
     CourseCreate,
     CourseDetailOut,
@@ -121,6 +122,62 @@ def list_courses(
         query = query.filter(Course.is_archived.is_(archived))
     counts = _enrolled_counts(db)
     return [_to_out(c, counts.get(c.id, 0)) for c in query.all()]
+
+
+@router.get(
+    "/coach-sessions",
+    response_model=list[CoachCourseSessionOut],
+    dependencies=[Depends(get_current_user)],
+)
+def list_coach_sessions(
+    coach_id: int = Query(..., description="教練 id"),
+    db: Session = Depends(get_db),
+):
+    """
+    對應「教練課程」頁：某教練所有**未封存**課程（上架／下架／草稿皆納入）的逐堂課堂，
+    含停課紀錄（`is_cancelled` 照實回傳，由前端標示）。以課程 `coach_id` 關聯。
+    """
+    rows = (
+        db.query(
+            CourseSession.session_date,
+            CourseSession.start_minute,
+            CourseSession.duration_minutes,
+            CourseSession.source,
+            CourseSession.is_cancelled,
+            Course.id,
+            Course.name,
+            Course.code,
+            Course.status,
+        )
+        .join(Course, CourseSession.course_id == Course.id)
+        .filter(Course.coach_id == coach_id, Course.is_archived.is_(False))
+        .order_by(CourseSession.session_date, CourseSession.start_minute)
+        .all()
+    )
+    return [
+        CoachCourseSessionOut(
+            course_id=course_id_,
+            course_name=course_name,
+            course_code=course_code,
+            course_status=course_status,
+            session_date=session_date,
+            start_minute=start_minute,
+            duration_minutes=duration_minutes,
+            source=source,
+            is_cancelled=is_cancelled,
+        )
+        for (
+            session_date,
+            start_minute,
+            duration_minutes,
+            source,
+            is_cancelled,
+            course_id_,
+            course_name,
+            course_code,
+            course_status,
+        ) in rows
+    ]
 
 
 @router.get("/{course_id}", response_model=CourseDetailOut, dependencies=[Depends(get_current_user)])
