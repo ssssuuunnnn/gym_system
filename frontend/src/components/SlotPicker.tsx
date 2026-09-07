@@ -26,6 +26,8 @@ export interface SlotEvent {
   /** 第二行（例如「教練 · 3 人」）。 */
   subText?: string;
   tone?: EventTone;
+  /** 有值時方塊可點（例如點課堂移除）；省略則方塊 `pointerEvents:none`，不擋底下格子。 */
+  onClick?: () => void;
 }
 
 interface SlotPickerProps {
@@ -39,6 +41,11 @@ interface SlotPickerProps {
   hourHeight?: number;
   cellState: (date: Dayjs, hour: number) => SlotState;
   onCellClick?: (date: Dayjs, hour: number) => void;
+  /**
+   * 回傳 true 的格子以灰底 disabled 呈現、擋點擊（過去日期一律 disabled，此為額外條件）。
+   * 例：團體課程排程日曆用來把 time_slots 已關閉的時段標成不可開課。
+   */
+  cellDisabled?: (date: Dayjs, hour: number) => boolean;
   /** 該格要疊上的事件（reservations／courses 等）。回傳空陣列表示不疊。 */
   cellEvents?: (date: Dayjs, hour: number) => SlotEvent[];
   /**
@@ -60,6 +67,7 @@ export default function SlotPicker({
   hourHeight = 44,
   cellState,
   onCellClick,
+  cellDisabled,
   cellEvents,
   dayHeaderTop,
   showNowIndicator = true,
@@ -142,7 +150,7 @@ export default function SlotPicker({
                       height={hourHeight}
                       first={h === startHour}
                       closed={state === 'closed'}
-                      disabled={isPast}
+                      disabled={isPast || (cellDisabled?.(d, h) ?? false)}
                       onClick={onCellClick ? () => onCellClick(d, h) : undefined}
                     />
                   );
@@ -159,7 +167,15 @@ export default function SlotPicker({
                       height={hourHeight - 3}
                       colIndex={idx}
                       colCount={evs.length}
-                      style={{ pointerEvents: 'none' }}
+                      onClick={
+                        ev.onClick
+                          ? (e) => {
+                              e.stopPropagation();
+                              ev.onClick!();
+                            }
+                          : undefined
+                      }
+                      style={ev.onClick ? undefined : { pointerEvents: 'none' }}
                     />
                   ));
                 })}

@@ -14,19 +14,19 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, SearchOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
-  listCourses,
+  listActiveCourses,
   updateCourseStatus,
   COURSE_STATUSES,
   type Course,
   type CourseStatus,
 } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
-import { weekdayLabel } from '../../lib/weekday';
+import { sharedCourseColumns } from '../../components/courseColumns';
 
 const STATUS_TAG_COLOR: Record<CourseStatus, string> = {
   上架: 'success',
@@ -42,7 +42,10 @@ export default function GroupCourseList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: courses, isLoading } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
+  const { data: courses, isLoading } = useQuery({
+    queryKey: ['courses', 'active'],
+    queryFn: listActiveCourses,
+  });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const coachNameById = useMemo(
     () => new Map((coaches ?? []).map((c) => [c.id, c.name])),
@@ -98,105 +101,7 @@ export default function GroupCourseList() {
   };
 
   const columns: ColumnsType<Course> = [
-    {
-      title: '封面',
-      dataIndex: 'cover_image_url',
-      width: 96,
-      render: (url: string | null) =>
-        url ? (
-          <img
-            src={url}
-            alt=""
-            style={{ width: 88, height: 50, objectFit: 'cover', borderRadius: 6, display: 'block' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 88,
-              height: 50,
-              borderRadius: 6,
-              background: 'rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(0,0,0,0.25)',
-            }}
-          >
-            <PictureOutlined style={{ fontSize: 18 }} />
-          </div>
-        ),
-    },
-    {
-      title: '課程名稱',
-      dataIndex: 'name',
-      width: 200,
-      render: (name: string, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>{name}</span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.code ?? '—'}
-          </Typography.Text>
-        </div>
-      ),
-    },
-    {
-      title: '教練',
-      dataIndex: 'coach_id',
-      width: 96,
-      render: (coachId: number) => coachNameById.get(coachId) ?? `#${coachId}`,
-    },
-    {
-      title: '開班人數',
-      key: 'capacity',
-      width: 120,
-      render: (_, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>
-            {r.min_capacity} – {r.max_capacity} 人
-          </span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            已報名 {r.enrolled_count} 人
-          </Typography.Text>
-        </div>
-      ),
-    },
-    {
-      title: '課程介紹',
-      dataIndex: 'description',
-      width: 260,
-      render: (desc: string | null) => (
-        <Typography.Paragraph
-          type="secondary"
-          style={{ fontSize: 13, marginBottom: 0 }}
-          ellipsis={{ rows: 2 }}
-        >
-          {desc || '—'}
-        </Typography.Paragraph>
-      ),
-    },
-    {
-      title: '課堂數',
-      dataIndex: 'session_count',
-      width: 80,
-      render: (n: number) => `${n} 堂`,
-    },
-    {
-      title: '開課時間',
-      key: 'period',
-      width: 210,
-      render: (_, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13 }}>
-            {r.start_date && r.end_date
-              ? `${dayjs(r.start_date).format('YYYY/MM/DD')} – ${dayjs(r.end_date).format('YYYY/MM/DD')}`
-              : '未設定'}
-          </span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            每{weekdayLabel(r.day_of_week)} {r.start_hour}:00 · {r.duration_minutes} 分鐘
-          </Typography.Text>
-        </div>
-      ),
-    },
+    ...sharedCourseColumns({ coachNameById }),
     {
       title: '狀態',
       dataIndex: 'status',
@@ -247,7 +152,7 @@ export default function GroupCourseList() {
             type="link"
             size="small"
             style={{ padding: 0 }}
-            onClick={() => navigate('/admin/courses/new')}
+            onClick={() => navigate(`/admin/courses/${r.id}/duplicate`)}
           >
             複製
           </Button>
@@ -269,9 +174,14 @@ export default function GroupCourseList() {
             共 {total} 門課程，其中 {onCount} 門上架中、{draftCount} 門草稿
           </Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/courses/new')}>
-          新增課程
-        </Button>
+        <Space>
+          <Button icon={<InboxOutlined />} onClick={() => navigate('/admin/courses/archived')}>
+            封存課程
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/courses/new')}>
+            新增課程
+          </Button>
+        </Space>
       </div>
 
       <Card size="small">
@@ -303,7 +213,9 @@ export default function GroupCourseList() {
             ]}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, color: 'rgba(0,0,0,0.65)' }}>開課期間</span>
+            <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+              開課期間
+            </Typography.Text>
             <DatePicker.RangePicker
               value={range}
               onChange={(v) => setRange(v as [Dayjs, Dayjs] | null)}

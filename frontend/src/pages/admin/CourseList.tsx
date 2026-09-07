@@ -27,7 +27,10 @@ export default function CourseList() {
     {
       title: '時段',
       key: 'time',
-      render: (_, record) => `${weekdayLabel(record.day_of_week)} ${record.start_hour}:00`,
+      render: (_, record) =>
+        record.day_of_week != null && record.start_hour != null
+          ? `${weekdayLabel(record.day_of_week)} ${record.start_hour}:00`
+          : '—',
     },
     { title: '人數上限', dataIndex: 'max_capacity' },
     {

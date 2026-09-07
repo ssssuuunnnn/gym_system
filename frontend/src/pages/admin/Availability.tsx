@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Card, Typography, Button, Space, Checkbox, Select, theme, message } from 'antd';
-import { LeftOutlined, RightOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import SlotPicker, { type SlotState, type SlotEvent } from '../../components/SlotPicker';
+import { InlineRuleList, InlineRuleRow } from '../../components/InlineRuleList';
 import { MiniCalendar } from '../../components/calendar/MiniCalendar';
 import { listTimeSlots, upsertTimeSlot } from '../../api/timeSlots';
 import { listReservations } from '../../api/reservations';
-import { listCourses } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { listProducts } from '../../api/products';
 import { isoWeekday, buildOverrideMap, resolveAvailability } from '../../lib/availability';
@@ -93,7 +93,6 @@ export default function Availability() {
 
   const { data: slots, isLoading: slotsLoading } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
   const { data: reservations } = useQuery({ queryKey: ['reservations'], queryFn: () => listReservations() });
-  const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
@@ -208,16 +207,8 @@ export default function Availability() {
     if (cellState(date, hour) === 'open') return [];
     const dateKey = date.format('YYYY-MM-DD');
 
-    const courseEvents: SlotEvent[] = (courses ?? [])
-      .filter((c) => c.day_of_week === isoWeekday(date) && c.start_hour === hour)
-      .map((c) => ({
-        key: `c${c.id}`,
-        title: c.name,
-        subText: `${coachNameById.get(c.coach_id) ?? '—'} · 上限 ${c.max_capacity}`,
-        tone: 'purple',
-      }));
-
-    const reservationEvents: SlotEvent[] = (reservations ?? [])
+    // 僅顯示既有預約，供設定關閉前確認；團體課程不在此頁顯示。
+    return (reservations ?? [])
       .filter(
         (r) =>
           r.booking_date === dateKey &&
@@ -231,8 +222,6 @@ export default function Availability() {
         subText: `${r.coach_id ? (coachNameById.get(r.coach_id) ?? '—') : '—'} · ${r.people_count} 人`,
         tone: r.status === '待確認' ? 'gold' : 'blue',
       }));
-
-    return [...courseEvents, ...reservationEvents];
   };
 
   const rangeTitle =
@@ -241,7 +230,8 @@ export default function Availability() {
 
   const legend: Array<{ label: string; swatch: CSSProperties }> = [
     { label: '開放中', swatch: { background: '#fff', border: `1px solid ${token.colorBorder}` } },
-    { label: '已關閉', swatch: { background: token.volcano2 } },
+    { label: '已關閉(已過期)', swatch: { background: token.red1 } },
+    { label: '已關閉', swatch: { background: token.red2 } },
   ];
 
   // 純文字總覽：本週每日已關閉的時段，合併連續小時為區間，用「, 」串接，句尾接一次「已關閉」。
@@ -295,38 +285,15 @@ export default function Availability() {
       </div>
 
       <Card title="快速設定" loading={slotsLoading}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            padding: 14,
-            background: token.colorFillQuaternary,
-            borderRadius: token.borderRadius,
-          }}
+        <InlineRuleList
+          title="批次關閉"
+          description="選擇星期、時段範圍與往後幾個月，按「套用」會把範圍內每個符合的日期在指定時段標記為關閉（預設整天，寫入下方本週時段的例外設定）。"
+          chipPrefix="設定"
+          addLabel="新增一列快速設定"
+          onAdd={addQuickSetRow}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>批次關閉</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
-              選擇星期、時段範圍與往後幾個月，按「套用」會把範圍內每個符合的日期在指定時段標記為關閉（預設整天，寫入下方本週時段的例外設定）。
-            </div>
-          </div>
-
           {quickSetRows.map((r, i) => (
-            <div
-              key={r.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                flexWrap: 'wrap',
-                padding: '10px 12px',
-                background: token.colorBgContainer,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                borderRadius: token.borderRadius,
-              }}
-            >
-              <span style={{ fontSize: 12, color: token.colorTextQuaternary, width: 44 }}>設定 {i + 1}</span>
+            <InlineRuleRow key={r.id} index={i} onRemove={() => removeQuickSetRow(r.id)}>
               <span style={{ fontSize: 14, color: token.colorTextSecondary }}>星期</span>
               <Select
                 size="small"
@@ -362,34 +329,9 @@ export default function Availability() {
               <Button size="small" onClick={() => applyQuickSet(r)}>
                 套用
               </Button>
-              <div style={{ flex: 1 }} />
-              <DeleteOutlined
-                onClick={() => removeQuickSetRow(r.id)}
-                style={{ cursor: 'pointer', color: token.colorTextQuaternary, fontSize: 16 }}
-              />
-            </div>
+            </InlineRuleRow>
           ))}
-
-          <div
-            onClick={addQuickSetRow}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              padding: 8,
-              border: `1px dashed ${token.colorBorder}`,
-              borderRadius: token.borderRadius,
-              fontSize: 14,
-              color: token.colorTextSecondary,
-              cursor: 'pointer',
-              background: token.colorBgContainer,
-            }}
-          >
-            <PlusOutlined />
-            <span>新增一列快速設定</span>
-          </div>
-        </div>
+        </InlineRuleList>
       </Card>
 
       <Card title="本週時段" extra={rangeTitle} loading={slotsLoading}>
