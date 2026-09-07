@@ -50,13 +50,16 @@ export default function Dashboard() {
     .filter((p) => p.purchase_date === todayStr)
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
-  const todayCourses = todayDow === 0 ? [] : (courses ?? []).filter((c) => c.day_of_week === todayDow);
+  const todayCourses =
+    todayDow === 0
+      ? []
+      : (courses ?? []).filter((c) => c.day_of_week === todayDow && c.start_hour != null);
 
   const scheduleRows: ScheduleRow[] = [
     ...todayCourses.map((c) => ({
       key: `course-${c.id}`,
       type: '固定課程' as const,
-      start_hour: c.start_hour,
+      start_hour: c.start_hour ?? 0,
       name: c.name,
       coach_id: c.coach_id,
       extra: `上限 ${c.max_capacity} 人`,

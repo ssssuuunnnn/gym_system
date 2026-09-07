@@ -26,6 +26,8 @@ export interface SlotEvent {
   /** 第二行（例如「教練 · 3 人」）。 */
   subText?: string;
   tone?: EventTone;
+  /** 有值時方塊可點（例如點課堂移除）；省略則方塊 `pointerEvents:none`，不擋底下格子。 */
+  onClick?: () => void;
 }
 
 interface SlotPickerProps {
@@ -159,7 +161,15 @@ export default function SlotPicker({
                       height={hourHeight - 3}
                       colIndex={idx}
                       colCount={evs.length}
-                      style={{ pointerEvents: 'none' }}
+                      onClick={
+                        ev.onClick
+                          ? (e) => {
+                              e.stopPropagation();
+                              ev.onClick!();
+                            }
+                          : undefined
+                      }
+                      style={ev.onClick ? undefined : { pointerEvents: 'none' }}
                     />
                   ));
                 })}

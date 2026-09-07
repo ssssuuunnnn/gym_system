@@ -14,12 +14,12 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, SearchOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, PictureOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
-  listCourses,
+  listActiveCourses,
   updateCourseStatus,
   COURSE_STATUSES,
   type Course,
@@ -42,7 +42,10 @@ export default function GroupCourseList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: courses, isLoading } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
+  const { data: courses, isLoading } = useQuery({
+    queryKey: ['courses', 'active'],
+    queryFn: listActiveCourses,
+  });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const coachNameById = useMemo(
     () => new Map((coaches ?? []).map((c) => [c.id, c.name])),
@@ -192,7 +195,9 @@ export default function GroupCourseList() {
               : '未設定'}
           </span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            每{weekdayLabel(r.day_of_week)} {r.start_hour}:00 · {r.duration_minutes} 分鐘
+            {r.day_of_week != null && r.start_hour != null
+              ? `每${weekdayLabel(r.day_of_week)} ${r.start_hour}:00 · ${r.duration_minutes} 分鐘`
+              : '未設定'}
           </Typography.Text>
         </div>
       ),
@@ -247,7 +252,7 @@ export default function GroupCourseList() {
             type="link"
             size="small"
             style={{ padding: 0 }}
-            onClick={() => navigate('/admin/courses/new')}
+            onClick={() => navigate(`/admin/courses/${r.id}/duplicate`)}
           >
             複製
           </Button>
@@ -269,9 +274,14 @@ export default function GroupCourseList() {
             共 {total} 門課程，其中 {onCount} 門上架中、{draftCount} 門草稿
           </Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/courses/new')}>
-          新增課程
-        </Button>
+        <Space>
+          <Button icon={<InboxOutlined />} onClick={() => navigate('/admin/courses/archived')}>
+            封存課程
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/courses/new')}>
+            新增課程
+          </Button>
+        </Space>
       </div>
 
       <Card size="small">

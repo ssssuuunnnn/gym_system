@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Card, Typography, Button, Space, Checkbox, Select, theme, message } from 'antd';
-import { LeftOutlined, RightOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import SlotPicker, { type SlotState, type SlotEvent } from '../../components/SlotPicker';
+import { InlineRuleList, InlineRuleRow } from '../../components/InlineRuleList';
 import { MiniCalendar } from '../../components/calendar/MiniCalendar';
 import { listTimeSlots, upsertTimeSlot } from '../../api/timeSlots';
 import { listReservations } from '../../api/reservations';
@@ -296,38 +297,15 @@ export default function Availability() {
       </div>
 
       <Card title="快速設定" loading={slotsLoading}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            padding: 14,
-            background: token.colorFillQuaternary,
-            borderRadius: token.borderRadius,
-          }}
+        <InlineRuleList
+          title="批次關閉"
+          description="選擇星期、時段範圍與往後幾個月，按「套用」會把範圍內每個符合的日期在指定時段標記為關閉（預設整天，寫入下方本週時段的例外設定）。"
+          chipPrefix="設定"
+          addLabel="新增一列快速設定"
+          onAdd={addQuickSetRow}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>批次關閉</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
-              選擇星期、時段範圍與往後幾個月，按「套用」會把範圍內每個符合的日期在指定時段標記為關閉（預設整天，寫入下方本週時段的例外設定）。
-            </div>
-          </div>
-
           {quickSetRows.map((r, i) => (
-            <div
-              key={r.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                flexWrap: 'wrap',
-                padding: '10px 12px',
-                background: token.colorBgContainer,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                borderRadius: token.borderRadius,
-              }}
-            >
-              <span style={{ fontSize: 12, color: token.colorTextQuaternary, width: 44 }}>設定 {i + 1}</span>
+            <InlineRuleRow key={r.id} index={i} onRemove={() => removeQuickSetRow(r.id)}>
               <span style={{ fontSize: 14, color: token.colorTextSecondary }}>星期</span>
               <Select
                 size="small"
@@ -363,34 +341,9 @@ export default function Availability() {
               <Button size="small" onClick={() => applyQuickSet(r)}>
                 套用
               </Button>
-              <div style={{ flex: 1 }} />
-              <DeleteOutlined
-                onClick={() => removeQuickSetRow(r.id)}
-                style={{ cursor: 'pointer', color: token.colorTextQuaternary, fontSize: 16 }}
-              />
-            </div>
+            </InlineRuleRow>
           ))}
-
-          <div
-            onClick={addQuickSetRow}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              padding: 8,
-              border: `1px dashed ${token.colorBorder}`,
-              borderRadius: token.borderRadius,
-              fontSize: 14,
-              color: token.colorTextSecondary,
-              cursor: 'pointer',
-              background: token.colorBgContainer,
-            }}
-          >
-            <PlusOutlined />
-            <span>新增一列快速設定</span>
-          </div>
-        </div>
+        </InlineRuleList>
       </Card>
 
       <Card title="本週時段" extra={rangeTitle} loading={slotsLoading}>
