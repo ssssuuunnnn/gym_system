@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   DatePicker,
+  Empty,
   Input,
   Modal,
   Popconfirm,
@@ -14,17 +15,17 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ArrowLeftOutlined, PictureOutlined, SearchOutlined } from '@ant-design/icons';
+import { RollbackOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
 import { deleteCourse, listArchivedCourses, restoreCourse, type Course } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
-import { weekdayLabel } from '../../lib/weekday';
+import { sharedCourseColumns } from '../../components/courseColumns';
 
 /**
- * 封存團體課程：對應 Claude Design「封存課程」設計稿。
+ * 封存團體課程：對應 Claude Design「封存課程」設計稿（`GroupCourseArchive.dc.html`）。
  * 課程於「編輯團體課程」按「封存」後移入此頁，可還原（回列表並維持下架）或永久刪除。
  */
 export default function GroupCourseArchive() {
@@ -112,132 +113,30 @@ export default function GroupCourseArchive() {
   };
 
   const columns: ColumnsType<Course> = [
-    {
-      title: '封面',
-      dataIndex: 'cover_image_url',
-      width: 96,
-      render: (url: string | null) =>
-        url ? (
-          <img
-            src={url}
-            alt=""
-            style={{ width: 88, height: 50, objectFit: 'cover', borderRadius: 6, display: 'block' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 88,
-              height: 50,
-              borderRadius: 6,
-              background: 'rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(0,0,0,0.25)',
-            }}
-          >
-            <PictureOutlined style={{ fontSize: 18 }} />
-          </div>
-        ),
-    },
-    {
-      title: '課程名稱',
-      dataIndex: 'name',
-      width: 200,
-      render: (name: string, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>{name}</span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.code ?? '—'}
-          </Typography.Text>
-        </div>
-      ),
-    },
-    {
-      title: '教練',
-      dataIndex: 'coach_id',
-      width: 96,
-      render: (coachId: number) => coachNameById.get(coachId) ?? `#${coachId}`,
-    },
-    {
-      title: '開班人數',
-      key: 'capacity',
-      width: 120,
-      render: (_, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>
-            {r.min_capacity} – {r.max_capacity} 人
-          </span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            已報名 {r.enrolled_count} 人
-          </Typography.Text>
-        </div>
-      ),
-    },
-    {
-      title: '課程介紹',
-      dataIndex: 'description',
-      width: 240,
-      render: (desc: string | null) => (
-        <Typography.Paragraph
-          type="secondary"
-          style={{ fontSize: 13, marginBottom: 0 }}
-          ellipsis={{ rows: 2 }}
-        >
-          {desc || '—'}
-        </Typography.Paragraph>
-      ),
-    },
-    {
-      title: '課堂數',
-      dataIndex: 'session_count',
-      width: 80,
-      render: (n: number) => `${n} 堂`,
-    },
-    {
-      title: '開課時間',
-      key: 'period',
-      width: 200,
-      render: (_, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13 }}>
-            {r.start_date && r.end_date
-              ? `${dayjs(r.start_date).format('YYYY/MM/DD')} – ${dayjs(r.end_date).format('YYYY/MM/DD')}`
-              : '未設定'}
-          </span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.day_of_week != null && r.start_hour != null
-              ? `每${weekdayLabel(r.day_of_week)} ${r.start_hour}:00 · ${r.duration_minutes} 分鐘`
-              : '—'}
-          </Typography.Text>
-        </div>
-      ),
-    },
+    ...sharedCourseColumns({ coachNameById }),
     {
       title: '封存時間',
       dataIndex: 'archived_at',
       width: 150,
-      render: (v: string | null, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13 }}>{v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—'}</span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.archived_by_name ?? '—'}
-          </Typography.Text>
-        </div>
-      ),
+      render: (v: string | null) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—'),
     },
     {
-      title: '最後編輯',
-      key: 'updated',
+      title: '封存者',
+      dataIndex: 'archived_by_name',
+      width: 100,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: '最後編輯時間',
+      dataIndex: 'updated_at',
       width: 150,
-      render: (_, r) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13 }}>{dayjs(r.updated_at).format('YYYY-MM-DD HH:mm')}</span>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.updated_by_name ?? '—'}
-          </Typography.Text>
-        </div>
-      ),
+      render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: '編輯者',
+      dataIndex: 'updated_by_name',
+      width: 100,
+      render: (v: string | null) => v ?? '—',
     },
     {
       title: '操作',
@@ -282,7 +181,7 @@ export default function GroupCourseArchive() {
             共 {all.length} 門已封存課程，還原後回到課程列表並維持下架狀態
           </Typography.Text>
         </div>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/courses')}>
+        <Button icon={<RollbackOutlined />} onClick={() => navigate('/admin/courses')}>
           返回課程列表
         </Button>
       </div>
@@ -316,7 +215,9 @@ export default function GroupCourseArchive() {
             ]}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, color: 'rgba(0,0,0,0.65)' }}>開課期間</span>
+            <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+              開課期間
+            </Typography.Text>
             <DatePicker.RangePicker
               value={range}
               onChange={(v) => setRange(v as [Dayjs, Dayjs] | null)}
@@ -340,9 +241,16 @@ export default function GroupCourseArchive() {
           columns={columns}
           dataSource={filtered}
           loading={isLoading}
-          pagination={{ pageSize: 10 }}
-          scroll={{ x: 1500 }}
-          locale={{ emptyText: '目前沒有符合條件的封存課程' }}
+          pagination={{
+            pageSize: 10,
+            showTotal: (total, [a, b]) => `顯示 ${a}–${b} 筆，共 ${total} 筆`,
+          }}
+          scroll={{ x: 1600 }}
+          locale={{
+            emptyText: (
+              <Empty description="目前沒有符合條件的封存課程" style={{ padding: '48px 0' }} />
+            ),
+          }}
         />
       </Card>
     </Space>
