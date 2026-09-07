@@ -10,7 +10,6 @@ import { InlineRuleList, InlineRuleRow } from '../../components/InlineRuleList';
 import { MiniCalendar } from '../../components/calendar/MiniCalendar';
 import { listTimeSlots, upsertTimeSlot } from '../../api/timeSlots';
 import { listReservations } from '../../api/reservations';
-import { listCourses } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { listProducts } from '../../api/products';
 import { isoWeekday, buildOverrideMap, resolveAvailability } from '../../lib/availability';
@@ -94,7 +93,6 @@ export default function Availability() {
 
   const { data: slots, isLoading: slotsLoading } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
   const { data: reservations } = useQuery({ queryKey: ['reservations'], queryFn: () => listReservations() });
-  const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
@@ -209,16 +207,8 @@ export default function Availability() {
     if (cellState(date, hour) === 'open') return [];
     const dateKey = date.format('YYYY-MM-DD');
 
-    const courseEvents: SlotEvent[] = (courses ?? [])
-      .filter((c) => c.day_of_week === isoWeekday(date) && c.start_hour === hour)
-      .map((c) => ({
-        key: `c${c.id}`,
-        title: c.name,
-        subText: `${coachNameById.get(c.coach_id) ?? '—'} · 上限 ${c.max_capacity}`,
-        tone: 'purple',
-      }));
-
-    const reservationEvents: SlotEvent[] = (reservations ?? [])
+    // 僅顯示既有預約，供設定關閉前確認；團體課程不在此頁顯示。
+    return (reservations ?? [])
       .filter(
         (r) =>
           r.booking_date === dateKey &&
@@ -232,8 +222,6 @@ export default function Availability() {
         subText: `${r.coach_id ? (coachNameById.get(r.coach_id) ?? '—') : '—'} · ${r.people_count} 人`,
         tone: r.status === '待確認' ? 'gold' : 'blue',
       }));
-
-    return [...courseEvents, ...reservationEvents];
   };
 
   const rangeTitle =

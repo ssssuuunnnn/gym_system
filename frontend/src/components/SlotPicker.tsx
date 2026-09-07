@@ -41,6 +41,11 @@ interface SlotPickerProps {
   hourHeight?: number;
   cellState: (date: Dayjs, hour: number) => SlotState;
   onCellClick?: (date: Dayjs, hour: number) => void;
+  /**
+   * 回傳 true 的格子以灰底 disabled 呈現、擋點擊（過去日期一律 disabled，此為額外條件）。
+   * 例：團體課程排程日曆用來把 time_slots 已關閉的時段標成不可開課。
+   */
+  cellDisabled?: (date: Dayjs, hour: number) => boolean;
   /** 該格要疊上的事件（reservations／courses 等）。回傳空陣列表示不疊。 */
   cellEvents?: (date: Dayjs, hour: number) => SlotEvent[];
   /**
@@ -62,6 +67,7 @@ export default function SlotPicker({
   hourHeight = 44,
   cellState,
   onCellClick,
+  cellDisabled,
   cellEvents,
   dayHeaderTop,
   showNowIndicator = true,
@@ -144,7 +150,7 @@ export default function SlotPicker({
                       height={hourHeight}
                       first={h === startHour}
                       closed={state === 'closed'}
-                      disabled={isPast}
+                      disabled={isPast || (cellDisabled?.(d, h) ?? false)}
                       onClick={onCellClick ? () => onCellClick(d, h) : undefined}
                     />
                   );

@@ -1,20 +1,13 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import { weekdayShort } from '../../../../lib/weekday';
 import { isoWeekday } from '../../../../lib/availability';
-import type {
-  CourseDetail,
-  CourseScheduleRule,
-  CourseSession,
-  ScheduleEndMode,
-  ScheduleFrequency,
-} from '../../../../api/courses';
+import type { CourseDetail, CourseSession, ScheduleEndMode, SessionSource } from '../../../../api/courses';
 
 /**
- * 團體課程「課程時段」的排課週期引擎。
+ * 團體課程「課程時段」的排程展開。
  *
- * 移植自 Claude Design `GroupCourseCreate.dc.html` 的邏輯：一列排課規則展開成多筆課堂，
- * 可逐堂覆寫日期／時間（overrides）、移除（removed），或於日曆單次加開（extras）。
- * 儲存時 `toRulePayload` / `toSessionPayload` 轉成後端 payload；編輯載入時 `fromDetail` 反推回引擎狀態。
+ * 模型：一門課 = 一份排程規格（上課星期多選 + 單一時間 + 開課期間），展開成 `course_sessions`。
+ * 可逐堂「停課」（保留紀錄）、可「加開單堂」臨時課；不做逐堂改時間。日曆唯讀。
  */
 
 /** 週曆與時間下拉的可選範圍（含頭不含尾）；對齊全站 time_slots 10:00–21:00 與 SlotPicker 預設。 */
@@ -30,9 +23,6 @@ export const TIME_OPTIONS: { value: number; label: string }[] = (() => {
   return out;
 })();
 
-/** 單堂時長下拉選項（分鐘）。 */
-export const DURATION_OPTIONS = [30, 45, 50, 60, 75, 90, 120];
-
 export function formatMinute(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
@@ -45,205 +35,176 @@ export function formatDateKey(key: string): string {
   return `${d.month() + 1}/${d.date()}(${weekdayShort(isoWeekday(d))})`;
 }
 
-export interface RuleState {
-  /** 'r{position}'，供 occId 前綴用，跨編輯穩定 */
-  id: string;
-  position: number;
-  startKey: string;
-  minute: number;
-  freq: ScheduleFrequency;
-  endMode: ScheduleEndMode;
-  /** 連續週數（endMode = 連續） */
-  count: number;
-  /** 結束日 YYYY-MM-DD（endMode = 結束於） */
-  endKey: string;
-}
-
-export interface EngineState {
-  rules: RuleState[];
-  overrides: Record<string, { dateKey: string; minute: number }>;
-  removed: Record<string, boolean>;
-  extras: { id: string; dateKey: string; minute: number }[];
-  /** extras id 流水號 */
-  seq: number;
-}
-
-export interface Occurrence {
-  occId: string;
-  /** 1 起算的規則序號；單次加開為 0 */
-  rulePosition: number;
-  isExtra: boolean;
-  origKey: string;
-  origMinute: number;
-  dateKey: string;
-  minute: number;
-  adjusted: boolean;
-}
-
-const MAX_OPEN_ENDED = 60;
-
-function ruleWeekStep(freq: ScheduleFrequency): number {
-  return freq === '隔週' ? 14 : 7;
-}
-
-/** 依規則 + 覆寫 + 移除 + 單次加開，展開出排序後的課堂清單。 */
-export function expand(state: EngineState): Occurrence[] {
-  const out: Occurrence[] = [];
-  for (const r of state.rules) {
-    const step = ruleWeekStep(r.freq);
-    const base = dayjs(r.startKey);
-    const limit = r.endMode === '連續' ? Math.max(0, r.count) : MAX_OPEN_ENDED;
-    const endAt = r.endMode === '結束於' ? dayjs(r.endKey) : null;
-    for (let i = 0; i < limit; i += 1) {
-      const d = base.add(i * step, 'day');
-      if (endAt && d.isAfter(endAt, 'day')) break;
-      const occId = `${r.id}:${i}`;
-      if (state.removed[occId]) continue;
-      const ov = state.overrides[occId];
-      const origKey = d.format('YYYY-MM-DD');
-      out.push({
-        occId,
-        rulePosition: r.position + 1,
-        isExtra: false,
-        origKey,
-        origMinute: r.minute,
-        dateKey: ov ? ov.dateKey : origKey,
-        minute: ov ? ov.minute : r.minute,
-        adjusted: !!ov,
-      });
-    }
-  }
-  for (const x of state.extras) {
-    if (state.removed[x.id]) continue;
-    out.push({
-      occId: x.id,
-      rulePosition: 0,
-      isExtra: true,
-      origKey: x.dateKey,
-      origMinute: x.minute,
-      dateKey: x.dateKey,
-      minute: x.minute,
-      adjusted: false,
-    });
-  }
-  out.sort((a, b) => (a.dateKey === b.dateKey ? a.minute - b.minute : a.dateKey < b.dateKey ? -1 : 1));
-  return out;
-}
-
-/** 規則摘要：「共 8 堂 · 每週一」 */
-export function ruleSummary(state: EngineState, rule: RuleState): string {
-  const count =
-    rule.endMode === '連續'
-      ? Math.max(0, rule.count)
-      : expand({ ...state, extras: [], overrides: {}, removed: {} }).filter(
-          (o) => o.occId.startsWith(`${rule.id}:`),
-        ).length;
-  const prefix = rule.freq === '隔週' ? '隔週' : '每週';
-  return `共 ${count} 堂 · ${prefix}${weekdayShort(isoWeekday(dayjs(rule.startKey)))}`;
-}
-
-export function makeRule(position: number, id: string): RuleState {
-  const today = dayjs();
-  return {
-    id,
-    position,
-    startKey: today.format('YYYY-MM-DD'),
-    minute: 10 * 60,
-    freq: '每週',
-    endMode: '結束於',
-    count: 4,
-    endKey: today.add(56, 'day').format('YYYY-MM-DD'),
-  };
-}
-
-/** 新增課程的初始狀態：一列預設規則。 */
-export function initialCreateState(): EngineState {
-  return { rules: [makeRule(0, 'r0')], overrides: {}, removed: {}, extras: [], seq: 1 };
-}
-
-/** 排課規則的日期選擇：不能選今天以前。 */
+/** 排程規則／課堂的日期選擇：不能選今天以前。 */
 export function disabledPastDate(d: Dayjs): boolean {
   return d.isBefore(dayjs(), 'day');
 }
 
-/** 複製課程的初始狀態：清空排課，開課時間需重新設定。 */
-export function emptyScheduleState(): EngineState {
-  return { rules: [], overrides: {}, removed: {}, extras: [], seq: 0 };
+/** 某 (日期, 時間) 是否為已關閉時段（time_slots）。 */
+export type IsSlotClosed = (dateKey: string, minute: number) => boolean;
+
+export interface ScheduleSpec {
+  /** 上課星期（ISO 1–7），可多個 */
+  weekdays: number[];
+  /** 上課時間（自午夜起算分鐘，整點） */
+  startMinute: number;
+  /** 開課起日 YYYY-MM-DD（空字串＝未設定） */
+  startDate: string;
+  endMode: ScheduleEndMode;
+  /** 結束日 YYYY-MM-DD（endMode = 結束日） */
+  endDate: string;
+  /** 開課週數（endMode = 週數） */
+  weekCount: number;
 }
 
-/** 編輯載入：由後端巢狀資料反推回引擎狀態。 */
-export function fromDetail(detail: CourseDetail): EngineState {
-  const rules: RuleState[] = detail.rules
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map((r) => ({
-      id: `r${r.position}`,
-      position: r.position,
-      startKey: r.start_date,
-      minute: r.start_minute,
-      freq: r.frequency,
-      endMode: r.end_mode,
-      count: r.week_count ?? 4,
-      endKey: r.end_date ?? dayjs(r.start_date).add(56, 'day').format('YYYY-MM-DD'),
-    }));
+export interface ExtraSession {
+  key: string;
+  dateKey: string;
+  minute: number;
+}
 
-  const overrides: EngineState['overrides'] = {};
-  const removed: EngineState['removed'] = {};
-  const ruleSessions = detail.sessions.filter((s) => s.source === '規則');
+export interface PreviewSession {
+  key: string;
+  dateKey: string;
+  minute: number;
+  source: SessionSource;
+  isCancelled: boolean;
+  /** 排程課堂落在公休時段：仍顯示（標「時段公休」），但不計入堂數、儲存時略過 */
+  closedSlot: boolean;
+}
 
-  for (const r of rules) {
-    const step = ruleWeekStep(r.freq);
-    const base = dayjs(r.startKey);
-    const limit = r.endMode === '連續' ? Math.max(0, r.count) : MAX_OPEN_ENDED;
-    const endAt = r.endMode === '結束於' ? dayjs(r.endKey) : null;
-    const pool = ruleSessions.filter((s) => s.rule_position === r.position + 1);
-    for (let i = 0; i < limit; i += 1) {
-      const d = base.add(i * step, 'day');
-      if (endAt && d.isAfter(endAt, 'day')) break;
-      const key = d.format('YYYY-MM-DD');
-      const occId = `${r.id}:${i}`;
-      const exact = pool.find((s) => !s.adjusted && s.session_date === key && s.start_minute === r.minute);
-      if (exact) continue;
-      const adjusted = pool.find(
-        (s) => s.adjusted && s.origin_date === key && s.origin_minute === r.minute,
-      );
-      if (adjusted) {
-        overrides[occId] = { dateKey: adjusted.session_date, minute: adjusted.start_minute };
-        continue;
+const MAX_WEEKS = 104;
+
+export function emptyScheduleSpec(): ScheduleSpec {
+  return { weekdays: [], startMinute: 10 * 60, startDate: '', endMode: '週數', weekCount: 8, endDate: '' };
+}
+
+/** 排程期間的結束日（含）；資訊不足時回傳 null。 */
+export function scheduleEndDate(spec: ScheduleSpec): Dayjs | null {
+  if (!spec.startDate) return null;
+  if (spec.endMode === '結束日') return spec.endDate ? dayjs(spec.endDate) : null;
+  const weeks = Math.min(MAX_WEEKS, Math.max(1, spec.weekCount || 0));
+  return dayjs(spec.startDate).add(weeks * 7 - 1, 'day');
+}
+
+/**
+ * 依排程規格 + 停課集合 + 加開清單，展開出排序後的課堂清單。
+ * 落在公休時段、且不在 `confirmedDates`（編輯時＝已儲存的正常排程課堂日期）內的排程課堂
+ * 會被標 `closedSlot`（仍顯示、標「時段公休」，但不計入堂數、`toSessionPayload` 會濾掉）。
+ * 以 (日期, 整點) 去重——同一格只留一堂（排程先於加開）。
+ */
+export function expandSchedule(
+  spec: ScheduleSpec,
+  cancelled: Set<string>,
+  extras: ExtraSession[],
+  isClosed: IsSlotClosed,
+  confirmedDates: Set<string>,
+): PreviewSession[] {
+  const out: PreviewSession[] = [];
+  const end = scheduleEndDate(spec);
+  if (spec.startDate && end && spec.weekdays.length > 0) {
+    const wd = new Set(spec.weekdays);
+    let d = dayjs(spec.startDate);
+    while (!d.isAfter(end, 'day')) {
+      if (wd.has(isoWeekday(d))) {
+        const dateKey = d.format('YYYY-MM-DD');
+        const isCancelled = cancelled.has(dateKey);
+        out.push({
+          key: `s-${dateKey}`,
+          dateKey,
+          minute: spec.startMinute,
+          source: '排程',
+          isCancelled,
+          closedSlot:
+            !confirmedDates.has(dateKey) &&
+            !isCancelled &&
+            isClosed(dateKey, spec.startMinute),
+        });
       }
-      removed[occId] = true;
+      d = d.add(1, 'day');
     }
   }
-
-  const extras = detail.sessions
-    .filter((s) => s.source === '單次加開')
-    .map((s, n) => ({ id: `x${n}`, dateKey: s.session_date, minute: s.start_minute }));
-
-  return { rules, overrides, removed, extras, seq: extras.length };
+  for (const x of extras) {
+    out.push({
+      key: x.key,
+      dateKey: x.dateKey,
+      minute: x.minute,
+      source: '加開',
+      isCancelled: false,
+      closedSlot: false,
+    });
+  }
+  // 依「星期幾（週一…週日）→ 日期 → 時間」排列：週二整組、再週三整組、再單次加開的星期
+  out.sort((a, b) => {
+    const wa = isoWeekday(dayjs(a.dateKey));
+    const wb = isoWeekday(dayjs(b.dateKey));
+    if (wa !== wb) return wa - wb;
+    if (a.dateKey !== b.dateKey) return a.dateKey < b.dateKey ? -1 : 1;
+    return a.minute - b.minute;
+  });
+  const seen = new Set<string>();
+  return out.filter((s) => {
+    const k = `${s.dateKey}-${Math.floor(s.minute / 60)}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
-export function toRulePayload(rules: RuleState[]): CourseScheduleRule[] {
-  return rules.map((r) => ({
-    position: r.position,
-    start_date: r.startKey,
-    start_minute: r.minute,
-    frequency: r.freq,
-    end_mode: r.endMode,
-    week_count: r.endMode === '連續' ? r.count : null,
-    end_date: r.endMode === '結束於' ? r.endKey : null,
-  }));
+/** 排程摘要：「每週一、三、五 10:00 · 2026/09/14 – 2026/10/11 · 共 10 堂」 */
+export function scheduleSummary(spec: ScheduleSpec, activeCount: number, closedCount = 0): string {
+  if (spec.weekdays.length === 0 || !spec.startDate) return '尚未設定排程';
+  const days = [...spec.weekdays].sort((a, b) => a - b).map(weekdayShort).join('、');
+  const head = `每週${days} ${formatMinute(spec.startMinute)}`;
+  if (spec.endMode === '結束日' && !spec.endDate) return `${head} · 請選擇開課結束日`;
+  const end = scheduleEndDate(spec);
+  const range = end
+    ? `${dayjs(spec.startDate).format('YYYY/MM/DD')} – ${end.format('YYYY/MM/DD')}`
+    : dayjs(spec.startDate).format('YYYY/MM/DD');
+  const closedNote = closedCount > 0 ? `（${closedCount} 堂落在公休時段，不會建立）` : '';
+  return `${head} · ${range} · 共 ${activeCount} 堂${closedNote}`;
 }
 
-export function toSessionPayload(occs: Occurrence[], durationMinutes: number): CourseSession[] {
-  return occs.map((o, idx) => ({
-    position: idx,
-    session_date: o.dateKey,
-    start_minute: o.minute,
-    duration_minutes: durationMinutes,
-    source: o.isExtra ? '單次加開' : '規則',
-    rule_position: o.isExtra ? null : o.rulePosition,
-    adjusted: o.adjusted,
-    origin_date: o.adjusted ? o.origKey : null,
-    origin_minute: o.adjusted ? o.origMinute : null,
-  }));
+export function specFromDetail(detail: CourseDetail): ScheduleSpec {
+  return {
+    weekdays: detail.weekdays ?? [],
+    startMinute: (detail.start_hour ?? 10) * 60,
+    startDate: detail.start_date ?? '',
+    endMode: detail.end_mode ?? '週數',
+    endDate: detail.end_date ?? '',
+    weekCount: detail.week_count ?? 8,
+  };
+}
+
+export function cancelledFromDetail(detail: CourseDetail): Set<string> {
+  return new Set(
+    detail.sessions.filter((s) => s.source === '排程' && s.is_cancelled).map((s) => s.session_date),
+  );
+}
+
+/** 編輯時已儲存的「正常」排程課堂日期——這些不再被視為公休（即使該時段之後才被關閉）。 */
+export function confirmedFromDetail(detail: CourseDetail): Set<string> {
+  return new Set(
+    detail.sessions.filter((s) => s.source === '排程' && !s.is_cancelled).map((s) => s.session_date),
+  );
+}
+
+export function extrasFromDetail(detail: CourseDetail): ExtraSession[] {
+  return detail.sessions
+    .filter((s) => s.source === '加開')
+    .map((s) => ({ key: `x-${s.session_date}-${s.start_minute}`, dateKey: s.session_date, minute: s.start_minute }));
+}
+
+export function toSessionPayload(sessions: PreviewSession[], durationMinutes: number): CourseSession[] {
+  // 落在公休時段的排程課堂不建立
+  return sessions
+    .filter((s) => !s.closedSlot)
+    .map((s, idx) => ({
+      position: idx,
+      session_date: s.dateKey,
+      start_minute: s.minute,
+      duration_minutes: durationMinutes,
+      source: s.source,
+      is_cancelled: s.isCancelled,
+    }));
 }

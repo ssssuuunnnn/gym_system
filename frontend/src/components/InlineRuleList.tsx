@@ -7,11 +7,14 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
  * 「編號設定列表」共用外框：一個柔底面板 → 標題＋說明 → 多列帶編號晶片的設定列
  * （列內欄位由 caller 提供，列尾一顆刪除鈕）→ 一顆虛線「新增一列」按鈕。
  *
- * 團體課程「排課規則」（`CourseForm` 的 `ScheduleRulesEditor`）與公休設定「快速設定」
- * （`Availability`）共用此外框；各自的欄位／摘要／行動放在 `InlineRuleRow` 的 children。
+ * 目前用於公休設定「快速設定」（`Availability`）的批次關閉列；各自的欄位／摘要／行動
+ * 放在 `InlineRuleRow` 的 children。日後其他「多列批次設定」需求也可共用。
  */
 
-const ChipPrefixContext = createContext('項目');
+const RowContext = createContext<{ chipPrefix: string; readOnly: boolean }>({
+  chipPrefix: '項目',
+  readOnly: false,
+});
 
 export interface InlineRuleListProps {
   /** 面板標題，例如「排課規則」。 */
@@ -23,17 +26,19 @@ export interface InlineRuleListProps {
   /** 「新增一列」按鈕文字。 */
   addLabel: string;
   onAdd: () => void;
+  /** 唯讀：不顯示「新增一列」按鈕與各列的刪除鈕（caller 仍需自行 disable 列內欄位）。 */
+  readOnly?: boolean;
   /** 各設定列，通常是 `InlineRuleRow` 的陣列。 */
   children: ReactNode;
   style?: CSSProperties;
 }
 
 export function InlineRuleList(props: InlineRuleListProps) {
-  const { title, description, chipPrefix, addLabel, onAdd, children, style } = props;
+  const { title, description, chipPrefix, addLabel, onAdd, readOnly = false, children, style } = props;
   const { token } = theme.useToken();
 
   return (
-    <ChipPrefixContext.Provider value={chipPrefix}>
+    <RowContext.Provider value={{ chipPrefix, readOnly }}>
       <div
         style={{
           display: 'flex',
@@ -54,11 +59,13 @@ export function InlineRuleList(props: InlineRuleListProps) {
 
         {children}
 
-        <Button type="dashed" block icon={<PlusOutlined />} onClick={onAdd}>
-          {addLabel}
-        </Button>
+        {!readOnly && (
+          <Button type="dashed" block icon={<PlusOutlined />} onClick={onAdd}>
+            {addLabel}
+          </Button>
+        )}
       </div>
-    </ChipPrefixContext.Provider>
+    </RowContext.Provider>
   );
 }
 
@@ -74,7 +81,7 @@ export interface InlineRuleRowProps {
 export function InlineRuleRow(props: InlineRuleRowProps) {
   const { index, onRemove, children, style } = props;
   const { token } = theme.useToken();
-  const chipPrefix = useContext(ChipPrefixContext);
+  const { chipPrefix, readOnly } = useContext(RowContext);
 
   return (
     <div
@@ -95,7 +102,9 @@ export function InlineRuleRow(props: InlineRuleRowProps) {
       </span>
       {children}
       <div style={{ flex: 1 }} />
-      <Button type="text" size="small" icon={<DeleteOutlined />} onClick={onRemove} />
+      {!readOnly && (
+        <Button type="text" size="small" icon={<DeleteOutlined />} onClick={onRemove} />
+      )}
     </div>
   );
 }

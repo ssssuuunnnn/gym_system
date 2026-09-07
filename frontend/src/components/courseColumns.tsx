@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { Course } from '../api/courses';
-import { weekdayLabel } from '../lib/weekday';
+import { weekdayShort } from '../lib/weekday';
 import { CourseCoverThumb } from './CourseCoverThumb';
 
 /**
@@ -51,7 +51,7 @@ export function sharedCourseColumns({ coachNameById }: SharedCourseColumnDeps): 
             {r.min_capacity} – {r.max_capacity} 人
           </span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            已報名 {r.enrolled_count} 人
+            每堂上限 {r.max_capacity} 人
           </Typography.Text>
         </div>
       ),
@@ -88,8 +88,8 @@ export function sharedCourseColumns({ coachNameById }: SharedCourseColumnDeps): 
               : '未設定'}
           </span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.day_of_week != null && r.start_hour != null
-              ? `每${weekdayLabel(r.day_of_week)} ${r.start_hour}:00 · ${r.duration_minutes} 分鐘`
+            {r.weekdays.length > 0 && r.start_hour != null
+              ? `每週${[...r.weekdays].sort((a, b) => a - b).map(weekdayShort).join('、')} ${r.start_hour}:00 · ${r.duration_minutes} 分鐘`
               : '未設定'}
           </Typography.Text>
         </div>

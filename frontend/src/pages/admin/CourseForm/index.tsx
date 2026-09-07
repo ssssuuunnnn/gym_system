@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Breadcrumb, Button, Card, Modal, Skeleton, Space, Typography, message } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Breadcrumb, Button, Card, Modal, Skeleton, Space, Typography, message } from 'antd';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -14,23 +14,25 @@ import {
   type CoursePayload,
 } from '../../../api/courses';
 import { listCoaches } from '../../../api/coaches';
+import { listTimeSlots } from '../../../api/timeSlots';
+import { buildOverrideMap } from '../../../lib/availability';
 import { usePageActionBar } from '../../../store/pageActionBar';
 import { CourseInfoCard, type CourseInfoValue } from './components/CourseInfoCard';
 import { CourseStatusCard } from './components/CourseStatusCard';
-import { ScheduleRulesEditor } from './components/ScheduleRulesEditor';
+import { ScheduleSpecForm } from './components/ScheduleSpecForm';
 import { SchedulePreviewCalendar } from './components/SchedulePreviewCalendar';
 import { SessionsTable } from './components/SessionsTable';
 import {
-  emptyScheduleState,
-  expand,
-  fromDetail,
-  initialCreateState,
-  makeRule,
-  ruleSummary,
-  toRulePayload,
+  cancelledFromDetail,
+  confirmedFromDetail,
+  emptyScheduleSpec,
+  expandSchedule,
+  extrasFromDetail,
+  scheduleSummary,
+  specFromDetail,
   toSessionPayload,
-  type EngineState,
-  type RuleState,
+  type ExtraSession,
+  type ScheduleSpec,
 } from './lib/recurrence';
 
 type Mode = 'new' | 'edit' | 'duplicate';
@@ -57,6 +59,23 @@ export default function CourseForm() {
     [coaches],
   );
 
+  // time_slots 是時段可用性的唯一真相來源：公休時段不可開課。
+  const { data: slots } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+  const closedMap = useMemo(() => buildOverrideMap(slots), [slots]);
+  const isSlotClosed = useCallback(
+    (dateKey: string, minute: number) =>
+      closedMap.get(`${dateKey}-${Math.floor(minute / 60)}`) === false,
+    [closedMap],
+  );
+
+  // 上架中、且仍有未過期未停課課堂的團體課程：編輯時整個「課程時段」鎖定，不可異動。
+  const scheduleLocked =
+    mode === 'edit' &&
+    detail?.status === '上架' &&
+    (detail?.sessions ?? []).some(
+      (s) => !s.is_cancelled && s.session_date >= dayjs().format('YYYY-MM-DD'),
+    );
+
   const [info, setInfo] = useState<CourseInfoValue>({
     name: '',
     coachId: null,
@@ -71,28 +90,31 @@ export default function CourseForm() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   const [anchor, setAnchor] = useState<Dayjs>(() => dayjs());
-  const [engine, setEngine] = useState<EngineState>(() =>
-    initialCreateState(),
-  );
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [spec, setSpec] = useState<ScheduleSpec>(() => emptyScheduleSpec());
+  const [cancelled, setCancelled] = useState<Set<string>>(() => new Set());
+  const [confirmed, setConfirmed] = useState<Set<string>>(() => new Set());
+  const [extras, setExtras] = useState<ExtraSession[]>([]);
 
   // 僅在載入到（或切換至）另一門課時帶入表單，避免背景重新整理蓋掉使用者編輯
   useEffect(() => {
     if (!detail) return;
+    const dup = mode === 'duplicate';
     setInfo({
-      name: mode === 'duplicate' ? `${detail.name}（複製）` : detail.name,
+      name: dup ? `${detail.name}（複製）` : detail.name,
       coachId: detail.coach_id,
       minCapacity: detail.min_capacity,
       maxCapacity: detail.max_capacity,
       description: detail.description ?? '',
       durationMinutes: detail.duration_minutes,
     });
-    setStatus(mode === 'duplicate' ? '下架' : detail.status);
-    setCoverUrl(mode === 'duplicate' ? null : detail.cover_image_url);
+    setStatus(dup ? '下架' : detail.status);
+    setCoverUrl(dup ? null : detail.cover_image_url);
     setCoverFile(null);
     setCoverPreview(null);
-    setEngine(mode === 'duplicate' ? emptyScheduleState() : fromDetail(detail));
-    setEditingId(null);
+    setSpec(dup ? emptyScheduleSpec() : specFromDetail(detail));
+    setCancelled(dup ? new Set() : cancelledFromDetail(detail));
+    setConfirmed(dup ? new Set() : confirmedFromDetail(detail));
+    setExtras(dup ? [] : extrasFromDetail(detail));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail?.id, mode]);
 
@@ -106,82 +128,33 @@ export default function CourseForm() {
     return () => URL.revokeObjectURL(url);
   }, [coverFile]);
 
-  const occurrences = useMemo(() => expand(engine), [engine]);
+  // 落在公休的排程課堂標「時段公休」（不計堂數、儲存略過）；編輯時已儲存的正常課堂 (confirmed) 不受影響
+  const sessions = useMemo(
+    () => expandSchedule(spec, cancelled, extras, isSlotClosed, confirmed),
+    [spec, cancelled, extras, isSlotClosed, confirmed],
+  );
+  const activeCount = sessions.filter((s) => !s.isCancelled && !s.closedSlot).length;
+  const closedCount = sessions.filter((s) => s.closedSlot).length;
+  const summary = scheduleSummary(spec, activeCount, closedCount);
 
   const patchInfo = (patch: Partial<CourseInfoValue>) => setInfo((p) => ({ ...p, ...patch }));
+  const patchSpec = (patch: Partial<ScheduleSpec>) => setSpec((s) => ({ ...s, ...patch }));
 
-  const patchRule = (ruleId: string, patch: Partial<RuleState>) =>
-    setEngine((s) => ({ ...s, rules: s.rules.map((r) => (r.id === ruleId ? { ...r, ...patch } : r)) }));
-
-  const removeRule = (ruleId: string) =>
-    setEngine((s) => {
-      const overrides = Object.fromEntries(
-        Object.entries(s.overrides).filter(([k]) => !k.startsWith(`${ruleId}:`)),
-      );
-      const removed = Object.fromEntries(
-        Object.entries(s.removed).filter(([k]) => !k.startsWith(`${ruleId}:`)),
-      );
-      return {
-        ...s,
-        overrides,
-        removed,
-        rules: s.rules.filter((r) => r.id !== ruleId).map((r, i) => ({ ...r, position: i })),
-      };
+  const toggleCancel = (dateKey: string) =>
+    setCancelled((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateKey)) next.delete(dateKey);
+      else next.add(dateKey);
+      return next;
     });
-
-  const addRule = () =>
-    setEngine((s) => ({
-      ...s,
-      seq: s.seq + 1,
-      rules: [...s.rules, makeRule(s.rules.length, `r_${s.seq}`)],
-    }));
 
   const addExtra = (dateKey: string, minute: number) =>
-    setEngine((s) => ({
-      ...s,
-      seq: s.seq + 1,
-      extras: [...s.extras, { id: `x_${s.seq}`, dateKey, minute }],
-    }));
-
-  const removeOcc = (occId: string) =>
-    setEngine((s) => {
-      if (s.extras.some((e) => e.id === occId)) {
-        return { ...s, extras: s.extras.filter((e) => e.id !== occId) };
-      }
-      return { ...s, removed: { ...s.removed, [occId]: true } };
+    setExtras((prev) => {
+      const key = `x-${dateKey}-${minute}`;
+      if (prev.some((e) => e.key === key)) return prev;
+      return [...prev, { key, dateKey, minute }];
     });
-
-  const setOverride = (occId: string, dateKey: string, minute: number) =>
-    setEngine((s) => {
-      if (s.extras.some((e) => e.id === occId)) {
-        return {
-          ...s,
-          extras: s.extras.map((e) => (e.id === occId ? { ...e, dateKey, minute } : e)),
-        };
-      }
-      return { ...s, overrides: { ...s.overrides, [occId]: { dateKey, minute } } };
-    });
-
-  const resetOcc = (occId: string) =>
-    setEngine((s) => {
-      const overrides = { ...s.overrides };
-      delete overrides[occId];
-      return { ...s, overrides };
-    });
-
-  const changeOccDate = (occId: string, dateKey: string) => {
-    const occ = occurrences.find((o) => o.occId === occId);
-    if (occ) setOverride(occId, dateKey, occ.minute);
-  };
-  const changeOccTime = (occId: string, minute: number) => {
-    const occ = occurrences.find((o) => o.occId === occId);
-    if (occ) setOverride(occId, occ.dateKey, minute);
-  };
-
-  const clearAll = () => {
-    setEngine((s) => ({ ...s, rules: [], overrides: {}, removed: {}, extras: [] }));
-    setEditingId(null);
-  };
+  const removeExtra = (key: string) => setExtras((prev) => prev.filter((e) => e.key !== key));
 
   const pickCover = (file: File) => {
     if (!COVER_TYPES.includes(file.type)) {
@@ -212,12 +185,15 @@ export default function CourseForm() {
         description: info.description.trim() || null,
         cover_image_url: cover,
         status,
-        rules: toRulePayload(engine.rules),
-        sessions: toSessionPayload(occurrences, info.durationMinutes),
+        weekdays: spec.weekdays,
+        start_hour: Math.floor(spec.startMinute / 60),
+        start_date: spec.startDate || null,
+        end_mode: spec.endMode,
+        end_date: spec.endMode === '結束日' ? spec.endDate || null : null,
+        week_count: spec.endMode === '週數' ? spec.weekCount : null,
+        sessions: toSessionPayload(sessions, info.durationMinutes),
       };
-      return mode === 'edit'
-        ? updateCourse(courseId as number, payload)
-        : createCourse(payload);
+      return mode === 'edit' ? updateCourse(courseId as number, payload) : createCourse(payload);
     },
     onSuccess: (saved) => {
       message.success(mode === 'edit' ? '已更新團體課程' : '已建立團體課程');
@@ -247,7 +223,19 @@ export default function CourseForm() {
     if (!info.name.trim()) return message.error('請輸入課程名稱');
     if (info.coachId == null) return message.error('請選擇教練');
     if (info.minCapacity == null || info.maxCapacity == null) return message.error('請填寫開班人數');
-    if (info.maxCapacity < info.minCapacity) return message.error('報名上限不可小於最低開班人數');
+    if (info.maxCapacity < info.minCapacity) return message.error('每堂人數上限不可小於最低開班人數');
+    if (status !== '草稿') {
+      if (spec.weekdays.length === 0) return message.error('請選擇上課星期');
+      if (!spec.startDate) return message.error('請設定開課起日');
+      if (spec.endMode === '結束日' && !spec.endDate) return message.error('請設定開課結束日');
+      if (activeCount === 0) {
+        return message.error(
+          closedCount > 0
+            ? '所選星期／時段皆為公休，請調整星期／時間，或先於「公休設定」開放這些時段'
+            : '目前排程沒有任何課堂，請調整星期或開課期間',
+        );
+      }
+    }
     saveMutation.mutate();
   };
 
@@ -285,7 +273,7 @@ export default function CourseForm() {
   const title = mode === 'new' ? '新增團體課程' : mode === 'duplicate' ? '複製團體課程' : '編輯團體課程';
   const subtitle =
     mode === 'new'
-      ? '建立後可於課程排程日曆檢視與調整'
+      ? '設定上課星期、時間與開課期間，系統會展開出所有課堂'
       : mode === 'duplicate'
         ? `複製自「${detail?.name ?? ''}」，開課時間需重新設定`
         : detail
@@ -325,33 +313,36 @@ export default function CourseForm() {
 
       <Card title="課程時段">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <ScheduleRulesEditor
-            rules={engine.rules}
-            onPatchRule={patchRule}
-            onRemoveRule={removeRule}
-            onAddRule={addRule}
-            summaryFor={(rule) => ruleSummary(engine, rule)}
+          {scheduleLocked && (
+            <Alert
+              type="warning"
+              showIcon
+              message="此課程已上架，開課時段不可異動"
+              description="如需調整星期／期間、停課或加開，請先於下方將課程狀態改為下架或草稿並儲存。"
+            />
+          )}
+          <ScheduleSpecForm
+            value={spec}
+            onChange={patchSpec}
+            summary={summary}
+            readOnly={scheduleLocked}
           />
           <SchedulePreviewCalendar
             anchor={anchor}
             onAnchorChange={setAnchor}
-            occurrences={occurrences}
+            sessions={sessions}
             courseName={info.name}
             durationMinutes={info.durationMinutes}
-            onAddExtra={addExtra}
-            onRemoveOcc={removeOcc}
+            isSlotClosed={isSlotClosed}
           />
           <SessionsTable
-            occurrences={occurrences}
+            sessions={sessions}
             durationMinutes={info.durationMinutes}
-            editingId={editingId}
-            onStartEdit={setEditingId}
-            onDoneEdit={() => setEditingId(null)}
-            onChangeDate={changeOccDate}
-            onChangeTime={changeOccTime}
-            onResetOcc={resetOcc}
-            onRemoveOcc={removeOcc}
-            onClearAll={clearAll}
+            isSlotClosed={isSlotClosed}
+            onToggleCancel={toggleCancel}
+            onRemoveExtra={removeExtra}
+            onAddExtra={addExtra}
+            readOnly={scheduleLocked}
           />
         </div>
       </Card>

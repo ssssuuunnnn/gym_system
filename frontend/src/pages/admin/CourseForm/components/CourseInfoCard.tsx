@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import { Card, Input, InputNumber, Select, Button, theme } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 import { FieldRow } from './FieldRow';
-import { DURATION_OPTIONS } from '../lib/recurrence';
 
 export interface CourseInfoValue {
   name: string;
@@ -82,11 +81,14 @@ export function CourseInfoCard(props: CourseInfoCardProps) {
         </FieldRow>
 
         <FieldRow label="單堂時長" required>
-          <Select
+          <InputNumber
+            min={5}
+            max={600}
+            step={5}
+            addonAfter="分鐘"
             value={value.durationMinutes}
-            onChange={(v) => onChange({ durationMinutes: v })}
-            options={DURATION_OPTIONS.map((m) => ({ value: m, label: `${m} 分鐘` }))}
-            style={{ width: 140 }}
+            onChange={(v) => onChange({ durationMinutes: v ?? 60 })}
+            style={{ width: 160 }}
           />
         </FieldRow>
 

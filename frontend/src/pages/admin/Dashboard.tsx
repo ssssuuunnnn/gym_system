@@ -53,7 +53,7 @@ export default function Dashboard() {
   const todayCourses =
     todayDow === 0
       ? []
-      : (courses ?? []).filter((c) => c.day_of_week === todayDow && c.start_hour != null);
+      : (courses ?? []).filter((c) => c.weekdays.includes(todayDow) && c.start_hour != null);
 
   const scheduleRows: ScheduleRow[] = [
     ...todayCourses.map((c) => ({

@@ -4,25 +4,10 @@ export type CourseStatus = '上架' | '下架' | '草稿';
 
 export const COURSE_STATUSES: CourseStatus[] = ['上架', '下架', '草稿'];
 
-export type ScheduleFrequency = '每週' | '隔週';
-export type ScheduleEndMode = '連續' | '結束於';
-export type SessionSource = '規則' | '單次加開';
-
-export interface CourseScheduleRule {
-  id?: number;
-  /** 列順序，對應「規則 1 / 2…」（0 起算） */
-  position: number;
-  /** 規則起始日 YYYY-MM-DD */
-  start_date: string;
-  /** 開始時間，自午夜起算分鐘 */
-  start_minute: number;
-  frequency: ScheduleFrequency;
-  end_mode: ScheduleEndMode;
-  /** 連續週數（end_mode = 連續） */
-  week_count: number | null;
-  /** 結束日 YYYY-MM-DD（end_mode = 結束於） */
-  end_date: string | null;
-}
+/** 開課期間結束方式 */
+export type ScheduleEndMode = '週數' | '結束日';
+/** 課堂來源：排程展開 / 單次加開 */
+export type SessionSource = '排程' | '加開';
 
 export interface CourseSession {
   id?: number;
@@ -31,11 +16,8 @@ export interface CourseSession {
   start_minute: number;
   duration_minutes: number;
   source: SessionSource;
-  /** 來源規則序號（1 起算）；單次加開為 null */
-  rule_position: number | null;
-  adjusted: boolean;
-  origin_date: string | null;
-  origin_minute: number | null;
+  /** 停課（保留紀錄，不計入課堂數） */
+  is_cancelled: boolean;
 }
 
 export interface Course {
@@ -43,6 +25,7 @@ export interface Course {
   name: string;
   code: string | null;
   coach_id: number;
+  /** 最小的上課星期（1–7），列表摘要用 */
   day_of_week: number | null;
   start_hour: number | null;
   duration_minutes: number;
@@ -53,10 +36,15 @@ export interface Course {
   cover_image_url: string | null;
   start_date: string | null;
   end_date: string | null;
+  end_mode: ScheduleEndMode | null;
+  week_count: number | null;
+  /** 上課星期（ISO 1–7），可多個 */
+  weekdays: number[];
   status: CourseStatus;
   is_archived: boolean;
   archived_at: string | null;
   archived_by_name: string | null;
+  /** 單堂尖峰報名人數 */
   enrolled_count: number;
   created_at: string;
   updated_at: string;
@@ -64,7 +52,6 @@ export interface Course {
 }
 
 export interface CourseDetail extends Course {
-  rules: CourseScheduleRule[];
   sessions: CourseSession[];
 }
 
@@ -77,7 +64,12 @@ export interface CoursePayload {
   description?: string | null;
   cover_image_url?: string | null;
   status: CourseStatus;
-  rules: CourseScheduleRule[];
+  weekdays: number[];
+  start_hour: number | null;
+  start_date: string | null;
+  end_mode: ScheduleEndMode | null;
+  end_date: string | null;
+  week_count: number | null;
   sessions: CourseSession[];
 }
 
