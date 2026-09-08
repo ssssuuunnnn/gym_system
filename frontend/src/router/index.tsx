@@ -26,6 +26,7 @@ import MemberDetail from '../pages/admin/MemberDetail';
 import SystemSettings from '../pages/admin/SystemSettings';
 
 import Dashboard from '../pages/member/Dashboard';
+import BuyProduct from '../pages/member/BuyProduct';
 import MyProducts from '../pages/member/MyProducts';
 import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
           { path: 'dashboard', element: <Dashboard /> },
+          { path: 'purchase', element: <BuyProduct /> },
           { path: 'products', element: <MyProducts /> },
           { path: 'bookings', element: <MyBookings /> },
           { path: 'bookings/submit', element: <SubmitBooking /> },

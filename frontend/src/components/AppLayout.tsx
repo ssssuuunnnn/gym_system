@@ -5,6 +5,7 @@ import {
   AuditOutlined,
   UserSwitchOutlined,
   ShoppingOutlined,
+  ShoppingCartOutlined,
   CalendarOutlined,
   TeamOutlined,
   ClockCircleOutlined,
@@ -45,6 +46,7 @@ const adminMenuItems = [
 
 const memberMenuItems = [
   { key: '/member/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
+  { key: '/member/purchase', label: '購買商品', icon: <ShoppingCartOutlined /> },
   { key: '/member/products', label: '我的商品', icon: <ShoppingOutlined /> },
   { key: '/member/bookings', label: '我的預約', icon: <CalendarOutlined /> },
 ];

@@ -1,12 +1,14 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin, require_coach
 from app.models.coach import Coach
-from app.models.product import Product, ProductCategory
+from app.models.course import Course
+from app.models.product import Product
 from app.models.purchase import Purchase
 from app.models.reservation import (
     Reservation,
@@ -27,16 +29,6 @@ from app.schemas.reservation import (
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
-# 容量上限，對應「共用元件」時段選擇器規格：私人教練 x/4、團體課 x/1、包場 x/1
-CAPACITY_BY_CATEGORY = {
-    ProductCategory.private_1v1: 4,
-    ProductCategory.private_1v2: 4,
-    ProductCategory.rental_1v1: 4,
-    ProductCategory.group_class: 1,
-    ProductCategory.buyout: 1,
-}
-
-
 def _check_slot_open(db: Session, slot_date, start_hour: int) -> None:
     slot = (
         db.query(TimeSlot)
@@ -48,23 +40,36 @@ def _check_slot_open(db: Session, slot_date, start_hour: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="該時段已被管理員關閉，無法預約")
 
 
-def _check_capacity(db: Session, product: Product, booking_date, start_hour: int) -> None:
-    limit = CAPACITY_BY_CATEGORY.get(product.category)
-    if limit is None:
+def _check_capacity(
+    db: Session,
+    product: Product,
+    course_id: int | None,
+    booking_date,
+    start_hour: int,
+    people_count: int,
+) -> None:
+    """
+    課程商品以「該課程 × 日期 × 時段」的每堂容量（course.max_capacity）為上限；
+    未關聯任何課程（course_id 與 product.course_id 皆為空）則不限量。
+    """
+    course_id = course_id or product.course_id
+    if course_id is None:
+        return
+    course = db.get(Course, course_id)
+    if course is None:
         return
 
-    existing_count = (
-        db.query(Reservation)
-        .join(Product, Reservation.product_id == Product.id)
+    existing = (
+        db.query(func.coalesce(func.sum(Reservation.people_count), 0))
         .filter(
+            Reservation.course_id == course_id,
             Reservation.booking_date == booking_date,
             Reservation.start_hour == start_hour,
             Reservation.status == ReservationStatus.confirmed,
-            Product.category == product.category,
         )
-        .count()
+        .scalar()
     )
-    if existing_count >= limit:
+    if int(existing) + people_count > course.max_capacity:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="該時段容量已滿")
 
 
@@ -108,7 +113,9 @@ def create_reservation(
         require_admin(current_user)
         source = ReservationSource.admin_created
         initial_status = ReservationStatus.confirmed
-        _check_capacity(db, product, payload.booking_date, payload.start_hour)
+        _check_capacity(
+            db, product, payload.course_id, payload.booking_date, payload.start_hour, payload.people_count
+        )
     else:
         source = ReservationSource.member_submitted
         initial_status = ReservationStatus.pending
@@ -169,7 +176,14 @@ def review_reservation(reservation_id: int, payload: ReservationReview, db: Sess
 
     if payload.status == ReservationStatus.confirmed:
         product = db.get(Product, reservation.product_id)
-        _check_capacity(db, product, reservation.booking_date, reservation.start_hour)
+        _check_capacity(
+            db,
+            product,
+            reservation.course_id,
+            reservation.booking_date,
+            reservation.start_hour,
+            reservation.people_count,
+        )
 
     reservation.status = payload.status
     reservation.reviewed_at = datetime.utcnow()

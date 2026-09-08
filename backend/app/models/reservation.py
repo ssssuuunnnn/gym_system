@@ -21,7 +21,7 @@ class ReservationSource(str, enum.Enum):
 
 class Reservation(Base):
     """
-    預約。容量檢查（私人教練 x/4、團體課 x/1、包場 x/1）由查詢邏輯即時計算，不另建計數表。
+    預約。容量檢查以所屬課程的每堂容量（course.max_capacity）為上限，由查詢邏輯即時計算，不另建計數表。
     source=admin_created 的預約寫入前同樣須檢查 time_slots.is_open，關閉時段不可建立。
     """
 

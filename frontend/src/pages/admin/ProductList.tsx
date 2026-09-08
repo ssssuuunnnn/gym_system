@@ -3,19 +3,39 @@ import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listProducts, type Product } from '../../api/products';
+import { listActiveCourses } from '../../api/courses';
 
 /**
  * 商品管理列表：對應「商品管理列表」。後端目前僅提供 list/create/update，無刪除 API。
+ * 分類為「課程」顯示綁定課程與課堂數；「用品」顯示庫存。
  */
 export default function ProductList() {
   const navigate = useNavigate();
 
   const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
+  const { data: courses } = useQuery({ queryKey: ['courses', 'active'], queryFn: listActiveCourses });
+
+  const courseNameById = new Map((courses ?? []).map((c) => [c.id, c.name]));
 
   const columns: ColumnsType<Product> = [
     { title: '商品名稱', dataIndex: 'name' },
     { title: '分類', dataIndex: 'category' },
-    { title: '堂數（小時）', dataIndex: 'session_hours' },
+    {
+      title: '團體課程',
+      dataIndex: 'course_id',
+      render: (courseId: number | null) =>
+        courseId != null ? courseNameById.get(courseId) ?? `#${courseId}` : '—',
+    },
+    {
+      title: '堂數（小時）',
+      dataIndex: 'session_hours',
+      render: (hours: number, record) => (record.category === '用品' ? '—' : hours),
+    },
+    {
+      title: '庫存',
+      dataIndex: 'stock',
+      render: (stock: number | null, record) => (record.category === '用品' ? stock ?? 0 : '—'),
+    },
     {
       title: '價格',
       dataIndex: 'price',

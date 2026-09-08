@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PurchaseCreate(BaseModel):
@@ -11,6 +11,13 @@ class PurchaseCreate(BaseModel):
     quantity: int
     purchase_date: date
     amount: float
+
+
+class PurchaseSelfCreate(BaseModel):
+    """對應會員「購買商品」：僅需商品與數量，歸屬對象／金額／日期由後端帶入。"""
+
+    product_id: int
+    quantity: int = Field(default=1, ge=1)
 
 
 class PurchaseOut(BaseModel):
