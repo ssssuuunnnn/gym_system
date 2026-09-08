@@ -31,3 +31,14 @@ export async function createPurchase(payload: PurchaseCreatePayload) {
   const { data } = await apiClient.post<Purchase>('/purchases', payload);
   return data;
 }
+
+export interface SelfPurchasePayload {
+  product_id: number;
+  quantity: number;
+}
+
+/** 會員自助購買：歸屬對象、金額、購買日期一律由後端帶入 */
+export async function createSelfPurchase(payload: SelfPurchasePayload) {
+  const { data } = await apiClient.post<Purchase>('/purchases/self', payload);
+  return data;
+}
