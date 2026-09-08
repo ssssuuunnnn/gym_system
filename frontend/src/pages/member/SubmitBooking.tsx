@@ -51,8 +51,8 @@ export default function SubmitBooking() {
     resolveAvailability(d, h, overridesByKey) === 'open' && !(d.isSame(now, 'day') && h <= now.hour());
   const availableHours = bookingDate ? HOURS.filter((h) => hourSelectable(bookingDate, h)) : HOURS;
 
-  // 會員僅能直接預約「課程」商品；用品透過商品購買流程處理。
-  const availableProducts = (products ?? []).filter((p) => p.category === '團體課程' && p.is_active);
+  // 會員僅能直接預約課程類商品（團體課程／課程）；用品透過商品購買流程處理。
+  const availableProducts = (products ?? []).filter((p) => p.category !== '用品' && p.is_active);
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>

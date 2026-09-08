@@ -29,7 +29,7 @@ export default function ProductList() {
     {
       title: '堂數（小時）',
       dataIndex: 'session_hours',
-      render: (hours: number, record) => (record.category === '團體課程' ? hours : '—'),
+      render: (hours: number, record) => (record.category === '用品' ? '—' : hours),
     },
     {
       title: '庫存',

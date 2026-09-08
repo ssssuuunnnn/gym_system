@@ -11,14 +11,16 @@ interface FormValues {
   name: string;
   category: ProductPayload['category'];
   course_id?: number;
+  session_hours?: number;
   stock?: number;
   price: number;
   is_active: boolean;
 }
 
 /**
- * 建立／編輯商品。分類分為「課程」與「用品」：
- * - 課程：綁定團體課程，堂數沿用該課程的課堂數（唯讀）。
+ * 建立／編輯商品。分類分為「團體課程」「課程」「用品」：
+ * - 團體課程：綁定已排程的團體課程，堂數沿用該課程的課堂數（唯讀）。
+ * - 課程：單次課程，堂數由管理員自填。
  * - 用品：輸入庫存數量（登錄購買時扣減）。
  * 後端無 GET /products/{id}，編輯模式從既有列表快取中找出該筆資料帶入表單。
  */
@@ -51,6 +53,7 @@ export default function ProductForm() {
         name: editingProduct.name,
         category: editingProduct.category,
         course_id: editingProduct.course_id ?? undefined,
+        session_hours: editingProduct.category === '課程' ? editingProduct.session_hours : undefined,
         stock: editingProduct.stock ?? undefined,
         price: editingProduct.price,
         is_active: editingProduct.is_active,
@@ -66,6 +69,7 @@ export default function ProductForm() {
         price: values.price,
         is_active: values.is_active,
         course_id: values.category === '團體課程' ? values.course_id : null,
+        session_hours: values.category === '課程' ? values.session_hours : null,
         stock: values.category === '用品' ? values.stock : null,
       };
       return productId != null ? updateProduct(productId, payload) : createProduct(payload);
@@ -101,7 +105,7 @@ export default function ProductForm() {
           <Select
             options={PRODUCT_CATEGORIES.map((c) => ({ value: c, label: c }))}
             onChange={() => {
-              form.setFieldsValue({ course_id: undefined, stock: undefined });
+              form.setFieldsValue({ course_id: undefined, session_hours: undefined, stock: undefined });
             }}
           />
         </Form.Item>
@@ -125,6 +129,12 @@ export default function ProductForm() {
               </Typography.Text>
             </Form.Item>
           </>
+        )}
+
+        {category === '課程' && (
+          <Form.Item name="session_hours" label="堂數（小時）" rules={[{ required: true, message: '請輸入堂數' }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
         )}
 
         {category === '用品' && (

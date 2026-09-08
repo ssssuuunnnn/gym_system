@@ -1,23 +1,24 @@
 import { apiClient } from './client';
 
-export type ProductCategory = '團體課程' | '用品';
+/** 團體課程＝綁定已排程課程；課程＝單次課程（堂數自填）；用品＝有庫存的實體商品 */
+export type ProductCategory = '團體課程' | '課程' | '用品';
 
 export interface Product {
   id: number;
   name: string;
   category: ProductCategory;
-  /** 分類為「課程」時綁定的團體課程 id；「用品」為 null */
+  /** 分類為「團體課程」時綁定的課程 id；其餘為 null */
   course_id: number | null;
-  /** 分類為「課程」＝所綁課程的課堂數；「用品」＝0 */
+  /** 堂數：團體課程＝所綁課程課堂數、課程＝自填、用品＝0 */
   session_hours: number;
-  /** 分類為「用品」的庫存量；「課程」為 null */
+  /** 分類為「用品」的庫存量；其餘為 null */
   stock: number | null;
   price: number;
   is_active: boolean;
   created_at: string;
 }
 
-export const PRODUCT_CATEGORIES: ProductCategory[] = ['團體課程', '用品'];
+export const PRODUCT_CATEGORIES: ProductCategory[] = ['團體課程', '課程', '用品'];
 
 export async function listProducts() {
   const { data } = await apiClient.get<Product[]>('/products');
@@ -29,8 +30,10 @@ export interface ProductPayload {
   category: ProductCategory;
   price: number;
   is_active: boolean;
-  /** 分類為「課程」時必填 */
+  /** 分類為「團體課程」時必填 */
   course_id?: number | null;
+  /** 分類為「課程」時必填（單次課程堂數） */
+  session_hours?: number | null;
   /** 分類為「用品」時必填 */
   stock?: number | null;
 }

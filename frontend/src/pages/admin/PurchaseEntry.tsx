@@ -92,7 +92,7 @@ export default function PurchaseEntry() {
               label:
                 p.category === '用品'
                   ? `${p.name}（用品｜庫存 ${p.stock ?? 0}｜NT$${p.price}）`
-                  : `${p.name}（團體課程｜${p.session_hours}堂｜NT$${p.price}）`,
+                  : `${p.name}（${p.category}｜${p.session_hours}堂｜NT$${p.price}）`,
               disabled: p.category === '用品' && (p.stock ?? 0) <= 0,
             }))}
           />

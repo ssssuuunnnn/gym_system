@@ -14,8 +14,9 @@ def _normalize_product_fields(db: Session, data: dict, previous_course_id: int |
     """
     依分類補齊／清理衍生欄位（原地修改 data）：
     - 團體課程：course_id 必填且課程須存在；綁定新課程時須為「上架」；session_hours 沿用課程課堂數；stock 清為 None。
+      （綁定不變時不強制上架，避免課程事後下架就無法再編輯該商品。）
+    - 課程（單次課程）：session_hours 必填且 >= 1（管理員自填）；course_id、stock 清為 None。
     - 用品：stock 必填且 >= 0；session_hours 固定 0；course_id 清為 None。
-    （綁定不變時不強制上架，避免課程事後下架就無法再編輯該商品。）
     """
     category = data.get("category")
     if category == ProductCategory.course:
@@ -28,6 +29,12 @@ def _normalize_product_fields(db: Session, data: dict, previous_course_id: int |
         if course_id != previous_course_id and course.status != CourseStatus.on:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="只能綁定上架中的課程")
         data["session_hours"] = course.session_count
+        data["stock"] = None
+    elif category == ProductCategory.single_course:
+        session_hours = data.get("session_hours")
+        if session_hours is None or session_hours < 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="分類為課程時請輸入至少 1 堂")
+        data["course_id"] = None
         data["stock"] = None
     elif category == ProductCategory.supply:
         stock = data.get("stock")
@@ -48,7 +55,7 @@ def list_products(db: Session = Depends(get_db)):
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
-    """對應「建立／編輯商品」：商品名稱、分類（團體課程／用品）、價格、上架狀態。"""
+    """對應「建立／編輯商品」：商品名稱、分類（團體課程／課程／用品）、價格、上架狀態。"""
     data = payload.model_dump()
     _normalize_product_fields(db, data)
     product = Product(**data)
@@ -69,13 +76,14 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
     merged = {
         "category": updates.get("category", product.category),
         "course_id": updates.get("course_id", product.course_id),
+        "session_hours": updates.get("session_hours", product.session_hours),
         "stock": updates.get("stock", product.stock),
     }
     _normalize_product_fields(db, merged, previous_course_id=product.course_id)
     updates["category"] = merged["category"]
     updates["course_id"] = merged["course_id"]
-    updates["stock"] = merged["stock"]
     updates["session_hours"] = merged["session_hours"]
+    updates["stock"] = merged["stock"]
 
     for field, value in updates.items():
         setattr(product, field, value)
