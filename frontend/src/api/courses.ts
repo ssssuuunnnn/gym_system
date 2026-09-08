@@ -55,6 +55,19 @@ export interface CourseDetail extends Course {
   sessions: CourseSession[];
 }
 
+/** 對應「教練課程」頁：某教練所有未封存課程的單堂課堂（含所屬課程資訊）。 */
+export interface CoachCourseSession {
+  course_id: number;
+  course_name: string;
+  course_code: string | null;
+  course_status: CourseStatus;
+  session_date: string;
+  start_minute: number;
+  duration_minutes: number;
+  source: SessionSource;
+  is_cancelled: boolean;
+}
+
 export interface CoursePayload {
   name: string;
   coach_id: number;
@@ -87,6 +100,14 @@ export async function listActiveCourses() {
 /** 封存課程列表：僅已封存課程。 */
 export async function listArchivedCourses() {
   const { data } = await apiClient.get<Course[]>('/courses', { params: { archived: true } });
+  return data;
+}
+
+/** 教練課程頁：某教練所有未封存課程的逐堂課堂。 */
+export async function listCoachCourseSessions(coachId: number) {
+  const { data } = await apiClient.get<CoachCourseSession[]>('/courses/coach-sessions', {
+    params: { coach_id: coachId },
+  });
   return data;
 }
 

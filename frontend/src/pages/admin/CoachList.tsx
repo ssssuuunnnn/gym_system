@@ -48,6 +48,9 @@ export default function CoachList() {
       key: 'actions',
       render: (_, record) => (
         <Space>
+          <Button size="small" onClick={() => navigate(`/admin/coaches/${record.id}/courses`)}>
+            授課
+          </Button>
           <Button size="small" onClick={() => navigate(`/admin/coaches/${record.id}/edit`)}>
             編輯
           </Button>
