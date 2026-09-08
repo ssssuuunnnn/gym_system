@@ -1,35 +1,23 @@
 import { apiClient } from './client';
 
-export type ProductCategory =
-  | '私人教練1對1'
-  | '私人教練1對2'
-  | '場租1對1'
-  | '包場'
-  | '團體課'
-  | '自主訓練'
-  | '臨時加人'
-  | '手綁帶';
+export type ProductCategory = '課程' | '用品';
 
 export interface Product {
   id: number;
   name: string;
   category: ProductCategory;
+  /** 分類為「課程」時綁定的團體課程 id；「用品」為 null */
+  course_id: number | null;
+  /** 分類為「課程」＝所綁課程的課堂數；「用品」＝0 */
   session_hours: number;
+  /** 分類為「用品」的庫存量；「課程」為 null */
+  stock: number | null;
   price: number;
   is_active: boolean;
   created_at: string;
 }
 
-export const PRODUCT_CATEGORIES: ProductCategory[] = [
-  '私人教練1對1',
-  '私人教練1對2',
-  '場租1對1',
-  '包場',
-  '團體課',
-  '自主訓練',
-  '臨時加人',
-  '手綁帶',
-];
+export const PRODUCT_CATEGORIES: ProductCategory[] = ['課程', '用品'];
 
 export async function listProducts() {
   const { data } = await apiClient.get<Product[]>('/products');
@@ -39,9 +27,12 @@ export async function listProducts() {
 export interface ProductPayload {
   name: string;
   category: ProductCategory;
-  session_hours: number;
   price: number;
   is_active: boolean;
+  /** 分類為「課程」時必填 */
+  course_id?: number | null;
+  /** 分類為「用品」時必填 */
+  stock?: number | null;
 }
 
 export async function createProduct(payload: ProductPayload) {

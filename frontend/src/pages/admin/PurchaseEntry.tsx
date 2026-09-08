@@ -18,7 +18,7 @@ interface FormValues {
 
 /**
  * 購買紀錄登錄：對應「購買紀錄登錄」。選會員、選商品、數量、購買日期、金額。
- * remaining_hours 由後端依 session_hours * quantity 自動計算，此頁不重複計算。
+ * 課程商品的 remaining_hours 由後端依 session_hours * quantity 自動計算；用品則由後端扣減庫存，此頁不重複計算。
  * 送出後清空表單留在原頁，方便櫃檯連續登錄多筆購買。
  */
 export default function PurchaseEntry() {
@@ -89,7 +89,11 @@ export default function PurchaseEntry() {
             placeholder="選擇商品"
             options={(products ?? []).map((p) => ({
               value: p.id,
-              label: `${p.name}（${p.category}｜${p.session_hours}堂｜NT$${p.price}）`,
+              label:
+                p.category === '用品'
+                  ? `${p.name}（用品｜庫存 ${p.stock ?? 0}｜NT$${p.price}）`
+                  : `${p.name}（課程｜${p.session_hours}堂｜NT$${p.price}）`,
+              disabled: p.category === '用品' && (p.stock ?? 0) <= 0,
             }))}
           />
         </Form.Item>

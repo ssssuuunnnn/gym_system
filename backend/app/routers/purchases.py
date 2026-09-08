@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
-from app.models.product import Product
+from app.models.product import Product, ProductCategory
 from app.models.purchase import Purchase
 from app.models.user import User, UserRole
 from app.schemas.purchase import PurchaseCreate, PurchaseOut
@@ -31,7 +31,10 @@ def list_purchases(
 
 @router.post("", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
 def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """對應「購買紀錄登錄」：選擇會員、選擇商品、數量、購買日期、金額。remaining_hours = 商品堂數 * 數量。"""
+    """
+    對應「購買紀錄登錄」：選擇會員、選擇商品、數量、購買日期、金額。
+    課程商品：remaining_hours = 商品堂數 * 數量；用品：扣減 products.stock，remaining_hours = 0。
+    """
     member = db.get(User, payload.user_id)
     if not member:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
@@ -40,9 +43,17 @@ def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_admin
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到商品")
 
+    if product.category == ProductCategory.supply:
+        if product.stock is None or product.stock < payload.quantity:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="庫存不足")
+        product.stock -= payload.quantity
+        remaining_hours = 0
+    else:
+        remaining_hours = product.session_hours * payload.quantity
+
     purchase = Purchase(
         **payload.model_dump(),
-        remaining_hours=product.session_hours * payload.quantity,
+        remaining_hours=remaining_hours,
         created_by=admin.id,
     )
     db.add(purchase)

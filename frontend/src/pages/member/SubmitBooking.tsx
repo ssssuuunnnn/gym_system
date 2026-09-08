@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { isAxiosError } from 'axios';
 import { createReservation } from '../../api/reservations';
-import { listProducts, type ProductCategory } from '../../api/products';
+import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
 import { listPurchases } from '../../api/purchases';
@@ -13,10 +13,6 @@ import { buildOverrideMap, resolveAvailability } from '../../lib/availability';
 import { useAuthStore, decodeUserId } from '../../store/auth';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => 10 + i); // 10:00–21:00
-
-// 場租1對1／包場屬於教練租用場地的商品類型，僅場租教練身份顯示；臨時加人僅能透過「加購」流程使用，不列入可直接預約的商品。
-const COACH_ONLY_CATEGORIES: ProductCategory[] = ['場租1對1', '包場'];
-const ADDON_ONLY_CATEGORIES: ProductCategory[] = ['臨時加人'];
 
 interface FormValues {
   product_id: number;
@@ -38,7 +34,7 @@ export default function SubmitBooking() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
-  const { token, isCoach } = useAuthStore();
+  const { token } = useAuthStore();
   const selfId = decodeUserId(token);
 
   const { data: products, isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
@@ -55,11 +51,8 @@ export default function SubmitBooking() {
     resolveAvailability(d, h, overridesByKey) === 'open' && !(d.isSame(now, 'day') && h <= now.hour());
   const availableHours = bookingDate ? HOURS.filter((h) => hourSelectable(bookingDate, h)) : HOURS;
 
-  const availableProducts = (products ?? []).filter((p) => {
-    if (ADDON_ONLY_CATEGORIES.includes(p.category)) return false;
-    if (!isCoach && COACH_ONLY_CATEGORIES.includes(p.category)) return false;
-    return p.is_active;
-  });
+  // 會員僅能直接預約「課程」商品；用品透過商品購買流程處理。
+  const availableProducts = (products ?? []).filter((p) => p.category === '課程' && p.is_active);
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
