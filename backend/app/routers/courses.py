@@ -90,9 +90,15 @@ def _sync_derived_fields(course: Course) -> None:
 
 def _apply_children(course: Course, payload: CourseCreate | CourseUpdate) -> None:
     if payload.weekdays is not None:
-        course.weekday_rows = [
-            CourseWeekday(weekday=w) for w in sorted({w for w in payload.weekdays if 1 <= w <= 7})
-        ]
+        wanted = {w for w in payload.weekdays if 1 <= w <= 7}
+        # 逐列增刪（而非整批重建），避免同一次 flush 內先 INSERT 後 DELETE
+        # 觸發 uq_course_weekday 唯一鍵衝突
+        existing = {row.weekday: row for row in course.weekday_rows}
+        for weekday, row in existing.items():
+            if weekday not in wanted:
+                course.weekday_rows.remove(row)
+        for weekday in sorted(wanted - existing.keys()):
+            course.weekday_rows.append(CourseWeekday(weekday=weekday))
     if payload.sessions is not None:
         course.sessions = [
             CourseSession(
