@@ -65,7 +65,7 @@ export default function ProductForm() {
         category: values.category,
         price: values.price,
         is_active: values.is_active,
-        course_id: values.category === '課程' ? values.course_id : null,
+        course_id: values.category === '團體課程' ? values.course_id : null,
         stock: values.category === '用品' ? values.stock : null,
       };
       return productId != null ? updateProduct(productId, payload) : createProduct(payload);
@@ -106,9 +106,9 @@ export default function ProductForm() {
           />
         </Form.Item>
 
-        {category === '課程' && (
+        {category === '團體課程' && (
           <>
-            <Form.Item name="course_id" label="課程" rules={[{ required: true, message: '請選擇課程' }]}>
+            <Form.Item name="course_id" label="團體課程" rules={[{ required: true, message: '請選擇團體課程' }]}>
               <Select
                 showSearch
                 optionFilterProp="label"

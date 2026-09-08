@@ -21,7 +21,7 @@ export default function ProductList() {
     { title: '商品名稱', dataIndex: 'name' },
     { title: '分類', dataIndex: 'category' },
     {
-      title: '課程',
+      title: '團體課程',
       dataIndex: 'course_id',
       render: (courseId: number | null) =>
         courseId != null ? courseNameById.get(courseId) ?? `#${courseId}` : '—',
@@ -29,7 +29,7 @@ export default function ProductList() {
     {
       title: '堂數（小時）',
       dataIndex: 'session_hours',
-      render: (hours: number, record) => (record.category === '課程' ? hours : '—'),
+      render: (hours: number, record) => (record.category === '團體課程' ? hours : '—'),
     },
     {
       title: '庫存',

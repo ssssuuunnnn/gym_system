@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-export type ProductCategory = '課程' | '用品';
+export type ProductCategory = '團體課程' | '用品';
 
 export interface Product {
   id: number;
@@ -17,7 +17,7 @@ export interface Product {
   created_at: string;
 }
 
-export const PRODUCT_CATEGORIES: ProductCategory[] = ['課程', '用品'];
+export const PRODUCT_CATEGORIES: ProductCategory[] = ['團體課程', '用品'];
 
 export async function listProducts() {
   const { data } = await apiClient.get<Product[]>('/products');

@@ -8,7 +8,7 @@ from app.db.session import Base
 
 
 class ProductCategory(str, enum.Enum):
-    course = "課程"
+    course = "團體課程"
     supply = "用品"
 
 
