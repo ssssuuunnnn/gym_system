@@ -21,6 +21,7 @@ import GroupCourseList from '../pages/admin/GroupCourseList';
 import GroupCourseArchive from '../pages/admin/GroupCourseArchive';
 import CourseList from '../pages/admin/CourseList';
 import CourseForm from '../pages/admin/CourseForm';
+import CourseCheckin from '../pages/admin/CourseCheckin';
 import CreateBooking from '../pages/admin/CreateBooking';
 import Availability from '../pages/admin/Availability';
 import MemberList from '../pages/admin/MemberList';
@@ -35,6 +36,8 @@ import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
 import ChangePassword from '../pages/member/ChangePassword';
 
+import CheckinKiosk from '../pages/kiosk/CheckinKiosk';
+
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
  * 每個側邊欄大類底下收合相關畫面（審核列表/詳情/建立預約同屬「預約審核」等）。
@@ -42,6 +45,8 @@ import ChangePassword from '../pages/member/ChangePassword';
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  // 第二螢幕看板：免登入，不套用 AppLayout，僅供「課程報到」頁產生的專屬網址開啟
+  { path: '/checkin-kiosk', element: <CheckinKiosk /> },
 
   {
     element: <RequireRole role="admin" />,
@@ -72,6 +77,7 @@ export const router = createBrowserRouter([
           { path: 'courses/:id/edit', element: <CourseForm /> },
           { path: 'courses/:id/duplicate', element: <CourseForm /> },
           { path: 'private-courses', element: <CourseList /> },
+          { path: 'course-checkin', element: <CourseCheckin /> },
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           // { path: 'slot-settings', element: <SlotSettings /> },

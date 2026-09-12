@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
@@ -13,12 +13,16 @@ from app.models.purchase import Purchase
 from app.models.reservation import (
     Reservation,
     ReservationAddon,
+    ReservationCheckinMethod,
     ReservationSource,
     ReservationStatus,
 )
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
 from app.schemas.reservation import (
+    CheckinRosterEntryOut,
+    CheckinRosterOut,
+    CheckinSessionSummaryOut,
     ReservationAddonCreate,
     ReservationAddonOut,
     ReservationCreate,
@@ -89,6 +93,63 @@ def list_reservations(
     elif member_id is not None:
         query = query.filter(Reservation.member_id == member_id)
     return query.order_by(Reservation.booking_date, Reservation.start_hour).all()
+
+
+@router.get("/roster", response_model=CheckinRosterOut, dependencies=[Depends(require_admin)])
+def get_checkin_roster(
+    course_id: int,
+    booking_date: date,
+    start_hour: int,
+    db: Session = Depends(get_db),
+):
+    """
+    對應「課程報到」名單與報到狀態：以 course_id/booking_date/start_hour 三值定位單一堂課
+    （reservations 無 course_sessions 外鍵，此三值即為容量檢查邏輯既有的定位方式）。
+    """
+    course = db.get(Course, course_id)
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到課程")
+
+    rows = (
+        db.query(Reservation, User.username)
+        .join(User, Reservation.member_id == User.id)
+        .filter(
+            Reservation.course_id == course_id,
+            Reservation.booking_date == booking_date,
+            Reservation.start_hour == start_hour,
+            Reservation.status == ReservationStatus.confirmed,
+        )
+        .order_by(User.username)
+        .all()
+    )
+    entries = [
+        CheckinRosterEntryOut(
+            id=r.id,
+            member_id=r.member_id,
+            username=username,
+            people_count=r.people_count,
+            status=r.status,
+            checked_in_at=r.checked_in_at,
+            checked_in_method=r.checked_in_method,
+        )
+        for r, username in rows
+    ]
+    checked_in_count = sum(1 for e in entries if e.checked_in_at is not None)
+
+    return CheckinRosterOut(
+        session=CheckinSessionSummaryOut(
+            course_id=course.id,
+            course_name=course.name,
+            coach_name=course.coach.alias or course.coach.name,
+            booking_date=booking_date,
+            start_hour=start_hour,
+            duration_minutes=course.duration_minutes,
+            max_capacity=course.max_capacity,
+        ),
+        entries=entries,
+        checked_in_count=checked_in_count,
+        total_count=len(entries),
+    )
 
 
 @router.post("", response_model=ReservationOut, status_code=status.HTTP_201_CREATED)
@@ -223,6 +284,46 @@ def cancel_reservation(
 
     db.commit()
     db.refresh(reservation)
+    return reservation
+
+
+@router.post("/{reservation_id}/check-in", response_model=ReservationOut, dependencies=[Depends(require_admin)])
+def check_in_reservation(
+    reservation_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """對應「課程報到」手動報到。僅已確認預約可報到；重複呼叫為 idempotent（不覆寫報到時間）。"""
+    reservation = db.get(Reservation, reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+    if reservation.status != ReservationStatus.confirmed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅已確認的預約可報到")
+
+    if reservation.checked_in_at is None:
+        reservation.checked_in_at = datetime.utcnow()
+        reservation.checked_in_method = ReservationCheckinMethod.admin_manual
+        reservation.checked_in_by = current_user.id
+        db.commit()
+        db.refresh(reservation)
+    return reservation
+
+
+@router.post(
+    "/{reservation_id}/check-in/undo", response_model=ReservationOut, dependencies=[Depends(require_admin)]
+)
+def undo_check_in(reservation_id: int, db: Session = Depends(get_db)):
+    """對應「課程報到」取消報到；未報到時為 idempotent。"""
+    reservation = db.get(Reservation, reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+
+    if reservation.checked_in_at is not None:
+        reservation.checked_in_at = None
+        reservation.checked_in_method = None
+        reservation.checked_in_by = None
+        db.commit()
+        db.refresh(reservation)
     return reservation
 
 

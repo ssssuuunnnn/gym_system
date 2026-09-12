@@ -115,3 +115,15 @@ class CoachCourseSessionOut(BaseModel):
     duration_minutes: int
     source: SessionSource
     is_cancelled: bool
+
+
+class UpcomingCourseSessionOut(BaseModel):
+    """對應「課程報到」選擇課程下拉：不限教練，指定日期區間內（預設今天＋明天）的逐堂課堂。"""
+
+    course_id: int
+    course_name: str
+    coach_id: int
+    coach_name: str
+    session_date: date
+    start_minute: int
+    duration_minutes: int

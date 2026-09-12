@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import settings
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
+from app.models.coach import Coach
 from app.models.course import (
     Course,
     CourseSession,
@@ -26,6 +27,7 @@ from app.schemas.course import (
     CourseOut,
     CourseStatusUpdate,
     CourseUpdate,
+    UpcomingCourseSessionOut,
 )
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -182,6 +184,66 @@ def list_coach_sessions(
             course_name,
             course_code,
             course_status,
+        ) in rows
+    ]
+
+
+@router.get(
+    "/upcoming-sessions",
+    response_model=list[UpcomingCourseSessionOut],
+    dependencies=[Depends(require_admin)],
+)
+def list_upcoming_sessions(
+    date_from: date | None = Query(default=None, description="預設今天"),
+    date_to: date | None = Query(default=None, description="預設明天"),
+    db: Session = Depends(get_db),
+):
+    """
+    對應「課程報到」選擇課程下拉：不限教練，列出未停課、未封存課程在指定日期區間內的逐堂課堂。
+    未帶 date_from/date_to 時預設 今天～明天，與畫面規則一致。
+    """
+    d_from = date_from or date.today()
+    d_to = date_to or (date.today() + timedelta(days=1))
+    rows = (
+        db.query(
+            CourseSession.session_date,
+            CourseSession.start_minute,
+            CourseSession.duration_minutes,
+            Course.id,
+            Course.name,
+            Coach.id,
+            Coach.name,
+            Coach.alias,
+        )
+        .join(Course, CourseSession.course_id == Course.id)
+        .join(Coach, Course.coach_id == Coach.id)
+        .filter(
+            CourseSession.session_date.between(d_from, d_to),
+            CourseSession.is_cancelled.is_(False),
+            Course.is_archived.is_(False),
+        )
+        .order_by(CourseSession.session_date, CourseSession.start_minute)
+        .all()
+    )
+    return [
+        UpcomingCourseSessionOut(
+            course_id=course_id_,
+            course_name=course_name,
+            coach_id=coach_id_,
+            coach_name=coach_alias or coach_name,
+            session_date=session_date,
+            start_minute=start_minute,
+            duration_minutes=duration_minutes,
+        )
+        for (
+            session_date,
+            start_minute,
+            duration_minutes,
+            course_id_,
+            course_name,
+            coach_id_,
+            coach_name,
+            coach_alias,
         ) in rows
     ]
 

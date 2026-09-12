@@ -19,6 +19,7 @@ from app.models.purchase import Purchase  # noqa: F401
 from app.models.reservation import (  # noqa: F401
     Reservation,
     ReservationAddon,
+    ReservationCheckinMethod,
     ReservationSource,
     ReservationStatus,
 )

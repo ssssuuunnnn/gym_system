@@ -19,6 +19,11 @@ class ReservationSource(str, enum.Enum):
     admin_created = "admin_created"
 
 
+class ReservationCheckinMethod(str, enum.Enum):
+    kiosk_self = "kiosk_self"
+    admin_manual = "admin_manual"
+
+
 class Reservation(Base):
     """
     預約。容量檢查以所屬課程的每堂容量（course.max_capacity）為上限，由查詢邏輯即時計算，不另建計數表。
@@ -49,12 +54,20 @@ class Reservation(Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    # 課程報到：管理員手動報到或看板自助報到皆寫入此三欄；未報到時皆為 NULL
+    checked_in_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    checked_in_method: Mapped[ReservationCheckinMethod | None] = mapped_column(
+        Enum(ReservationCheckinMethod), nullable=True
+    )
+    checked_in_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, comment="手動報到的管理員")
+
     member: Mapped["User"] = relationship("User", foreign_keys=[member_id])
     coach: Mapped["Coach | None"] = relationship("Coach", foreign_keys=[coach_id])
     course: Mapped["Course | None"] = relationship("Course", foreign_keys=[course_id])
     product: Mapped["Product"] = relationship("Product")
     purchase: Mapped["Purchase | None"] = relationship("Purchase", foreign_keys=[purchase_id])
     addons: Mapped[list["ReservationAddon"]] = relationship("ReservationAddon", back_populates="reservation")
+    checked_in_by_user: Mapped["User | None"] = relationship("User", foreign_keys=[checked_in_by])
 
 
 class ReservationAddon(Base):

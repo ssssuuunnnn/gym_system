@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.reservation import ReservationSource, ReservationStatus
+from app.models.reservation import ReservationCheckinMethod, ReservationSource, ReservationStatus
 
 
 class ReservationCreate(BaseModel):
@@ -56,6 +56,9 @@ class ReservationOut(BaseModel):
     reviewed_by: int | None
     reviewed_at: datetime | None
     cancelled_at: datetime | None
+    checked_in_at: datetime | None
+    checked_in_method: ReservationCheckinMethod | None
+    checked_in_by: int | None
 
 
 class ReservationAddonCreate(BaseModel):
@@ -76,3 +79,32 @@ class ReservationAddonOut(BaseModel):
     extra_people: int
     purchase_id: int | None
     created_at: datetime
+
+
+class CheckinRosterEntryOut(BaseModel):
+    """對應「課程報到」名單與報到狀態的單一列（一筆 reservation = 一位歸屬會員，不拆算人數）。"""
+
+    id: int
+    member_id: int
+    username: str
+    people_count: int
+    status: ReservationStatus
+    checked_in_at: datetime | None
+    checked_in_method: ReservationCheckinMethod | None
+
+
+class CheckinSessionSummaryOut(BaseModel):
+    course_id: int
+    course_name: str
+    coach_name: str
+    booking_date: date
+    start_hour: int
+    duration_minutes: int
+    max_capacity: int
+
+
+class CheckinRosterOut(BaseModel):
+    session: CheckinSessionSummaryOut
+    entries: list[CheckinRosterEntryOut]
+    checked_in_count: int
+    total_count: int

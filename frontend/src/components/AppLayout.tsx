@@ -11,6 +11,7 @@ import {
   ClockCircleOutlined,
   SettingOutlined,
   DollarOutlined,
+  QrcodeOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -41,6 +42,7 @@ const adminMenuItems = [
   { key: '/admin/coach-settlements', label: '教練費用結算', icon: <DollarOutlined /> },
   { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
+  { key: '/admin/course-checkin', label: '課程報到', icon: <QrcodeOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },
   { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },

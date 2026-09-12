@@ -68,6 +68,17 @@ export interface CoachCourseSession {
   is_cancelled: boolean;
 }
 
+/** 對應「課程報到」選擇課程下拉：不限教練，指定日期區間內（預設今天＋明天）的逐堂課堂。 */
+export interface UpcomingCourseSession {
+  course_id: number;
+  course_name: string;
+  coach_id: number;
+  coach_name: string;
+  session_date: string;
+  start_minute: number;
+  duration_minutes: number;
+}
+
 export interface CoursePayload {
   name: string;
   coach_id: number;
@@ -107,6 +118,14 @@ export async function listArchivedCourses() {
 export async function listCoachCourseSessions(coachId: number) {
   const { data } = await apiClient.get<CoachCourseSession[]>('/courses/coach-sessions', {
     params: { coach_id: coachId },
+  });
+  return data;
+}
+
+/** 課程報到選擇課程下拉：不限教練，預設今天＋明天。 */
+export async function listUpcomingSessions(dateFrom?: string, dateTo?: string) {
+  const { data } = await apiClient.get<UpcomingCourseSession[]>('/courses/upcoming-sessions', {
+    params: { date_from: dateFrom, date_to: dateTo },
   });
   return data;
 }

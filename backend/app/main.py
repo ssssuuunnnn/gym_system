@@ -11,6 +11,7 @@ from app.routers import (
     coaches,
     courses,
     products,
+    public_checkin,
     purchases,
     reservations,
     system_settings,
@@ -42,6 +43,7 @@ app.include_router(reservations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(system_settings.router, prefix=settings.API_V1_PREFIX)
 app.include_router(coach_settlements.router, prefix=settings.API_V1_PREFIX)
+app.include_router(public_checkin.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
