@@ -13,6 +13,8 @@ import ProductList from '../pages/admin/ProductList';
 import ProductForm from '../pages/admin/ProductForm';
 import PurchaseEntry from '../pages/admin/PurchaseEntry';
 import CoachPurchaseQuery from '../pages/admin/CoachPurchaseQuery';
+import CoachSettlements from '../pages/admin/CoachSettlements';
+import CoachPayouts from '../pages/admin/CoachPayouts';
 import BookingReviewList from '../pages/admin/BookingReviewList';
 import BookingReviewDetail from '../pages/admin/BookingReviewDetail';
 import GroupCourseList from '../pages/admin/GroupCourseList';
@@ -58,6 +60,8 @@ export const router = createBrowserRouter([
           { path: 'coaches/:id/edit', element: <CoachForm /> },
           { path: 'coaches/:id/courses', element: <CoachCourses /> },
           { path: 'coaches/purchases', element: <CoachPurchaseQuery /> },
+          { path: 'coach-settlements', element: <CoachSettlements /> },
+          { path: 'coach-payouts', element: <CoachPayouts /> },
           { path: 'products', element: <ProductList /> },
           { path: 'products/new', element: <ProductForm /> },
           { path: 'products/:id/edit', element: <ProductForm /> },

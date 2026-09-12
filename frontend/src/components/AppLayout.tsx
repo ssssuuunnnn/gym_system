@@ -10,6 +10,7 @@ import {
   TeamOutlined,
   ClockCircleOutlined,
   SettingOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +38,7 @@ const adminMenuItems = [
   { key: '/admin/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
   { key: '/admin/reservations', label: '預約審核', icon: <AuditOutlined /> },
   { key: '/admin/coaches', label: '教練管理', icon: <UserSwitchOutlined /> },
+  { key: '/admin/coach-settlements', label: '教練費用結算', icon: <DollarOutlined /> },
   { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },

@@ -5,6 +5,7 @@ course_weekdays / course_sessions 兩張子表）。
 """
 
 from app.models.coach import Coach  # noqa: F401
+from app.models.coach_settlement import CoachSettlementPeriod, CoachSettlementRates  # noqa: F401
 from app.models.course import (  # noqa: F401
     Course,
     CourseSession,

@@ -5,7 +5,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import auth, coaches, courses, products, purchases, reservations, system_settings, time_slots, users
+from app.routers import (
+    auth,
+    coach_settlements,
+    coaches,
+    courses,
+    products,
+    purchases,
+    reservations,
+    system_settings,
+    time_slots,
+    users,
+)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -30,6 +41,7 @@ app.include_router(time_slots.router, prefix=settings.API_V1_PREFIX)
 app.include_router(reservations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(system_settings.router, prefix=settings.API_V1_PREFIX)
+app.include_router(coach_settlements.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
