@@ -1,18 +1,22 @@
 services:
-  mysql:
-    image: mysql:8.4
+  postgres:
+    image: postgres:16
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-fitness_studio}
-      MYSQL_USER: ${MYSQL_USER:-fitness_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      # 由 docker/postgres/init-roles.sh 建立兩個帳號與資料庫（見 docs/adr/0001-multi-tenancy.md）
+      DB_NAME: ${DB_NAME:-fitness_studio}
+      DB_OWNER_USER: ${DB_OWNER_USER:-fitness_owner}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:-changeme_owner}
+      DB_APP_USER: ${DB_APP_USER:-fitness_app}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-changeme}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-fitness_studio}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -21,7 +25,15 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-fitness_user}:${MYSQL_PASSWORD:-changeme}@mysql:3306/${MYSQL_DATABASE:-fitness_studio}?charset=utf8mb4
+      # 應用程式：受 RLS 限制的帳號；migration／平台工具：資料表擁有者
+      DATABASE_URL: postgresql+psycopg://${DB_APP_USER:-fitness_app}:${DB_APP_PASSWORD:-changeme_app}@postgres:5432/${DB_NAME:-fitness_studio}
+      MIGRATION_DATABASE_URL: postgresql+psycopg://${DB_OWNER_USER:-fitness_owner}:${DB_OWNER_PASSWORD:-changeme_owner}@postgres:5432/${DB_NAME:-fitness_studio}
+      APP_DB_ROLE: ${DB_APP_USER:-fitness_app}
+      # 每家健身房一個子網域：<subdomain>.BASE_DOMAIN。本機可用 demo.localhost、alpha.localhost …
+      BASE_DOMAIN: ${BASE_DOMAIN:-localhost}
+      # 沒有子網域的網址（http://localhost）使用的健身房；啟動時自動開通。正式環境請留空
+      DEFAULT_TENANT: ${DEFAULT_TENANT:-demo}
+      DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-示範健身房}
       SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-secret}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
       BACKEND_CORS_ORIGINS: '["http://localhost"]'
@@ -29,7 +41,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MEDIA_DIR: /app/media
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     ports:
       - "8000:8000"
@@ -51,13 +63,13 @@ services:
     image: adminer:latest
     restart: unless-stopped
     environment:
-      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DEFAULT_SERVER: postgres
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     ports:
       - "8080:8080"
 
 volumes:
-  mysql_data:
+  postgres_data:
   coach_media:

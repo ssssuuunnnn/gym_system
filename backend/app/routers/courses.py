@@ -1,13 +1,11 @@
-import os
-import uuid
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.config import settings
-from app.db.session import get_db
+from app.core.media import save_tenant_media
+from app.deps import get_db
 from app.deps import get_current_user, require_admin
 from app.models.coach import Coach
 from app.models.course import (
@@ -471,10 +469,4 @@ async def upload_cover(file: UploadFile = File(...)):
     if len(data) > COVER_MAX_BYTES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="檔案超過 2MB，請壓縮後再上傳")
 
-    target_dir = os.path.join(settings.MEDIA_DIR, "courses")
-    os.makedirs(target_dir, exist_ok=True)
-    filename = f"{uuid.uuid4().hex}{ext}"
-    with open(os.path.join(target_dir, filename), "wb") as fh:
-        fh.write(data)
-
-    return CourseCoverOut(url=f"/media/courses/{filename}")
+    return CourseCoverOut(url=save_tenant_media("courses", data, ext))

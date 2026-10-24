@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, St
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class ProductCategory(str, enum.Enum):
@@ -13,7 +14,7 @@ class ProductCategory(str, enum.Enum):
     supply = "用品"  # 實體商品，有庫存
 
 
-class Product(Base):
+class Product(TenantMixin, Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(primary_key=True)

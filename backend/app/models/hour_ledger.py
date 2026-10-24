@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class HourLedgerReason(str, enum.Enum):
@@ -15,7 +16,7 @@ class HourLedgerReason(str, enum.Enum):
     manual_adjust = "手動調整"
 
 
-class HourLedger(Base):
+class HourLedger(TenantMixin, Base):
     """
     堂數異動紀錄：每一次 purchases.remaining_hours 的增減都寫一筆。
     purchases.remaining_hours 僅為快取，任一購買紀錄的

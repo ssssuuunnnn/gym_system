@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.deps import get_db
 from app.deps import get_current_user, require_admin
 from app.models.time_slot import TimeSlot
 from app.models.user import User

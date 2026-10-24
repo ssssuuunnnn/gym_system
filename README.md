@@ -1,6 +1,8 @@
 # 健身工作室管理系統
 
-依「健身房預約系統 — Wireframe 頁面清單.md」設計文件建立的專案骨架。技術棧：React.js（Vite + TypeScript + Ant Design）＋ FastAPI（Python）＋ MySQL。
+依「健身房預約系統 — Wireframe 頁面清單.md」設計文件建立的專案骨架。技術棧：React.js（Vite + TypeScript + Ant Design）＋ FastAPI（Python）＋ PostgreSQL。
+
+**多租戶 SaaS**：多家健身房共用一套系統、資料完全隔離。每家一個子網域（`<subdomain>.<BASE_DOMAIN>`），資料庫以 PostgreSQL 列層級權限（RLS）強制隔離。設計見 [`docs/adr/0001-multi-tenancy.md`](docs/adr/0001-multi-tenancy.md)。
 
 設計文件與 Claude Design mockup 請見上一層資料夾：
 - `../健身房預約系統 — Wireframe 頁面清單.md`（畫面清單、資料庫結構、技術棧）
@@ -31,13 +33,13 @@
 - 後端目前缺：加購臨時加人的堂數扣抵邏輯（目前只更新人數）、已付款訂單的退款流程
 - 手機版時段選擇器的橫向滑動／列表式呈現尚未實作（目前 SlotPicker 僅桌面版格狀版面）
 - 後端已有 pytest（`backend/tests/`，CI 自動執行）；前端尚無自動化測試
-- 尚無 CD；Docker（本機一鍵啟動 MySQL＋後端＋前端）已驗證可正常 build／run
+- 尚無 CD；Docker（本機一鍵啟動 PostgreSQL＋後端＋前端）
 
 ## 啟動方式
 
 **環境啟動請一律使用 Docker**（唯一驗證過、建議使用的方式）。下方「本機開發（不使用 Docker）」僅供需要直接除錯後端／前端程式時參考，非日常啟動方式。
 
-### Docker（一鍵啟動 MySQL + 後端 + 前端，建議方式）
+### Docker（一鍵啟動 PostgreSQL + 後端 + 前端，建議方式）
 
 ```bash
 docker compose up --build
@@ -45,17 +47,32 @@ docker compose up --build
 
 - 前端：http://localhost（nginx 提供靜態檔，並將 `/api/*` 反向代理到 backend）
 - 後端 API 文件：http://localhost:8000/docs
-- MySQL：`localhost:3306`（資料存於 named volume `mysql_data`）
+- PostgreSQL：`localhost:5432`（資料存於 named volume `postgres_data`；第一次建立時 `docker/postgres/init-roles.sh` 會建立資料表擁有者 `fitness_owner` 與應用程式帳號 `fitness_app`）
+- 子網域：瀏覽器會把 `*.localhost` 指到本機，所以 `http://demo.localhost`、`http://alpha.localhost` 都能直接開；`http://localhost` 沒有子網域時使用 `DEFAULT_TENANT`（預設 `demo`）
 
-容器啟動流程：`backend/docker-entrypoint.sh` 會先跑 `alembic upgrade head` 建表，再啟動 `uvicorn`；`backend` 服務設定 `depends_on: mysql: condition: service_healthy`，等 MySQL healthcheck 通過才會啟動，避免建表時資料庫還沒就緒。
+> 舊版用 MySQL 的 `mysql_data` volume 不會被沿用；migration 歷史已整併為 PostgreSQL 初始結構，若有既有 MySQL 資料需另外搬移。
 
-**建立 admin 帳號**：`register` 端點固定建立 `role=member`，若要自動建立／確保 admin 帳號存在，啟動時帶上 `ADMIN_USERNAME`／`ADMIN_PASSWORD`（entrypoint 會呼叫 `backend/app/seed_admin.py`，可重複執行、不會覆蓋既有密碼）：
+容器啟動流程：`backend/docker-entrypoint.sh` 會先跑 `alembic upgrade head` 建表，再開通 `DEFAULT_TENANT` 這家健身房，最後啟動 `uvicorn`；`backend` 服務等 PostgreSQL healthcheck 通過才會啟動。
+
+**建立 admin 帳號**：`register` 端點固定建立 `role=member`，若要自動建立／確保 `DEFAULT_TENANT` 的 admin 帳號存在，啟動時帶上 `ADMIN_USERNAME`／`ADMIN_PASSWORD`（entrypoint 會呼叫 `backend/app/seed_admin.py`，可重複執行、不會覆蓋既有密碼）：
 
 ```bash
 ADMIN_USERNAME=admin ADMIN_PASSWORD=<你的密碼> docker compose up --build
 ```
 
+**開通另一家健身房**（平台管理指令，以資料表擁有者連線）：
+
+```bash
+docker compose exec backend python -m app.cli create-tenant --subdomain alpha --name "Alpha 健身" \
+  --admin-username admin --admin-password <密碼>
+docker compose exec backend python -m app.cli list-tenants
+docker compose exec backend python -m app.cli set-status --subdomain alpha --status suspended
+```
+
+之後打開 `http://alpha.localhost` 用該家的 admin 登入。同一個人在兩家健身房是兩個獨立帳號。
+
 檔案結構：
+- `docker/postgres/init-roles.sh`（建立兩個資料庫帳號）
 - `backend/Dockerfile`、`backend/docker-entrypoint.sh`、`backend/app/seed_admin.py`、`backend/.dockerignore`
 - `frontend/Dockerfile`（多階段建置：node 建置 → nginx 提供靜態檔）、`frontend/nginx.conf`、`frontend/.dockerignore`
 - 根目錄 `docker-compose.yml`
@@ -68,10 +85,10 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<你的密碼> docker compose up --build
 cd backend
 pip install -r requirements.txt   # 需 Python 3.10+
 cp .env.example .env
-# 本機開發預設用 SQLite（.env 內 DATABASE_URL），正式環境請改為 MySQL 連線字串
+# 需要本機 PostgreSQL 16，並先建好 fitness_owner／fitness_app 兩個帳號（參考 docker/postgres/init-roles.sh）
 alembic upgrade head
+python -m app.cli create-tenant --subdomain demo --admin-username admin --admin-password <你的密碼>
 uvicorn app.main:app --reload
-python -m app.seed_admin --username admin --password <你的密碼>   # 建立/確保 admin 帳號
 ```
 
 前端：
@@ -85,10 +102,8 @@ npm run dev
 
 預設會呼叫 `http://localhost:8000/api/v1`（可在 `.env` 的 `VITE_API_BASE_URL` 調整）。
 
-MySQL（正式環境）連線字串範例：
+後端測試在真的 PostgreSQL 上執行（以受 RLS 限制的帳號連線，才能驗證租戶隔離），預設連 `fitness_test` 資料庫，可用 `TEST_DATABASE_URL`／`TEST_MIGRATION_DATABASE_URL` 覆寫：
 
+```bash
+cd backend && pip install -r requirements-dev.txt && python -m pytest -q
 ```
-DATABASE_URL=mysql+pymysql://<user>:<password>@<host>:3306/fitness_studio?charset=utf8mb4
-```
-
-改好 `.env` 後執行 `alembic upgrade head` 建表即可，Model／Schema／Enum 皆已依「技術棧與系統架構」章節的型別對應表設計，可直接套用 MySQL。

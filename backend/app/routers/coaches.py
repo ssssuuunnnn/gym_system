@@ -1,11 +1,9 @@
-import os
-import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.db.session import get_db
+from app.core.media import save_tenant_media
+from app.deps import get_db
 from app.deps import get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.user import User, UserRole
@@ -56,13 +54,7 @@ async def upload_photo(file: UploadFile = File(...)):
     if len(data) > PHOTO_MAX_BYTES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="檔案超過 2MB，請壓縮後再上傳")
 
-    target_dir = os.path.join(settings.MEDIA_DIR, "coaches")
-    os.makedirs(target_dir, exist_ok=True)
-    filename = f"{uuid.uuid4().hex}{ext}"
-    with open(os.path.join(target_dir, filename), "wb") as fh:
-        fh.write(data)
-
-    return CoachPhotoOut(url=f"/media/coaches/{filename}")
+    return CoachPhotoOut(url=save_tenant_media("coaches", data, ext))
 
 
 @router.post("", response_model=CoachOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
