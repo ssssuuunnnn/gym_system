@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Card,
   Typography,
   Form,
@@ -39,7 +40,7 @@ export default function BuyProduct() {
   const buyMutation = useMutation({
     mutationFn: () => createSelfPurchase({ product_id: productId as number, quantity }),
     onSuccess: () => {
-      message.success('購買成功');
+      message.success('已建立訂單，請向櫃台付款，確認收款後即可使用堂數');
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       navigate('/member/products');
@@ -114,9 +115,16 @@ export default function BuyProduct() {
           </Typography.Text>
         </Form.Item>
 
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title="送出後訂單為「待付款」，請向櫃台付款；工作室確認收款後，堂數才會入帳可預約。"
+        />
+
         <Popconfirm
           title="確認購買"
-          description={selectedProduct ? `購買「${selectedProduct.name}」× ${quantity}，金額 NT$ ${total}` : ''}
+          description={selectedProduct ? `購買「${selectedProduct.name}」× ${quantity}，應付 NT$ ${total}` : ''}
           okText="確認"
           cancelText="取消"
           disabled={!selectedProduct || outOfStock}
@@ -127,7 +135,7 @@ export default function BuyProduct() {
             loading={buyMutation.isPending}
             disabled={!selectedProduct || outOfStock}
           >
-            {outOfStock ? '庫存不足' : '購買'}
+            {outOfStock ? '庫存不足' : '送出訂單'}
           </Button>
         </Popconfirm>
       </Form>
