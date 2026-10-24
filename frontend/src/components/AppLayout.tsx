@@ -5,21 +5,17 @@ import {
   AuditOutlined,
   UserSwitchOutlined,
   ShoppingOutlined,
-  ShoppingCartOutlined,
   CalendarOutlined,
   TeamOutlined,
   ClockCircleOutlined,
   SettingOutlined,
   DollarOutlined,
-  CheckSquareOutlined,
   AccountBookOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth';
 import { getSettings } from '../api/settings';
-import { getMyCoachProfile, isPayableCoach } from '../api/coaches';
 
 const DEFAULT_BRAND_NAME = '健身工作室管理系統';
 import { usePageActionBarStore } from '../store/pageActionBar';
@@ -34,9 +30,8 @@ const CONTENT_PADDING = 24;
 const SCROLL_BLUR_THRESHOLD = 4;
 
 /**
- * 共用版型：依角色顯示不同側邊欄。
- * 導覽結構採用「對照 Claude Design 視覺化 Mockup」章節確認的精簡版分組：
- * 管理員 6 大類（含儀表板）、會員 3 大類（教練另有學員簽到；私人／團體課程教練另有我的鐘點）。畫面本身數量不變，只是入口收合。
+ * 後台版型（管理員）。會員與教練使用前台版型 components/member/MemberLayout.tsx。
+ * 導覽結構採用「對照 Claude Design 視覺化 Mockup」章節確認的精簡版分組。
  */
 const adminMenuItems = [
   { key: '/admin/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
@@ -51,22 +46,10 @@ const adminMenuItems = [
   { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },
 ];
 
-const memberMenuItems = [
-  { key: '/member/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
-  { key: '/member/purchase', label: '購買商品', icon: <ShoppingCartOutlined /> },
-  { key: '/member/products', label: '我的商品', icon: <ShoppingOutlined /> },
-  { key: '/member/bookings', label: '我的預約', icon: <CalendarOutlined /> },
-];
-
-// 教練身份額外顯示：為自己帶的預約簽到／標記未到（所有教練類型）
-const coachMenuItems = [{ key: '/member/coaching', label: '學員簽到', icon: <CheckSquareOutlined /> }];
-// 公司要付鐘點的教練（私人教練／團體課程教練）才顯示；場租教練不計鐘點
-const payableCoachMenuItems = [{ key: '/member/payouts', label: '我的鐘點', icon: <WalletOutlined /> }];
-
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { role, username, logout, isCoach, mustChangePassword } = useAuthStore();
+  const { username, logout, mustChangePassword } = useAuthStore();
   const { token } = theme.useToken();
   const actionBarContent = usePageActionBarStore((s) => s.content);
   const [collapsed, setCollapsed] = useState(false);
@@ -75,12 +58,6 @@ export default function AppLayout() {
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
   const brandName = settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME;
   const brandInitial = brandName.charAt(0).toUpperCase();
-  // 教練類型不在 JWT 內（管理員可能隨時調整），登入後另外讀取
-  const { data: coachProfile } = useQuery({
-    queryKey: ['my-coach-profile'],
-    queryFn: getMyCoachProfile,
-    enabled: role === 'member' && isCoach,
-  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > SCROLL_BLUR_THRESHOLD);
@@ -93,18 +70,7 @@ export default function AppLayout() {
     return <Navigate to="/member/change-password" replace />;
   }
 
-  const items =
-    role === 'admin'
-      ? adminMenuItems
-      : isCoach
-        ? [
-            ...memberMenuItems,
-            ...coachMenuItems,
-            ...(isPayableCoach(coachProfile?.coach_types) ? payableCoachMenuItems : []),
-          ]
-        : memberMenuItems;
-  const roleLabel =
-    role === 'admin' ? '管理員' : isCoach ? (coachProfile?.coach_types.join('・') ?? '教練') : '學員';
+  const items = adminMenuItems;
   const selectedKey = items.find((item) => location.pathname.startsWith(item.key))?.key;
 
   return (
@@ -199,7 +165,7 @@ export default function AppLayout() {
           }}
         >
           <Typography.Text>
-            {username}（{roleLabel}）
+            {username}（管理員）
           </Typography.Text>
           <Button
             onClick={() => {

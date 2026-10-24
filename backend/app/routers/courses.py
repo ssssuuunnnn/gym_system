@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
@@ -27,6 +27,7 @@ from app.schemas.course import (
     CourseOut,
     CourseStatusUpdate,
     CourseUpdate,
+    ScheduleSessionOut,
 )
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -146,6 +147,82 @@ def list_courses(
     counts = _enrolled_counts(db)
     is_admin = current_user.role == UserRole.admin
     return [_to_out(c, counts.get(c.id, 0), is_admin) for c in query.all()]
+
+
+# 課表查詢一次最多 31 天，避免一次拉整年資料
+SCHEDULE_MAX_DAYS = 31
+
+
+@router.get("/schedule", response_model=list[ScheduleSessionOut])
+def list_schedule(
+    start: date = Query(..., description="起日（含）"),
+    end: date = Query(..., description="迄日（含）"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    會員「預約課程」：期間內所有可預約的團體課堂（課程上架、未封存，課堂未停課），
+    附已預約人數（待確認＋已確認）與登入者自己在該堂的有效預約。
+    """
+    if end < start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="迄日不可早於起日")
+    if (end - start).days >= SCHEDULE_MAX_DAYS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"一次最多查詢 {SCHEDULE_MAX_DAYS} 天")
+
+    rows = (
+        db.query(CourseSession, Course, Coach)
+        .join(Course, CourseSession.course_id == Course.id)
+        .join(Coach, Course.coach_id == Coach.id)
+        .filter(
+            Course.status == CourseStatus.on,
+            Course.is_archived.is_(False),
+            CourseSession.is_cancelled.is_(False),
+            CourseSession.session_date >= start,
+            CourseSession.session_date <= end,
+        )
+        .order_by(CourseSession.session_date, CourseSession.start_minute, Course.id)
+        .all()
+    )
+    active = (ReservationStatus.pending, ReservationStatus.confirmed)
+    reservations = (
+        db.query(Reservation)
+        .filter(
+            Reservation.course_id.isnot(None),
+            Reservation.booking_date >= start,
+            Reservation.booking_date <= end,
+            Reservation.status.in_(active),
+        )
+        .all()
+    )
+    booked: dict[tuple, int] = {}
+    mine: dict[tuple, Reservation] = {}
+    for r in reservations:
+        key = (r.course_id, r.booking_date, r.start_hour)
+        booked[key] = booked.get(key, 0) + r.people_count
+        if r.member_id == current_user.id:
+            mine[key] = r
+
+    result = []
+    for session, course, coach in rows:
+        key = (course.id, session.session_date, session.start_minute // 60)
+        my = mine.get(key)
+        result.append(
+            ScheduleSessionOut(
+                course_id=course.id,
+                course_name=course.name,
+                cover_image_url=course.cover_image_url,
+                coach_id=coach.id,
+                coach_name=coach.alias or coach.name,
+                session_date=session.session_date,
+                start_minute=session.start_minute,
+                duration_minutes=session.duration_minutes,
+                max_capacity=course.max_capacity,
+                booked_count=booked.get(key, 0),
+                my_reservation_id=my.id if my else None,
+                my_reservation_status=my.status if my else None,
+            )
+        )
+    return result
 
 
 @router.get(

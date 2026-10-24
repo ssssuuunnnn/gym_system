@@ -27,15 +27,19 @@ import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 import SystemSettings from '../pages/admin/SystemSettings';
 
-import Dashboard from '../pages/member/Dashboard';
+import MemberLayout from '../components/member/MemberLayout';
+import MemberHome from '../pages/member/Home';
+import Book from '../pages/member/Book';
+import Me from '../pages/member/Me';
+import CoachToday from '../pages/coach/Today';
 import BuyProduct from '../pages/member/BuyProduct';
 import MyProducts from '../pages/member/MyProducts';
 import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
 import ChangePassword from '../pages/member/ChangePassword';
-import CoachAttendance from '../pages/member/CoachAttendance';
-import MyPayouts from '../pages/member/MyPayouts';
+import CoachAttendance from '../pages/coach/Attendance';
+import MyPayouts from '../pages/coach/Payouts';
 
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
@@ -87,21 +91,38 @@ export const router = createBrowserRouter([
   {
     element: <RequireRole role="member" />,
     children: [
-      // 強制修改密碼頁：不套用 AppLayout（無側邊欄／導覽），完成修改前會員無法進入其他畫面
+      // 修改密碼頁：不套用前台版面（無分頁列）；管理員要求強制修改時，完成前會員無法進入其他畫面
       { path: '/member/change-password', element: <ChangePassword /> },
+      // 會員前台（品牌藍）：手機優先版面 + 底部分頁列
       {
         path: '/member',
-        element: <AppLayout />,
+        element: <MemberLayout mode="member" />,
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'dashboard', element: <MemberHome /> },
+          { path: 'book', element: <Book /> },
           { path: 'purchase', element: <BuyProduct /> },
           { path: 'products', element: <MyProducts /> },
           { path: 'bookings', element: <MyBookings /> },
+          // 舊的表單式預約（保留給特殊情況，例如場租），主要入口改為「預約課程」
           { path: 'bookings/submit', element: <SubmitBooking /> },
           { path: 'bookings/:id/add-person', element: <AddPerson /> },
-          { path: 'coaching', element: <CoachAttendance /> },
+          { path: 'me', element: <Me mode="member" /> },
+          // 舊網址轉到教練前台
+          { path: 'coaching', element: <Navigate to="/coach/attendance" replace /> },
+          { path: 'payouts', element: <Navigate to="/coach/payouts" replace /> },
+        ],
+      },
+      // 教練前台（深青綠）：僅綁定教練資料的會員可進入（MemberLayout 檢查）
+      {
+        path: '/coach',
+        element: <MemberLayout mode="coach" />,
+        children: [
+          { index: true, element: <Navigate to="today" replace /> },
+          { path: 'today', element: <CoachToday /> },
+          { path: 'attendance', element: <CoachAttendance /> },
           { path: 'payouts', element: <MyPayouts /> },
+          { path: 'me', element: <Me mode="coach" /> },
         ],
       },
     ],

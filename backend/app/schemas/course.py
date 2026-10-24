@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.course import CourseStatus, ScheduleEndMode, SessionSource
+from app.models.reservation import ReservationStatus
 
 
 class CourseSessionIn(BaseModel):
@@ -105,6 +106,26 @@ class CourseOut(BaseModel):
 
 class CourseDetailOut(CourseOut):
     sessions: list[CourseSessionOut] = Field(default_factory=list)
+
+
+class ScheduleSessionOut(BaseModel):
+    """
+    會員「預約課程」用的團體課表：一列＝一堂可預約的課（上架、未封存、未停課）。
+    booked_count 含待確認與已確認（避免超收）；my_reservation_* 為登入者在這堂的有效預約。
+    """
+
+    course_id: int
+    course_name: str
+    cover_image_url: str | None
+    coach_id: int
+    coach_name: str
+    session_date: date
+    start_minute: int
+    duration_minutes: int
+    max_capacity: int
+    booked_count: int
+    my_reservation_id: int | None
+    my_reservation_status: ReservationStatus | None
 
 
 class CoachCourseSessionOut(BaseModel):

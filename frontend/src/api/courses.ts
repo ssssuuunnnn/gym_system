@@ -155,3 +155,28 @@ export async function uploadCourseCover(file: File) {
   const { data } = await apiClient.post<{ url: string }>('/courses/upload-cover', form);
   return data.url;
 }
+
+/** 會員「預約課程」的一堂團體課（上架、未封存、未停課） */
+export interface ScheduleSession {
+  course_id: number;
+  course_name: string;
+  cover_image_url: string | null;
+  coach_id: number;
+  /** 授課名稱（沒有則為姓名） */
+  coach_name: string;
+  session_date: string;
+  start_minute: number;
+  duration_minutes: number;
+  max_capacity: number;
+  /** 已預約人數（待確認＋已確認） */
+  booked_count: number;
+  /** 登入者在這堂的有效預約 */
+  my_reservation_id: number | null;
+  my_reservation_status: '待確認' | '已確認' | null;
+}
+
+/** 期間內的團體課表（start、end 為 YYYY-MM-DD，含頭尾，最多 31 天） */
+export async function listSchedule(start: string, end: string) {
+  const { data } = await apiClient.get<ScheduleSession[]>('/courses/schedule', { params: { start, end } });
+  return data;
+}
