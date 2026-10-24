@@ -26,6 +26,8 @@ import Availability from '../pages/admin/Availability';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 import SystemSettings from '../pages/admin/SystemSettings';
+import Website from '../pages/admin/Website';
+import Inquiries from '../pages/admin/Inquiries';
 
 import MemberLayout from '../components/member/MemberLayout';
 import MemberHome from '../pages/member/Home';
@@ -82,6 +84,8 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           // { path: 'slot-settings', element: <SlotSettings /> },
+          { path: 'website', element: <Website /> },
+          { path: 'inquiries', element: <Inquiries /> },
           { path: 'settings', element: <SystemSettings /> },
           { path: 'availability', element: <Availability /> },
         ],

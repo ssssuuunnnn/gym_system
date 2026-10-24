@@ -1,17 +1,16 @@
 import { Space, Typography } from 'antd';
 import type { useAppProps } from 'antd/es/app/context';
-import { tenantUrl } from '../../lib/host';
 
 export interface Credentials {
-  /** 健身房子網域（顯示登入網址） */
-  subdomain: string;
+  /** 登入網址（平台開通健身房時是那家的網址；健身房後台建立會員時是本站） */
+  loginUrl: string;
   username: string;
   password: string;
   mustChangePassword: boolean;
 }
 
 /**
- * 顯示一次性的登入資訊（開通健身房、新增／重設管理員密碼後）。
+ * 顯示一次性的登入資訊（平台開通健身房、新增／重設管理員密碼，健身房把詢問轉成會員）。
  * 密碼不會再出現在任何畫面或紀錄，所以只在這裡顯示一次並提供複製。
  */
 export function showCredentials(
@@ -25,12 +24,10 @@ export function showCredentials(
     onOk,
     content: (
       <div>
-        <Typography.Paragraph type="secondary">
-          請以安全的方式交給健身房負責人。密碼只會顯示這一次。
-        </Typography.Paragraph>
+        <Typography.Paragraph type="secondary">請以安全的方式交給對方。密碼只會顯示這一次。</Typography.Paragraph>
         <Space orientation="vertical" size={4}>
           <span>
-            網址：<Typography.Text copyable>{tenantUrl(credentials.subdomain)}</Typography.Text>
+            網址：<Typography.Text copyable>{credentials.loginUrl}</Typography.Text>
           </span>
           <span>
             帳號：<Typography.Text copyable>{credentials.username}</Typography.Text>

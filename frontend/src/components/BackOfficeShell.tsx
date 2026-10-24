@@ -15,7 +15,7 @@ const SCROLL_BLUR_THRESHOLD = 4;
 export interface BackOfficeMenuItem {
   /** 路由路徑，也是選取判斷的前綴 */
   key: string;
-  label: string;
+  label: ReactNode;
   icon: ReactNode;
 }
 

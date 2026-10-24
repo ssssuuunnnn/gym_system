@@ -36,7 +36,7 @@ import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy import create_engine, event, text  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 import app.models  # noqa: E402,F401  確保所有資料表都註冊到 Base.metadata
@@ -94,16 +94,39 @@ def connection(app_engine, monkeypatch):
     )
     monkeypatch.setattr(db_session, "SessionLocal", TestingSession)
     deps.clear_tenant_cache()
+
+    # 測試裡所有 Session 共用這一條連線（同一個交易），set_config 是整條連線共用的：
+    # 某個 Session 交易還開著時，另一家的 Session 可能已把租戶切走。正式環境每個請求各一條連線，沒有這個問題。
+    # 這裡在每次查詢與寫入前，重新套用該 Session 自己的租戶。
+    def _apply_tenant(session):
+        tenant_id = session.info.get(TENANT_INFO_KEY)
+        if tenant_id is not None and session.get_bind() is conn:
+            conn.execute(text("SELECT set_config('app.tenant_id', :tid, true)"), {"tid": str(tenant_id)})
+
+    def _on_execute(state):
+        _apply_tenant(state.session)
+
+    def _on_flush(session, flush_context, instances):
+        _apply_tenant(session)
+
+    event.listen(Session, "do_orm_execute", _on_execute)
+    event.listen(Session, "before_flush", _on_flush)
     try:
         yield conn
     finally:
+        event.remove(Session, "do_orm_execute", _on_execute)
+        event.remove(Session, "before_flush", _on_flush)
         trans.rollback()
         conn.close()
         deps.clear_tenant_cache()
 
 
 def _tenant_db(connection, tenant_id: int):
-    s = db_session.SessionLocal()
+    """
+    測試準備資料用的 Session。commit 後不讓物件過期（expire_on_commit=False），
+    之後讀屬性就不會再開新的 savepoint 掛著——兩家的 Session 交錯時，掛著的 savepoint 會亂掉順序。
+    """
+    s = Session(bind=connection, autoflush=False, join_transaction_mode="create_savepoint", expire_on_commit=False)
     s.info[TENANT_INFO_KEY] = tenant_id
     return s
 
@@ -137,7 +160,6 @@ def _make_user(db, username: str, role: UserRole) -> User:
     user = User(username=username, password_hash=hash_password("pw"), role=role)
     db.add(user)
     db.commit()
-    db.refresh(user)
     return user
 
 
