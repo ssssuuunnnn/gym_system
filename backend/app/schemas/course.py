@@ -37,6 +37,7 @@ class CourseCreate(_CourseSchedule):
     duration_minutes: int = Field(default=60, ge=1, le=600)
     min_capacity: int = Field(default=1, ge=1, le=100)
     max_capacity: int = Field(ge=1, le=100)
+    coach_fee: float = Field(default=0, ge=0)
     description: str | None = None
     cover_image_url: str | None = None
     status: CourseStatus = CourseStatus.draft
@@ -49,6 +50,7 @@ class CourseUpdate(BaseModel):
     duration_minutes: int | None = Field(default=None, ge=1, le=600)
     min_capacity: int | None = Field(default=None, ge=1, le=100)
     max_capacity: int | None = Field(default=None, ge=1, le=100)
+    coach_fee: float | None = Field(default=None, ge=0)
     description: str | None = None
     cover_image_url: str | None = None
     status: CourseStatus | None = None
@@ -81,6 +83,8 @@ class CourseOut(BaseModel):
     duration_minutes: int
     min_capacity: int
     max_capacity: int
+    # 每堂教練費：非管理員讀取時為 None
+    coach_fee: float | None = None
     session_count: int
     description: str | None
     cover_image_url: str | None

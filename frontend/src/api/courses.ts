@@ -31,6 +31,8 @@ export interface Course {
   duration_minutes: number;
   min_capacity: number;
   max_capacity: number;
+  /** 每堂教練費（團體課程教練鐘點用）；非管理員讀取時為 null */
+  coach_fee: number | null;
   session_count: number;
   description: string | null;
   cover_image_url: string | null;
@@ -74,6 +76,7 @@ export interface CoursePayload {
   duration_minutes: number;
   min_capacity: number;
   max_capacity: number;
+  coach_fee: number;
   description?: string | null;
   cover_image_url?: string | null;
   status: CourseStatus;

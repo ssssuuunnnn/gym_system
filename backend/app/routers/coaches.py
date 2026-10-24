@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.user import User, UserRole
 from app.schemas.coach import CoachCreate, CoachOut, CoachPhotoOut, CoachUpdate
@@ -33,6 +33,12 @@ def list_coaches(current_user: User = Depends(get_current_user), db: Session = D
     if current_user.role == UserRole.admin:
         return coaches
     return [CoachOut.model_validate(c).model_copy(update=_ADMIN_ONLY_FIELDS) for c in coaches]
+
+
+@router.get("/me", response_model=CoachOut)
+def my_coach_profile(coach: Coach = Depends(require_coach)):
+    """教練本人的教練資料（含教練類型，前端依此決定側欄顯示「我的鐘點」等）。"""
+    return coach
 
 
 @router.post(
@@ -70,7 +76,10 @@ def create_coach(payload: CoachCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此帳號已綁定教練資料")
 
-    coach = Coach(**payload.model_dump())
+    data = payload.model_dump()
+    coach_types = data.pop("coach_types")
+    coach = Coach(**data)
+    coach.coach_types = coach_types
     db.add(coach)
     db.commit()
     db.refresh(coach)

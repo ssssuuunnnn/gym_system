@@ -15,7 +15,7 @@ function PayoutDetail({ id }: { id: number }) {
 }
 
 /**
- * 我的鐘點（場租教練）：工作室已結算的每月鐘點費與明細。
+ * 我的鐘點（私人教練／團體課程教練）：工作室已結算的每月鐘點費與明細。
  * 尚未結算的月份不顯示；有疑問請聯絡工作室。
  */
 export default function MyPayouts() {
@@ -24,7 +24,6 @@ export default function MyPayouts() {
   const columns: ColumnsType<CoachPayout> = [
     { title: '月份', dataIndex: 'period', render: (v: string) => dayjs(v).format('YYYY-MM') },
     { title: '堂數', dataIndex: 'session_count' },
-    { title: '每堂鐘點費', dataIndex: 'rate', render: money },
     { title: '金額', dataIndex: 'amount', render: (v: number) => <Typography.Text strong>{money(v)}</Typography.Text> },
     { title: '狀態', dataIndex: 'status', render: (v: string) => <StatusTag status={v} /> },
     {
@@ -41,7 +40,7 @@ export default function MyPayouts() {
         我的鐘點
       </Typography.Title>
       <Typography.Paragraph type="secondary">
-        工作室每月結算後會顯示在這裡；已出席與未到的堂數都會計入，團體課一堂算一次。
+        工作室每月結算後會顯示在這裡；已出席與未到的堂數都會計入。私人課依你的私人課鐘點費，團體課依各課程的每堂教練費（一堂算一次）。
       </Typography.Paragraph>
       <Table
         rowKey="id"

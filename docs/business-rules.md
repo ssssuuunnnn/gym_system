@@ -71,26 +71,42 @@
 
 ## 教練鐘點結算
 
+### R14. 教練分三種類型
+
+- **規則**：
+  - **私人教練**：隸屬公司，私人課依「私人課每堂鐘點費」計費，費率由公司與教練個別議定，設在教練資料。
+  - **團體課程教練**：隸屬公司，團體課依該課程設定的「每堂教練費」計費，設在團體課程上。
+  - **場租教練**：不屬於公司，來租借場地。系統不計鐘點，指定場租教練的私人課（場租教練自己的學員）工作室也不付鐘點。
+  - 類型可以複選（例如同時是私人教練與團體課程教練），但場租教練不能與另外兩種並存。
+  - 團體課程只能指定團體課程教練；既有課程的教練類型若事後變更，課程仍可沿用原教練存檔。
+  - 系統導入類型前已建立的教練，預設為私人教練。
+- **確認日期**：2026-10-24（「場租教練不能與其他類型並存」、「既有課程沿用原教練」為實作時訂定）
+- **實作**：`coaches.is_private_coach／is_group_coach／is_rental_coach`、`courses.coach_fee`；`schemas/coach.py` 的 `_validate_types`；`routers/courses.py` 的 `_check_group_coach`；前端 `CoachForm`、`CourseForm`
+- **測試**：`test_coach_types_validation`、`test_default_coach_type_is_private`、`test_course_requires_group_coach`、`test_existing_course_keeps_coach_after_type_change`、`test_rental_coach_not_paid_and_not_listed`、`test_group_only_coach_gets_no_private_fee`
+
 ### R11. 已出席＋未到計入鐘點，晚取消不算
 
 - **規則**：只計「已確認」且出席狀態為「已出席」或「未到」的預約（學員未到，教練仍有到場）。晚取消、未簽到、待確認、已拒絕都不算。場租教練以會員身份為自己預約的場地（預約人是教練本人）不算鐘點。
-- **教練歸屬**：有團體課程的預約歸該課程的授課教練；其餘歸預約指定的教練。
+- **教練歸屬**：有團體課程的預約歸該課程的授課教練；其餘（私人課）歸預約指定的教練，且該教練須為私人教練（R14）。
 - **確認日期**：2026-10-24（排除教練自己租場地為實作時訂定）
 - **實作**：`services/payouts.py` 的 `billable_units`
 - **測試**：`test_counts_attended_and_no_show_only`、`test_group_course_goes_to_course_coach_not_reservation_coach`、`test_coach_own_rental_not_counted`、`test_month_boundaries`
 
-### R12. 每位教練一個每堂費率，團體課一堂算一次
+### R12. 私人課依教練費率、團體課依課程教練費，團體課一堂算一次
 
-- **規則**：鐘點費＝計費堂數 × 教練的「每堂鐘點費」（教練資料設定，預設 0）。私人課一筆預約算一堂；團體課同一課程、同日、同時段不論幾位學員算一堂。月份依預約日期。
-- **確認日期**：2026-10-24
-- **實作**：`coaches.session_rate`；`services/payouts.py`
-- **測試**：`test_group_course_counts_once_per_session`、`test_settle_snapshots_rate_and_items`
+- **規則**：
+  - **私人課**：一筆預約算一堂，每堂費用＝教練的「私人課每堂鐘點費」（教練資料設定，預設 0）。
+  - **團體課**：同一課程、同日、同時段不論幾位學員算一堂，每堂費用＝該課程的「每堂教練費」（課程設定，預設 0）。
+  - 鐘點費＝各堂費用加總；月份依預約日期。費用為 0 的堂數會在總表提示「費用未設定」。
+- **確認日期**：2026-10-24（原為「每位教練一個費率」，同日依教練類型改為本條）
+- **實作**：`coaches.session_rate`、`courses.coach_fee`；`services/payouts.py`
+- **測試**：`test_group_course_counts_once_per_session`、`test_group_fee_comes_from_course`、`test_settle_snapshots_rate_and_items`、`test_zero_fee_flag`
 
 ### R13. 月結鎖定，可標記已撥款
 
 - **規則**：
   - 月份結束後才能結算（依工作室當地日期）；同一教練同月只能有一筆結算，沒有計費堂數的月份不能結算。
-  - 結算時把堂數、費率、金額與明細存成快照；之後修改出席紀錄或費率都不影響已結算金額。總表會在出席紀錄有異動時標示「有異動」。
+  - 結算時把堂數、每堂費用、金額與明細存成快照；之後修改出席紀錄、教練費率或課程教練費都不影響已結算金額。總表會在即時計算與快照不一致時標示「有異動」。
   - 已結算尚未撥款時可取消結算後重算；標記已撥款（可填備註）後就不能再取消。
   - 教練可在「我的鐘點」看到自己已結算的紀錄與明細，看不到其他教練的。
 - **確認日期**：2026-10-24（「只能結算已結束的月份」為實作時訂定）

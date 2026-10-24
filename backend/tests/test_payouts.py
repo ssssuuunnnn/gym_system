@@ -55,7 +55,8 @@ def product(db):
 
 @pytest.fixture()
 def course(db, coach):
-    c = Course(name="瑜珈", coach_id=coach.id, max_capacity=10)
+    coach.is_group_coach = True
+    c = Course(name="瑜珈", coach_id=coach.id, max_capacity=10, coach_fee=1200)
     db.add(c)
     db.commit()
     return c
@@ -114,7 +115,7 @@ def test_group_course_counts_once_per_session(client, db, admin, member, other_m
 
 
 def test_group_course_goes_to_course_coach_not_reservation_coach(client, db, admin, member, coach, product, course):
-    other = Coach(user_id=make_user(db, "c2").id, name="李教練", phone="0911", session_rate=500)
+    other = Coach(user_id=make_user(db, "c2").id, name="李教練", phone="0911", session_rate=500, is_group_coach=True)
     db.add(other)
     db.commit()
     res(db, member, product, course=course, coach=other)
@@ -159,7 +160,7 @@ def test_settle_snapshots_rate_and_items(client, db, admin, member, coach, produ
     row = summary(client, admin)[coach.id]
     assert row["payout"]["amount"] == 1600
     assert row["live_amount"] == 2000
-    assert row["changed_since_settled"] is False  # 堂數明細沒變
+    assert row["changed_since_settled"] is True  # 即時金額與快照不同，提示可重算
 
 
 def test_attendance_change_after_settlement_is_flagged(client, db, admin, member, coach, product):
@@ -254,3 +255,116 @@ def test_admin_sets_session_rate(client, admin, coach):
     assert client.put(f"{API}/coaches/{coach.id}", json={"session_rate": -1}, headers=auth(admin)).status_code == 422
     assert client.put(f"{API}/coaches/{coach.id}", json={"session_rate": None}, headers=auth(admin)).status_code == 422
     assert client.put(f"{API}/coaches/{coach.id}", json={"name": "王大教練"}, headers=auth(admin)).json()["session_rate"] == 950
+
+
+
+# ── 教練類型與團體課教練費（R14） ─────────────────────
+
+
+def test_group_fee_comes_from_course(client, db, admin, member, other_member, coach, product, course):
+    res(db, member, product, course=course, hour=18)
+    res(db, other_member, product, course=course, hour=18)
+    res(db, member, product, coach=coach, hour=10)  # 私人課 800
+    row = summary(client, admin)[coach.id]
+    assert row["live_session_count"] == 2
+    assert row["live_amount"] == 1200 + 800
+    items = client.get(f"{API}/coach-payouts/live", params={"coach_id": coach.id, "month": MONTH},
+                       headers=auth(admin)).json()
+    assert sorted((i["fee"], i["kind"]) for i in items) == [(800, "私人課"), (1200, "團體課")]
+    body = settle(client, admin, coach).json()
+    assert body["amount"] == 2000
+    assert sorted(i["fee"] for i in body["items"]) == [800, 1200]
+
+
+def test_course_fee_change_after_settlement_does_not_change_amount(client, db, admin, member, coach, product, course):
+    res(db, member, product, course=course)
+    settle(client, admin, coach)
+    course.coach_fee = 2000
+    db.commit()
+    row = summary(client, admin)[coach.id]
+    assert row["payout"]["amount"] == 1200
+    assert row["changed_since_settled"] is True
+
+
+def test_group_only_coach_gets_no_private_fee(client, db, admin, member, coach, product, course):
+    coach.is_private_coach = False
+    db.commit()
+    res(db, member, product, coach=coach, hour=10)  # 指定此教練的私人課
+    res(db, member, product, course=course, hour=18)
+    row = summary(client, admin)[coach.id]
+    assert row["live_session_count"] == 1
+    assert row["live_amount"] == 1200
+
+
+def test_rental_coach_not_paid_and_not_listed(client, db, admin, member, product):
+    u = make_user(db, "rent")
+    rental = Coach(user_id=u.id, name="場租教練", phone="0933", session_rate=999,
+                   is_private_coach=False, is_rental_coach=True)
+    db.add(rental)
+    db.commit()
+    res(db, member, product, coach=rental)  # 場租教練自己的學員
+    assert rental.id not in summary(client, admin)
+    r = settle(client, admin, rental)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "本月沒有可結算的堂數"
+
+
+def test_zero_fee_flag(client, db, admin, member, coach, product, course):
+    course.coach_fee = 0
+    db.commit()
+    res(db, member, product, course=course)
+    assert summary(client, admin)[coach.id]["has_zero_fee"] is True
+
+
+def test_coach_types_validation(client, db, admin):
+    u = make_user(db, "newcoach")
+    base = {"user_id": u.id, "name": "新教練", "phone": "0944"}
+    url = f"{API}/coaches"
+    assert client.post(url, json={**base, "coach_types": []}, headers=auth(admin)).status_code == 422
+    assert client.post(url, json={**base, "coach_types": ["場租教練", "私人教練"]}, headers=auth(admin)).status_code == 422
+    r = client.post(url, json={**base, "coach_types": ["私人教練", "團體課程教練"]}, headers=auth(admin))
+    assert r.status_code == 201, r.text
+    assert r.json()["coach_types"] == ["私人教練", "團體課程教練"]
+    cid = r.json()["id"]
+    r = client.put(f"{url}/{cid}", json={"coach_types": ["場租教練"]}, headers=auth(admin))
+    assert r.json()["coach_types"] == ["場租教練"]
+    assert client.put(f"{url}/{cid}", json={"coach_types": None}, headers=auth(admin)).status_code == 422
+
+
+def test_default_coach_type_is_private(client, db, admin):
+    u = make_user(db, "c9")
+    r = client.post(f"{API}/coaches", json={"user_id": u.id, "name": "預設", "phone": "0955"}, headers=auth(admin))
+    assert r.json()["coach_types"] == ["私人教練"]
+
+
+def test_coach_me(client, coach, coach_user, member):
+    r = client.get(f"{API}/coaches/me", headers=auth(coach_user))
+    assert r.status_code == 200
+    assert r.json()["id"] == coach.id
+    assert client.get(f"{API}/coaches/me", headers=auth(member)).status_code == 403
+
+
+def test_course_requires_group_coach(client, db, admin, coach):
+    payload = {"name": "飛輪", "coach_id": coach.id, "max_capacity": 10, "coach_fee": 1500}
+    r = client.post(f"{API}/courses", json=payload, headers=auth(admin))
+    assert r.status_code == 400
+    assert r.json()["detail"] == "團體課程只能指定團體課程教練"
+    coach.is_group_coach = True
+    db.commit()
+    r = client.post(f"{API}/courses", json=payload, headers=auth(admin))
+    assert r.status_code == 201, r.text
+    assert r.json()["coach_fee"] == 1500
+
+
+def test_existing_course_keeps_coach_after_type_change(client, db, admin, coach, course):
+    coach.is_group_coach = False
+    db.commit()
+    r = client.put(f"{API}/courses/{course.id}", json={"coach_id": coach.id, "coach_fee": 1300}, headers=auth(admin))
+    assert r.status_code == 200, r.text
+    assert r.json()["coach_fee"] == 1300
+
+
+def test_course_fee_hidden_from_members(client, admin, member, course):
+    assert client.get(f"{API}/courses", headers=auth(member)).json()[0]["coach_fee"] is None
+    assert client.get(f"{API}/courses/{course.id}", headers=auth(member)).json()["coach_fee"] is None
+    assert client.get(f"{API}/courses", headers=auth(admin)).json()[0]["coach_fee"] == 1200

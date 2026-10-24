@@ -1,8 +1,8 @@
-import { Card, Typography, Table, Button, Space, Popconfirm, message } from 'antd';
+import { Card, Typography, Table, Button, Space, Popconfirm, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import { formatServerTime } from '../../lib/datetime';
 import { listCoaches, deleteCoach, type Coach } from '../../api/coaches';
 import { listMembers } from '../../api/users';
 
@@ -32,6 +32,19 @@ export default function CoachList() {
 
   const columns: ColumnsType<Coach> = [
     { title: '姓名', dataIndex: 'name' },
+    {
+      title: '類型',
+      dataIndex: 'coach_types',
+      render: (types: Coach['coach_types']) => (
+        <Space size={4} wrap>
+          {types.map((t) => (
+            <Tag key={t} color={t === '場租教練' ? 'default' : t === '團體課程教練' ? 'purple' : 'blue'}>
+              {t}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
     { title: '電話', dataIndex: 'phone' },
     {
       title: '綁定帳號',
@@ -41,7 +54,7 @@ export default function CoachList() {
     {
       title: '建立時間',
       dataIndex: 'created_at',
-      render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+      render: (value: string) => formatServerTime(value),
     },
     {
       title: '操作',

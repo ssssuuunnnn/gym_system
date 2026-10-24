@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.models.coach import CoachType
 from app.models.coach_payout import PayoutItemKind, PayoutStatus
 
 _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
@@ -24,6 +25,7 @@ class PayoutItemOut(BaseModel):
     title: str
     session_date: date
     start_hour: int
+    fee: float
     attended_count: int
     no_show_count: int
     members: str
@@ -55,12 +57,16 @@ class CoachPayoutSummaryRow(BaseModel):
 
     coach_id: int
     coach_name: str
+    coach_types: list[CoachType]
+    # 私人課每堂鐘點費（團體課依各課程的每堂教練費）
     session_rate: float
     live_session_count: int
     live_amount: float
     payout: CoachPayoutOut | None
     # 已結算後出席紀錄又有異動，即時計算與快照不一致（需取消結算重算，或確認後忽略）
     changed_since_settled: bool
+    # 有計費堂數但費用為 0（私人課費率或課程教練費未設定）
+    has_zero_fee: bool
 
 
 class CoachPayoutCreate(BaseModel):

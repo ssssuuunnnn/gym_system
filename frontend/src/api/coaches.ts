@@ -1,5 +1,8 @@
 import { apiClient } from './client';
 
+export type CoachType = '私人教練' | '團體課程教練' | '場租教練';
+export const COACH_TYPES: CoachType[] = ['私人教練', '團體課程教練', '場租教練'];
+
 /**
  * 非管理員讀取時，phone／line_name／bank_code／bank_account／session_rate 一律為 null（後端遮蔽）。
  */
@@ -14,8 +17,10 @@ export interface Coach {
   bank_account: string | null;
   specialty: string | null;
   photo_url: string | null;
-  /** 每堂鐘點費（僅管理員可見） */
+  /** 私人課每堂鐘點費（僅管理員可見） */
   session_rate: number | null;
+  /** 教練類型（可複選；場租教練不與其他類型並存） */
+  coach_types: CoachType[];
   created_at: string;
 }
 
@@ -30,6 +35,18 @@ export interface CoachPayload {
   specialty?: string | null;
   photo_url?: string | null;
   session_rate?: number;
+  coach_types?: CoachType[];
+}
+
+/** 教練本人的教練資料（含類型） */
+export async function getMyCoachProfile() {
+  const { data } = await apiClient.get<Coach>('/coaches/me');
+  return data;
+}
+
+/** 公司要付鐘點的教練（私人教練或團體課程教練） */
+export function isPayableCoach(types: CoachType[] | undefined) {
+  return !!types && (types.includes('私人教練') || types.includes('團體課程教練'));
 }
 
 export async function listCoaches() {

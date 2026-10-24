@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import settings
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
+from app.models.coach import Coach
 from app.models.course import (
     Course,
     CourseSession,
@@ -17,7 +18,7 @@ from app.models.course import (
     ScheduleEndMode,
 )
 from app.models.reservation import Reservation, ReservationStatus
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.course import (
     CoachCourseSessionOut,
     CourseCoverOut,
@@ -57,12 +58,27 @@ def _enrolled_counts(db: Session) -> dict[int, int]:
     return peak
 
 
-def _to_out(course: Course, enrolled: int) -> CourseOut:
-    return CourseOut.model_validate(course).model_copy(update={"enrolled_count": enrolled})
+def _to_out(course: Course, enrolled: int, is_admin: bool = True) -> CourseOut:
+    update = {"enrolled_count": enrolled}
+    if not is_admin:
+        update["coach_fee"] = None  # 教練費僅管理員可見
+    return CourseOut.model_validate(course).model_copy(update=update)
 
 
-def _to_detail(course: Course, enrolled: int) -> CourseDetailOut:
-    return CourseDetailOut.model_validate(course).model_copy(update={"enrolled_count": enrolled})
+def _to_detail(course: Course, enrolled: int, is_admin: bool = True) -> CourseDetailOut:
+    update = {"enrolled_count": enrolled}
+    if not is_admin:
+        update["coach_fee"] = None
+    return CourseDetailOut.model_validate(course).model_copy(update=update)
+
+
+def _check_group_coach(db: Session, coach_id: int) -> None:
+    """團體課程只能綁定「團體課程教練」（R14）；既有課程沿用原教練存檔不受影響。"""
+    coach = db.get(Coach, coach_id)
+    if coach is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="找不到教練")
+    if not coach.is_group_coach:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="團體課程只能指定團體課程教練")
 
 
 def _generate_code(db: Session) -> str:
@@ -114,8 +130,9 @@ def _apply_children(course: Course, payload: CourseCreate | CourseUpdate) -> Non
         ]
 
 
-@router.get("", response_model=list[CourseOut], dependencies=[Depends(get_current_user)])
+@router.get("", response_model=list[CourseOut])
 def list_courses(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     archived: bool | None = Query(default=None, description="None=全部、true=僅封存、false=僅未封存"),
 ):
@@ -127,7 +144,8 @@ def list_courses(
     if archived is not None:
         query = query.filter(Course.is_archived.is_(archived))
     counts = _enrolled_counts(db)
-    return [_to_out(c, counts.get(c.id, 0)) for c in query.all()]
+    is_admin = current_user.role == UserRole.admin
+    return [_to_out(c, counts.get(c.id, 0), is_admin) for c in query.all()]
 
 
 @router.get(
@@ -186,8 +204,8 @@ def list_coach_sessions(
     ]
 
 
-@router.get("/{course_id}", response_model=CourseDetailOut, dependencies=[Depends(get_current_user)])
-def get_course(course_id: int, db: Session = Depends(get_db)):
+@router.get("/{course_id}", response_model=CourseDetailOut)
+def get_course(course_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """對應「編輯／複製團體課程」：回傳含排程規格（weekdays）與逐堂課堂的完整資料。"""
     course = (
         db.query(Course)
@@ -198,7 +216,7 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到課程")
     counts = _enrolled_counts(db)
-    return _to_detail(course, counts.get(course.id, 0))
+    return _to_detail(course, counts.get(course.id, 0), current_user.role == UserRole.admin)
 
 
 @router.post("", response_model=CourseDetailOut, status_code=status.HTTP_201_CREATED)
@@ -208,12 +226,14 @@ def create_course(
     current_user: User = Depends(require_admin),
 ):
     """對應「新增團體課程」：課程資訊、排程規格、逐堂課堂、狀態。"""
+    _check_group_coach(db, payload.coach_id)
     course = Course(
         name=payload.name,
         coach_id=payload.coach_id,
         duration_minutes=payload.duration_minutes,
         min_capacity=payload.min_capacity,
         max_capacity=payload.max_capacity,
+        coach_fee=payload.coach_fee,
         description=payload.description,
         cover_image_url=payload.cover_image_url,
         status=payload.status,
@@ -248,10 +268,13 @@ def update_course(
     )
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到課程")
+    if payload.coach_id is not None and payload.coach_id != course.coach_id:
+        _check_group_coach(db, payload.coach_id)
 
     for field in (
         "name",
         "coach_id",
+        "coach_fee",
         "duration_minutes",
         "min_capacity",
         "max_capacity",

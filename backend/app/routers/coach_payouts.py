@@ -39,17 +39,23 @@ def _get_payout(db: Session, payout_id: int) -> CoachPayout:
 
 @router.get("/summary", response_model=list[CoachPayoutSummaryRow], dependencies=[Depends(require_admin)])
 def payout_summary(period=Depends(_month_param), db: Session = Depends(get_db)):
-    """教練鐘點總表：每位教練該月的即時堂數／金額，以及已存在的結算紀錄。"""
+    """
+    教練鐘點總表：私人教練／團體課程教練該月的即時堂數／金額，以及已存在的結算紀錄。
+    場租教練不列（除非該月已有結算紀錄，例如類型後來才改）。
+    """
     rows = []
     for coach in db.query(Coach).order_by(Coach.id).all():
-        units = payouts.billable_units(db, coach, period)
         payout = (
             db.query(CoachPayout).filter(CoachPayout.coach_id == coach.id, CoachPayout.period == period).first()
         )
+        if payout is None and not payouts.is_payable_coach(coach):
+            continue
+        units = payouts.billable_units(db, coach, period)
         changed = False
         if payout is not None:
             settled_keys = sorted(
-                (i.kind, i.course_id, i.session_date, i.start_hour, i.attended_count, i.no_show_count)
+                (i.kind, i.course_id, i.session_date, i.start_hour, i.attended_count, i.no_show_count,
+                 payouts.money(i.fee))
                 for i in payout.items
             )
             changed = settled_keys != sorted(u.key for u in units)
@@ -57,11 +63,13 @@ def payout_summary(period=Depends(_month_param), db: Session = Depends(get_db)):
             CoachPayoutSummaryRow(
                 coach_id=coach.id,
                 coach_name=coach.name,
+                coach_types=coach.coach_types,
                 session_rate=float(coach.session_rate),
                 live_session_count=len(units),
-                live_amount=float(payouts.amount_for(len(units), coach.session_rate)),
+                live_amount=float(payouts.total_amount(units)),
                 payout=CoachPayoutOut.model_validate(payout) if payout else None,
                 changed_since_settled=changed,
+                has_zero_fee=any(u.fee == 0 for u in units),
             )
         )
     return rows
@@ -80,6 +88,7 @@ def live_items(coach_id: int, period=Depends(_month_param), db: Session = Depend
             title=u.title,
             session_date=u.session_date,
             start_hour=u.start_hour,
+            fee=float(u.fee),
             attended_count=u.attended_count,
             no_show_count=u.no_show_count,
             members="、".join(u.members),
@@ -111,7 +120,7 @@ def settle(payload: CoachPayoutCreate, admin: User = Depends(require_admin), db:
         period=period,
         session_count=len(units),
         rate=coach.session_rate,
-        amount=payouts.amount_for(len(units), coach.session_rate),
+        amount=payouts.total_amount(units),
         status=PayoutStatus.settled,
         settled_by=admin.id,
         items=[
@@ -121,6 +130,7 @@ def settle(payload: CoachPayoutCreate, admin: User = Depends(require_admin), db:
                 title=u.title[:100],
                 session_date=u.session_date,
                 start_hour=u.start_hour,
+                fee=u.fee,
                 attended_count=u.attended_count,
                 no_show_count=u.no_show_count,
                 members="、".join(u.members)[:500],
