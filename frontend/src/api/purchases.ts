@@ -1,5 +1,10 @@
 import { apiClient } from './client';
 
+export type PaymentStatus = '待付款' | '已付款' | '已取消';
+export type PaymentMethod = '現金' | '轉帳' | '刷卡' | '其他';
+
+export const PAYMENT_METHODS: PaymentMethod[] = ['現金', '轉帳', '刷卡', '其他'];
+
 export interface Purchase {
   id: number;
   user_id: number;
@@ -7,15 +12,26 @@ export interface Purchase {
   quantity: number;
   purchase_date: string;
   amount: number;
+  /** 購買總堂數（下單當下的商品堂數 × 數量） */
+  total_hours: number;
+  /** 剩餘堂數：待付款時為 0，確認收款後才入帳 */
   remaining_hours: number;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod | null;
+  payment_note: string | null;
+  paid_at: string | null;
+  paid_confirmed_by: number | null;
+  cancelled_at: string | null;
   created_by: number;
   created_at: string;
 }
 
-export async function listPurchases(userId?: number) {
-  const { data } = await apiClient.get<Purchase[]>('/purchases', {
-    params: userId !== undefined ? { user_id: userId } : undefined,
-  });
+/** 管理員可依 userId／付款狀態篩選；會員一律只會拿到自己的紀錄 */
+export async function listPurchases(userId?: number, paymentStatus?: PaymentStatus) {
+  const params: Record<string, string | number> = {};
+  if (userId !== undefined) params.user_id = userId;
+  if (paymentStatus !== undefined) params.payment_status = paymentStatus;
+  const { data } = await apiClient.get<Purchase[]>('/purchases', { params });
   return data;
 }
 
@@ -25,8 +41,11 @@ export interface PurchaseCreatePayload {
   quantity: number;
   purchase_date: string;
   amount: number;
+  payment_method?: PaymentMethod | null;
+  payment_note?: string | null;
 }
 
+/** 管理員登錄購買：視為已收款，建立即為「已付款」並入帳堂數 */
 export async function createPurchase(payload: PurchaseCreatePayload) {
   const { data } = await apiClient.post<Purchase>('/purchases', payload);
   return data;
@@ -37,7 +56,7 @@ export interface SelfPurchasePayload {
   quantity: number;
 }
 
-/** 會員自助購買：歸屬對象、金額、購買日期一律由後端帶入 */
+/** 會員自助購買：歸屬對象、金額、購買日期一律由後端帶入；建立為「待付款」 */
 export async function createSelfPurchase(payload: SelfPurchasePayload) {
   const { data } = await apiClient.post<Purchase>('/purchases/self', payload);
   return data;
@@ -67,5 +86,20 @@ export async function listPurchaseLedger(purchaseId: number) {
 /** 管理員手動調整堂數：change 正數補堂、負數扣堂，note 必填 */
 export async function adjustPurchaseHours(purchaseId: number, payload: { change: number; note: string }) {
   const { data } = await apiClient.post<HourLedgerEntry>(`/purchases/${purchaseId}/adjust`, payload);
+  return data;
+}
+
+/** 管理員確認收款：待付款 → 已付款，並入帳堂數 */
+export async function confirmPayment(
+  purchaseId: number,
+  payload: { payment_method: PaymentMethod; payment_note?: string | null },
+) {
+  const { data } = await apiClient.post<Purchase>(`/purchases/${purchaseId}/confirm-payment`, payload);
+  return data;
+}
+
+/** 取消待付款訂單（管理員任一筆、會員僅自己的）；用品會歸還庫存 */
+export async function cancelPurchase(purchaseId: number) {
+  const { data } = await apiClient.post<Purchase>(`/purchases/${purchaseId}/cancel`);
   return data;
 }

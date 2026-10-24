@@ -34,6 +34,7 @@ import {
   type ExtraSession,
   type ScheduleSpec,
 } from './lib/recurrence';
+import { formatServerTime } from '../../../lib/datetime';
 
 type Mode = 'new' | 'edit' | 'duplicate';
 
@@ -277,7 +278,7 @@ export default function CourseForm() {
       : mode === 'duplicate'
         ? `複製自「${detail?.name ?? ''}」，開課時間需重新設定`
         : detail
-          ? `最後編輯 ${dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm')}・編輯者 ${detail.updated_by_name ?? '—'}`
+          ? `最後編輯 ${formatServerTime(detail.updated_at)}・編輯者 ${detail.updated_by_name ?? '—'}`
           : '';
 
   if (courseId != null && isLoading) {
