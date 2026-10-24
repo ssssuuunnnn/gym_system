@@ -1,0 +1,161 @@
+import { platformClient } from './platformClient';
+
+/** 對應 backend/app/schemas/platform.py */
+export type TenantStatus = '試用' | '啟用' | '停用';
+
+export const TENANT_STATUSES: TenantStatus[] = ['試用', '啟用', '停用'];
+
+export interface TenantStats {
+  member_count: number;
+  admin_count: number;
+  coach_count: number;
+  reservations_this_month: number;
+  last_login_at: string | null;
+}
+
+export interface Tenant {
+  id: number;
+  name: string;
+  subdomain: string;
+  status: TenantStatus;
+  timezone: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  stats: TenantStats;
+}
+
+export interface TenantContactPayload {
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  note?: string | null;
+}
+
+export interface TenantCreatePayload extends TenantContactPayload {
+  name: string;
+  subdomain: string;
+  timezone: string;
+  status: TenantStatus;
+  admin_username: string;
+  admin_password: string;
+  admin_must_change_password: boolean;
+}
+
+export interface TenantUpdatePayload extends TenantContactPayload {
+  name?: string;
+  timezone?: string;
+}
+
+export interface SubdomainCheck {
+  subdomain: string;
+  available: boolean;
+  reason: string | null;
+}
+
+export interface TenantAdmin {
+  id: number;
+  username: string;
+  is_blacklisted: boolean;
+  must_change_password: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: number;
+  admin_username: string;
+  tenant_id: number | null;
+  tenant_name: string | null;
+  action: string;
+  action_label: string;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface PlatformAdmin {
+  id: number;
+  username: string;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export async function platformLogin(username: string, password: string) {
+  const { data } = await platformClient.post<{ access_token: string; username: string }>('/auth/login', {
+    username,
+    password,
+  });
+  return data;
+}
+
+export async function getPlatformMe() {
+  const { data } = await platformClient.get<PlatformAdmin>('/auth/me');
+  return data;
+}
+
+export async function changePlatformPassword(current_password: string, new_password: string) {
+  await platformClient.post('/auth/change-password', { current_password, new_password });
+}
+
+export async function listTenants(params: { status?: TenantStatus; q?: string } = {}) {
+  const { data } = await platformClient.get<Tenant[]>('/tenants', { params });
+  return data;
+}
+
+export async function getTenant(id: number) {
+  const { data } = await platformClient.get<Tenant>(`/tenants/${id}`);
+  return data;
+}
+
+export async function checkSubdomain(subdomain: string) {
+  const { data } = await platformClient.get<SubdomainCheck>('/tenants/check-subdomain', { params: { subdomain } });
+  return data;
+}
+
+export async function createTenant(payload: TenantCreatePayload) {
+  const { data } = await platformClient.post<Tenant>('/tenants', payload);
+  return data;
+}
+
+export async function updateTenant(id: number, payload: TenantUpdatePayload) {
+  const { data } = await platformClient.put<Tenant>(`/tenants/${id}`, payload);
+  return data;
+}
+
+export async function setTenantStatus(id: number, status: TenantStatus, reason?: string) {
+  const { data } = await platformClient.post<Tenant>(`/tenants/${id}/status`, { status, reason });
+  return data;
+}
+
+export async function listTenantAdmins(tenantId: number) {
+  const { data } = await platformClient.get<TenantAdmin[]>(`/tenants/${tenantId}/admins`);
+  return data;
+}
+
+export async function createTenantAdmin(
+  tenantId: number,
+  payload: { username: string; password: string; must_change_password: boolean },
+) {
+  const { data } = await platformClient.post<TenantAdmin>(`/tenants/${tenantId}/admins`, payload);
+  return data;
+}
+
+export async function resetTenantAdminPassword(
+  tenantId: number,
+  userId: number,
+  payload: { new_password: string; must_change_password: boolean },
+) {
+  const { data } = await platformClient.post<TenantAdmin>(
+    `/tenants/${tenantId}/admins/${userId}/reset-password`,
+    payload,
+  );
+  return data;
+}
+
+export async function listAuditLogs(params: { tenant_id?: number; limit?: number } = {}) {
+  const { data } = await platformClient.get<AuditLog[]>('/audit-logs', { params });
+  return data;
+}

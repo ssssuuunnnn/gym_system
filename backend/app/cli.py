@@ -1,7 +1,9 @@
 """
-平台管理指令（開通健身房）。以資料表擁有者（MIGRATION_DATABASE_URL）連線，不經過租戶 API。
+平台管理指令。以資料表擁有者（MIGRATION_DATABASE_URL）連線，不經過 API。
+日常開通／停用健身房請用平台管理後台（http://platform.<BASE_DOMAIN>）；這裡給部署、救援與自動化用。
 
 用法：
+    python -m app.cli create-platform-admin --username ops --password '...'
     python -m app.cli create-tenant --subdomain pulsefit --name "PulseFit 健身工作室" \\
         [--timezone Asia/Taipei] [--admin-username admin --admin-password '...']
     python -m app.cli list-tenants
@@ -10,56 +12,68 @@
 
 import argparse
 import sys
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.deps import SUBDOMAIN_RE
+from app.core.security import hash_password
+from app.models.platform import PlatformAdmin
 from app.models.tenant import Tenant, TenantStatus
+from app.services import tenants as tenant_service
+from app.services.tenants import TenantError
 
-# 平台自己會用到的子網域，不開放給健身房
-RESERVED_SUBDOMAINS = {"www", "api", "app", "admin", "platform", "static", "media", "mail"}
+CLI_ACTOR = "cli"
 
 
 def owner_session() -> Session:
     return Session(create_engine(settings.MIGRATION_DATABASE_URL))
 
 
-def validate_subdomain(subdomain: str) -> str:
-    sub = subdomain.strip().lower()
-    if not SUBDOMAIN_RE.match(sub):
-        raise ValueError("子網域只能用小寫英數與連字號（不可以連字號開頭或結尾），最多 63 字")
-    if sub in RESERVED_SUBDOMAINS:
-        raise ValueError(f"「{sub}」是平台保留的子網域")
-    return sub
-
-
-def ensure_tenant(subdomain: str, name: str | None = None, timezone: str = "Asia/Taipei") -> Tenant:
-    """建立租戶；已存在則直接回傳（可重複執行）。"""
-    sub = validate_subdomain(subdomain)
-    try:
-        ZoneInfo(timezone)
-    except ZoneInfoNotFoundError as exc:
-        raise ValueError(f"未知的時區：{timezone}") from exc
+def ensure_tenant(
+    subdomain: str,
+    name: str | None = None,
+    timezone: str = "Asia/Taipei",
+    admin_username: str | None = None,
+    admin_password: str | None = None,
+) -> None:
+    """建立健身房（可選同時建立第一位管理員）；已存在則略過（可重複執行）。"""
+    sub = tenant_service.normalize_subdomain(subdomain)
     with owner_session() as s:
-        tenant = s.query(Tenant).filter(Tenant.subdomain == sub).first()
-        if tenant is None:
-            tenant = Tenant(subdomain=sub, name=name or sub, timezone=timezone, status=TenantStatus.trial)
-            s.add(tenant)
-            s.commit()
-            print(f"[cli] 已建立健身房：{sub}（id={tenant.id}）")
-        else:
-            print(f"[cli] 健身房已存在，略過：{sub}（id={tenant.id}）")
-        s.refresh(tenant)
-        s.expunge(tenant)
-        return tenant
+        if s.query(Tenant.id).filter(Tenant.subdomain == sub).first():
+            print(f"[cli] 健身房已存在，略過：{sub}")
+            return
+        tenant = tenant_service.create_tenant(s, subdomain=sub, name=name or sub, timezone=timezone)
+        detail = {"subdomain": tenant.subdomain, "name": tenant.name, "timezone": tenant.timezone}
+        if admin_username and admin_password:
+            tenant_service.create_tenant_admin(s, tenant.id, admin_username, admin_password)
+            detail["admin_username"] = admin_username
+        tenant_service.audit(
+            s, action="create_tenant", admin_id=None, admin_username=CLI_ACTOR, tenant_id=tenant.id, detail=detail
+        )
+        s.commit()
+        print(f"[cli] 已建立健身房：{sub}（id={tenant.id}）")
+
+
+def ensure_platform_admin(username: str, password: str) -> None:
+    """建立平台管理員；已存在則略過（不覆蓋密碼）。"""
+    tenant_service.validate_password(password)
+    with owner_session() as s:
+        if s.query(PlatformAdmin.id).filter(PlatformAdmin.username == username).first():
+            print(f"[cli] 平台管理員已存在，略過：{username}")
+            return
+        s.add(PlatformAdmin(username=username, password_hash=hash_password(password)))
+        s.commit()
+        print(f"[cli] 已建立平台管理員：{username}")
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="平台管理指令")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_admin = sub.add_parser("create-platform-admin", help="建立平台管理員（可重複執行）")
+    p_admin.add_argument("--username", required=True)
+    p_admin.add_argument("--password", required=True)
 
     p_create = sub.add_parser("create-tenant", help="開通一家健身房（可重複執行）")
     p_create.add_argument("--subdomain", required=True)
@@ -77,12 +91,10 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     try:
-        if args.command == "create-tenant":
-            tenant = ensure_tenant(args.subdomain, args.name, args.timezone)
-            if args.admin_username and args.admin_password:
-                from app.seed_admin import seed_admin
-
-                seed_admin(tenant.subdomain, args.admin_username, args.admin_password)
+        if args.command == "create-platform-admin":
+            ensure_platform_admin(args.username, args.password)
+        elif args.command == "create-tenant":
+            ensure_tenant(args.subdomain, args.name, args.timezone, args.admin_username, args.admin_password)
         elif args.command == "list-tenants":
             with owner_session() as s:
                 for t in s.query(Tenant).order_by(Tenant.id):
@@ -92,10 +104,20 @@ def main(argv: list[str] | None = None) -> None:
                 tenant = s.query(Tenant).filter(Tenant.subdomain == args.subdomain).first()
                 if tenant is None:
                     sys.exit(f"[cli] 找不到健身房：{args.subdomain}")
-                tenant.status = TenantStatus[args.status]
-                s.commit()
+                new_status = TenantStatus[args.status]
+                if tenant.status != new_status:
+                    tenant_service.audit(
+                        s,
+                        action="set_status",
+                        admin_id=None,
+                        admin_username=CLI_ACTOR,
+                        tenant_id=tenant.id,
+                        detail={"from": tenant.status.value, "to": new_status.value},
+                    )
+                    tenant.status = new_status
+                    s.commit()
                 print(f"[cli] {args.subdomain} → {args.status}（各 API 程序最多 30 秒內生效）")
-    except ValueError as exc:
+    except TenantError as exc:
         sys.exit(f"[cli] 錯誤：{exc}")
 
 

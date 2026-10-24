@@ -6,7 +6,10 @@
 - 每個測試包在一個外層交易裡，結束後回滾；路由裡的 commit 只會釋放 savepoint。
 - client 預設打 alpha 的網址（http://alpha.localhost）；beta_client 打 beta。
 
-連線字串可用環境變數覆寫：TEST_DATABASE_URL（app 帳號）、TEST_MIGRATION_DATABASE_URL（owner 帳號）。
+- 平台管理後台的測試用 platform_client（http://platform.localhost），以平台帳號連線，同樣每個測試回滾。
+
+連線字串可用環境變數覆寫：TEST_DATABASE_URL（app 帳號）、TEST_MIGRATION_DATABASE_URL（owner 帳號）、
+TEST_PLATFORM_DATABASE_URL（平台帳號）。
 """
 
 import os
@@ -17,8 +20,12 @@ TEST_DATABASE_URL = os.environ.get(
 TEST_MIGRATION_DATABASE_URL = os.environ.get(
     "TEST_MIGRATION_DATABASE_URL", "postgresql+psycopg://fitness_owner:owner_pw@localhost:5432/fitness_test"
 )
+TEST_PLATFORM_DATABASE_URL = os.environ.get(
+    "TEST_PLATFORM_DATABASE_URL", "postgresql+psycopg://fitness_platform:platform_pw@localhost:5432/fitness_test"
+)
 # 必須在匯入 app 之前設定，讓 settings 指向測試資料庫
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["PLATFORM_DATABASE_URL"] = TEST_PLATFORM_DATABASE_URL
 os.environ["MIGRATION_DATABASE_URL"] = TEST_MIGRATION_DATABASE_URL
 os.environ["BASE_DOMAIN"] = "localhost"
 os.environ["DEFAULT_TENANT"] = ""
@@ -34,10 +41,11 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 import app.models  # noqa: E402,F401  確保所有資料表都註冊到 Base.metadata
 from app import deps  # noqa: E402
-from app.core.security import create_access_token, hash_password  # noqa: E402
+from app.core.security import create_access_token, create_platform_token, hash_password  # noqa: E402
 from app.db import session as db_session  # noqa: E402
 from app.db.session import TENANT_INFO_KEY  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.platform import PlatformAdmin  # noqa: E402
 from app.models.product import Product, ProductCategory  # noqa: E402
 from app.models.tenant import Tenant, TenantStatus  # noqa: E402
 from app.models.user import User, UserRole  # noqa: E402
@@ -175,3 +183,55 @@ def supply(db):
     db.commit()
     db.refresh(product)
     return product
+
+
+# ---------- 平台管理後台 ----------
+
+
+@pytest.fixture(scope="session")
+def platform_engine(tenants):
+    engine = create_engine(TEST_PLATFORM_DATABASE_URL)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture()
+def platform_connection(platform_engine, connection, monkeypatch):
+    """平台帳號的外層交易，結束後回滾（與 connection 是兩條不同連線，彼此看不到未提交的資料）。"""
+    conn = platform_engine.connect()
+    trans = conn.begin()
+    monkeypatch.setattr(
+        db_session,
+        "PlatformSessionLocal",
+        sessionmaker(bind=conn, autoflush=False, autocommit=False, join_transaction_mode="create_savepoint"),
+    )
+    try:
+        yield conn
+    finally:
+        trans.rollback()
+        conn.close()
+
+
+@pytest.fixture()
+def platform_db(platform_connection):
+    s = db_session.PlatformSessionLocal()
+    yield s
+    s.close()
+
+
+@pytest.fixture()
+def platform_client(platform_connection):
+    return TestClient(app, base_url="http://platform.localhost")
+
+
+@pytest.fixture()
+def platform_admin(platform_db):
+    admin = PlatformAdmin(username="ops", password_hash=hash_password("platform-pw"))
+    platform_db.add(admin)
+    platform_db.commit()
+    platform_db.refresh(admin)
+    return admin
+
+
+def platform_auth(admin: PlatformAdmin) -> dict:
+    return {"Authorization": f"Bearer {create_platform_token(admin_id=admin.id)}"}

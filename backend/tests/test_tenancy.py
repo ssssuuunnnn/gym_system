@@ -11,6 +11,7 @@ from sqlalchemy.exc import DBAPIError
 from app.core import clock
 from app.core.tenant_context import TenantInfo, current_tenant
 from app.db.session import Base
+from app.models.platform import PLATFORM_TABLE_NAMES
 from app.models.product import Product, ProductCategory
 from app.models.tenant import Tenant, TenantMixin
 from tests.conftest import auth
@@ -24,8 +25,8 @@ def _tenant_tables() -> set[str]:
 
 
 def test_every_business_table_is_tenant_scoped():
-    """除 tenants 外，每張資料表都要繼承 TenantMixin（新增資料表時忘了會在這裡失敗）。"""
-    all_tables = set(Base.metadata.tables) - {"tenants"}
+    """除平台表（tenants、platform_*）外，每張資料表都要繼承 TenantMixin（新增資料表時忘了會在這裡失敗）。"""
+    all_tables = set(Base.metadata.tables) - PLATFORM_TABLE_NAMES
     assert all_tables == _tenant_tables()
 
 

@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -16,7 +16,7 @@ class TenantStatus(str, enum.Enum):
 class Tenant(Base):
     """
     租戶＝一家健身房（一間公司）。見 docs/adr/0001-multi-tenancy.md。
-    本表沒有 RLS：應用程式依子網域查詢租戶，只有讀取權限；新增／停用由平台工具以 owner 身份執行。
+    本表沒有 RLS：應用程式依子網域查詢租戶，只有讀取權限；新增／修改／停用由平台管理後台（PLATFORM_DB_ROLE）或 CLI（owner）執行。
     """
 
     __tablename__ = "tenants"
@@ -30,7 +30,14 @@ class Tenant(Base):
     timezone: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="Asia/Taipei", default="Asia/Taipei", comment="營業所在時區"
     )
+    contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="聯絡人")
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="聯絡 Email")
+    contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="聯絡電話")
+    note: Mapped[str | None] = mapped_column(String(1000), nullable=True, comment="平台內部備註")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False, server_default=func.now()
+    )
 
 
 class TenantMixin:

@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     MIGRATION_DATABASE_URL: str = "postgresql+psycopg://fitness_owner:owner_pw@localhost:5432/fitness_dev"
     # migration 授權給哪個應用程式帳號（GRANT 資料讀寫權限）
     APP_DB_ROLE: str = "fitness_app"
+    # 平台管理後台（見 docs/adr/0002-platform-console.md）：只能管理健身房清單、平台帳號與各家管理員帳號，
+    # 讀取各家帳號時同樣受 RLS 限制；跨租戶統計只透過 platform_tenant_stats() 取得彙總數字。
+    PLATFORM_DATABASE_URL: str = "postgresql+psycopg://fitness_platform:platform_pw@localhost:5432/fitness_dev"
+    PLATFORM_DB_ROLE: str = "fitness_platform"
+    # 平台管理後台的子網域：<PLATFORM_SUBDOMAIN>.<BASE_DOMAIN>（已列為保留字，不會分配給健身房）
+    PLATFORM_SUBDOMAIN: str = "platform"
+    # 平台管理員登入有效時間較短
+    PLATFORM_TOKEN_EXPIRE_MINUTES: int = 120
 
     # 多租戶：每家健身房一個子網域 <subdomain>.<BASE_DOMAIN>，由 Host 判斷租戶。
     BASE_DOMAIN: str = "localhost"

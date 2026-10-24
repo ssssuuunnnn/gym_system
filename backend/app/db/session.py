@@ -16,6 +16,10 @@ from app.core.config import settings
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# 平台管理後台專用連線（PLATFORM_DB_ROLE，見 docs/adr/0002-platform-console.md）
+platform_engine = create_engine(settings.PLATFORM_DATABASE_URL, pool_pre_ping=True)
+PlatformSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=platform_engine)
+
 
 class Base(DeclarativeBase):
     pass
@@ -50,3 +54,12 @@ def tenant_session(tenant_id: int | None) -> Session:
     db = SessionLocal()
     db.info[TENANT_INFO_KEY] = tenant_id
     return db
+
+
+def act_as_tenant(session: Session, tenant_id: int) -> None:
+    """
+    在目前交易中切換到指定租戶（平台後台、CLI 用）：之後的查詢受該租戶的 RLS 限制、
+    新增的業務資料自動填入該租戶。交易已開始時 after_begin 不會再觸發，所以直接設定一次。
+    """
+    session.info[TENANT_INFO_KEY] = tenant_id
+    session.execute(text("SELECT set_config('app.tenant_id', :tid, true)"), {"tid": str(tenant_id)})

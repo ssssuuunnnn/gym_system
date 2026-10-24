@@ -36,6 +36,7 @@ jobs:
     env:
       TEST_DATABASE_URL: postgresql+psycopg://fitness_app:app_pw@localhost:5432/fitness_test
       TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://fitness_owner:owner_pw@localhost:5432/fitness_test
+      TEST_PLATFORM_DATABASE_URL: postgresql+psycopg://fitness_platform:platform_pw@localhost:5432/fitness_test
     steps:
       - uses: actions/checkout@v4
 
@@ -56,11 +57,13 @@ jobs:
           psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
           CREATE ROLE fitness_owner LOGIN PASSWORD 'owner_pw' NOSUPERUSER NOBYPASSRLS;
           CREATE ROLE fitness_app LOGIN PASSWORD 'app_pw' NOSUPERUSER NOBYPASSRLS;
+          CREATE ROLE fitness_platform LOGIN PASSWORD 'platform_pw' NOSUPERUSER NOBYPASSRLS;
           CREATE DATABASE fitness_test OWNER fitness_owner;
           SQL
           psql -h localhost -U postgres -d fitness_test -v ON_ERROR_STOP=1 \
             -c "ALTER SCHEMA public OWNER TO fitness_owner" \
-            -c "GRANT USAGE ON SCHEMA public TO fitness_app"
+            -c "GRANT USAGE ON SCHEMA public TO fitness_app" \
+            -c "GRANT USAGE ON SCHEMA public TO fitness_platform"
 
       - name: Run pytest
         working-directory: backend

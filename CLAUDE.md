@@ -21,25 +21,37 @@ cd backend && pip install -r requirements-dev.txt && python -m pytest -q
 alembic upgrade head
 alembic revision --autogenerate -m "..."
 
-# Platform CLI (owner connection): provision / list / suspend gyms
+# Platform CLI (owner connection) — day-to-day use the platform console at http://platform.localhost instead
+python -m app.cli create-platform-admin --username ops --password ...
 python -m app.cli create-tenant --subdomain alpha --name "Alpha 健身" --admin-username admin --admin-password ...
 python -m app.cli list-tenants
 python -m app.cli set-status --subdomain alpha --status suspended
 ```
 
-Services once `docker compose up` is running: frontend `http://localhost`, backend docs `http://localhost:8000/docs`, PostgreSQL `localhost:5432`, adminer (DB browser UI) `http://localhost:8080` (server `postgres`, DB `fitness_studio`, owner `fitness_owner`/`changeme_owner`, app `fitness_app`/`changeme_app` unless overridden by `.env`; roles created by `docker/postgres/init-roles.sh` on first init). Each gym is `http://<subdomain>.localhost`; plain `http://localhost` uses `DEFAULT_TENANT` (compose default `demo`).
+Services once `docker compose up` is running: frontend `http://localhost`, backend docs `http://localhost:8000/docs`, PostgreSQL `localhost:5432`, adminer (DB browser UI) `http://localhost:8080` (server `postgres`, DB `fitness_studio`, owner `fitness_owner`/`changeme_owner`, app `fitness_app`/`changeme_app` unless overridden by `.env`; roles created by `docker/postgres/init-roles.sh` on first init). Each gym is `http://<subdomain>.localhost`; plain `http://localhost` uses `DEFAULT_TENANT` (compose default `demo`); the platform console is `http://platform.localhost`. `npm run dev` proxies `/api` + `/media` to `:8000` keeping `Host`, so the same works on `:5173`.
 
 At container start the entrypoint runs migrations, provisions `DEFAULT_TENANT` (`python -m app.cli create-tenant`, idempotent), and seeds that gym's admin from `ADMIN_USERNAME`/`ADMIN_PASSWORD` (`backend/app/seed_admin.py --tenant`); the `/auth/register` endpoint always creates `role=member`.
 
 ## Multi-tenancy (ADR 0001)
 
 - **Tenant = one gym (company)**, `tenants` table (`subdomain` unique, `status` 試用/啟用/停用 stored `trial`/`active`/`suspended`, `timezone`). Every other table inherits `TenantMixin` (`models/tenant.py`) → `tenant_id` FK. Per-gym uniqueness is composite: `(tenant_id, username)`, `(tenant_id, code)`, `(tenant_id, slot_date, start_hour)`, one `system_settings` row per tenant.
-- **Isolation is enforced by PostgreSQL RLS**, not by router code: policy `tenant_isolation` on every business table, `tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::int` for USING and WITH CHECK. Two DB roles: `fitness_owner` (owns tables; `MIGRATION_DATABASE_URL`, used by Alembic and `app.cli`) and `fitness_app` (`DATABASE_URL`; NOSUPERUSER/NOBYPASSRLS, DML only, SELECT-only on `tenants`). No tenant set ⇒ every table looks empty.
+- **Isolation is enforced by PostgreSQL RLS**, not by router code: policy `tenant_isolation` on every business table, `tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::int` for USING and WITH CHECK. DB roles: `fitness_owner` (owns tables; `MIGRATION_DATABASE_URL`, used by Alembic and `app.cli`), `fitness_app` (`DATABASE_URL`; NOSUPERUSER/NOBYPASSRLS, DML only, SELECT-only on `tenants`, nothing on platform tables) and `fitness_platform` (platform console, see below). No tenant set ⇒ every table looks empty.
 - `db/session.py`: an `after_begin` Session event runs `set_config('app.tenant_id', session.info["tenant_id"], true)` per transaction; `before_flush` fills `tenant_id` on new rows. **Never filter by `tenant_id` or set it by hand in routers** — just use the injected `db`.
 - `deps.py`: async `get_tenant` resolves `Host` → `<sub>.BASE_DOMAIN` (fallback `DEFAULT_TENANT`, else 404; 停用 → 403; 30 s TTL cache, `clear_tenant_cache()`), sets the `core/tenant_context.current_tenant` contextvar; `get_db` (import it from `app.deps`, not `app.db.session`) yields a tenant-bound session; JWTs carry `tid` and `get_current_user` rejects a token whose `tid` ≠ the host's tenant. Background/CLI code uses `db.session.tenant_session(tenant_id)`.
 - Per-tenant: `clock.now_local()` uses `tenants.timezone` (fallback `STUDIO_TIMEZONE`); uploads go through `core/media.save_tenant_media(kind, data, ext)` → `MEDIA_DIR/<subdomain>/<kind>/<uuid>.ext`.
-- **Adding a table**: inherit `(TenantMixin, Base)` and call `enable_tenant_rls("<table>")` (`app/db/rls.py`) in its migration after `create_table` (it also grants DML to `APP_DB_ROLE`). `tests/test_tenancy.py` fails if any table lacks either. The Alembic history was squashed into `0001_baseline` (PostgreSQL); SQLite/MySQL are no longer supported.
-- Accounts are per gym: the same person at two gyms has two unrelated accounts. Platform admin UI, per-gym brand colour, custom domains and billing are later phases (see the ADR).
+- **Adding a table**: inherit `(TenantMixin, Base)` and call `enable_tenant_rls("<table>")` (`app/db/rls.py`) in its migration after `create_table` (it also grants DML to `APP_DB_ROLE`). `tests/test_tenancy.py` fails if any table lacks either (platform-level tables go in `PLATFORM_TABLE_NAMES` instead). The Alembic history was squashed into `0001_baseline` (PostgreSQL); SQLite/MySQL are no longer supported.
+- Accounts are per gym: the same person at two gyms has two unrelated accounts. Per-gym brand colour, custom domains and billing are later phases (see the ADR); the platform console is below.
+
+## Platform console (ADR 0002)
+
+- Lives at `platform.<BASE_DOMAIN>` (`PLATFORM_SUBDOMAIN`, reserved — never a gym). Same frontend/API, split by host: `App.tsx` builds only one router (`isPlatformHost()` from `lib/host.ts` → `router/platform.tsx`, else `router/index.tsx`; both are `create…Router()` functions); `/api/v1/platform/*` (`routers/platform.py`) is router-gated by `deps.require_platform_host` → 404 on gym hosts, and the platform host is not a gym (gym APIs 404 there).
+- Separate accounts: `platform_admins` (+ `platform_audit_logs`) — no `tenant_id`, no RLS, listed in `models/platform.PLATFORM_TABLE_NAMES`. Platform JWT (`create_platform_token`) carries `scope=platform` and no `tid`; `get_current_user` rejects any token with a `scope`, `get_current_platform_admin` requires it. Frontend keeps it in a separate store/client (`store/platformAuth.ts`, `api/platformClient.ts` + `api/platform.ts`).
+- Third DB role `fitness_platform` (`PLATFORM_DATABASE_URL`, `deps.get_platform_db`): R/W `tenants`/`platform_admins`, R/insert `platform_audit_logs`, R/W `users` **under RLS** (switch with `db.session.act_as_tenant(db, tenant_id)` inside the transaction — only for managing that gym's admins), no grant on other business tables. Cross-tenant numbers only via the `SECURITY DEFINER` function `platform_tenant_stats(month_start)` (aggregates only). The app role has no access to platform tables.
+- `services/tenants.py` is shared by the API and `app.cli`: subdomain rules (`subdomain_problem`, `RESERVED_SUBDOMAINS`), `create_tenant`, `create_tenant_admin`, `reset_tenant_admin_password` (admins only, never members/coaches), `audit()` + `AUDIT_ACTIONS`. Functions only flush — provisioning tenant + first admin + audit is one transaction. They also filter `tenant_id` explicitly because the CLI's owner connection bypasses RLS.
+- Endpoints: `POST /platform/auth/login` (JSON), `GET /auth/me`, `POST /auth/change-password`; `GET/POST /platform/tenants`, `GET /tenants/check-subdomain`, `GET/PUT /tenants/{id}` (subdomain immutable), `POST /tenants/{id}/status` `{status, reason}`, `GET/POST /tenants/{id}/admins`, `POST /tenants/{id}/admins/{uid}/reset-password`, `GET /platform/audit-logs?tenant_id&limit`. Every state change writes an audit row (no passwords).
+- UI (`pages/platform/`): `Login`, `TenantList` (summary stats, search, status `Segmented`), `TenantForm` (開通: live subdomain check, timezone, contact, first admin + generated password; shows credentials once via `components/platform/credentials.tsx`), `TenantDetail/` (info card with dirty-diff save, status card with 停用 reason modal + usage stats, admins card, audit log), `AuditLogs`, `Account`. Shared `components/platform/AuditLogTable.tsx`. `StatusTag` colours 試用/啟用/停用.
+- First platform admin: `PLATFORM_ADMIN_USERNAME`/`PASSWORD` at container start, or `python -m app.cli create-platform-admin`.
+- Tenant-host cache: hits 30 s, misses 5 s, and creating a gym clears the local cache.
 
 ## Architecture
 
@@ -110,7 +122,7 @@ Every list page follows the same shape (see `pages/admin/CoachList.tsx`, `Bookin
 
 `components/calendar/` holds 8 presentational scheduling atoms imported from the PulseFit design system (`TimeAxis`, `TimeSlotCell`, `DayHeaderCell`, `EventBlock`, `EventChip`, `NowIndicator`, `MonthDayCell`, `MiniCalendar`) — colours/radius/font via `theme.useToken()`, no global CSS. See `components/calendar/README.md`.
 
-When **authoring or reviewing a UI component** (not a page screen), follow the `component-conventions` skill: where it lives (shared `frontend/src/components/` for 2+ consumers vs. page-scoped `frontend/src/pages/<Area>/<Page>/components/` for a single consumer), reach for an Ant Design component before hand-rolling, colours/radius via `theme.useToken()` (no hardcoded hex), `dayjs` for all date work, one shared source for constants/helpers, controlled props-driven components, and "one concept, one component". The layout shell (`AppLayout.tsx`, header, sidebar) has its own `layout-conventions` skill.
+When **authoring or reviewing a UI component** (not a page screen), follow the `component-conventions` skill: where it lives (shared `frontend/src/components/` for 2+ consumers vs. page-scoped `frontend/src/pages/<Area>/<Page>/components/` for a single consumer), reach for an Ant Design component before hand-rolling, colours/radius via `theme.useToken()` (no hardcoded hex), `dayjs` for all date work, one shared source for constants/helpers, controlled props-driven components, and "one concept, one component". The layout shells (`BackOfficeShell.tsx` shared by `AppLayout.tsx` and `platform/PlatformLayout.tsx`; `member/MemberLayout.tsx`) have their own `layout-conventions` skill.
 
 ## Implementation status
 
