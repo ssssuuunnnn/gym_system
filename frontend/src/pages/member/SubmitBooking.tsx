@@ -45,6 +45,11 @@ export default function SubmitBooking() {
 
   const overridesByKey = buildOverrideMap(slots);
   const bookingDate = Form.useWatch('booking_date', form);
+  const productId = Form.useWatch('product_id', form);
+  // 預約只能扣抵「同一商品、仍有剩餘堂數」的購買紀錄（後端同樣會檢查）
+  const usablePurchases = (purchases ?? []).filter(
+    (p) => p.product_id === productId && p.remaining_hours > 0,
+  );
   const now = dayjs();
   // 可選時段＝「公休設定」未關閉（開放中）且尚未過去；當天只留下還沒開始的整點。
   const hourSelectable = (d: Dayjs, h: number) =>
@@ -73,6 +78,7 @@ export default function SubmitBooking() {
     onSuccess: () => {
       message.success('已送出預約申請，請等待管理員審核');
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       navigate('/member/bookings');
     },
     onError: (error) => {
@@ -100,6 +106,7 @@ export default function SubmitBooking() {
             optionFilterProp="label"
             placeholder="選擇商品"
             options={availableProducts.map((p) => ({ value: p.id, label: `${p.name}（${p.category}）` }))}
+            onChange={() => form.setFieldValue('purchase_id', undefined)}
           />
         </Form.Item>
 
@@ -125,11 +132,18 @@ export default function SubmitBooking() {
           />
         </Form.Item>
 
-        <Form.Item name="purchase_id" label="使用購買紀錄（選填）">
+        <Form.Item name="purchase_id" label="使用購買紀錄（選填，扣 1 堂）">
           <Select
             allowClear
-            placeholder="選擇要扣抵的購買紀錄"
-            options={(purchases ?? []).map((p) => ({
+            disabled={!productId}
+            placeholder={
+              !productId
+                ? '請先選擇商品'
+                : usablePurchases.length
+                  ? '選擇要扣抵的購買紀錄'
+                  : '此商品沒有可用的堂數，請先購買'
+            }
+            options={usablePurchases.map((p) => ({
               value: p.id,
               label: `#${p.id}｜剩餘 ${p.remaining_hours} 堂｜${p.purchase_date}`,
             }))}

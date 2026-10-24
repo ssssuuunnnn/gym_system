@@ -13,6 +13,7 @@ from app.models.course import (  # noqa: F401
     ScheduleEndMode,
     SessionSource,
 )
+from app.models.hour_ledger import HourLedger, HourLedgerReason  # noqa: F401
 from app.models.product import Product, ProductCategory  # noqa: F401
 from app.models.purchase import Purchase  # noqa: F401
 from app.models.reservation import (  # noqa: F401

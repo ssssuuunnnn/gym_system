@@ -9,7 +9,6 @@ from app.deps import get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
 from app.models.product import Product
-from app.models.purchase import Purchase
 from app.models.reservation import (
     Reservation,
     ReservationAddon,
@@ -26,6 +25,7 @@ from app.schemas.reservation import (
     ReservationReview,
     ReservationUpdate,
 )
+from app.services import hours
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -131,6 +131,8 @@ def create_reservation(
         status=initial_status,
     )
     db.add(reservation)
+    # 建立預約與扣抵堂數同一交易：堂數不足或購買紀錄不符時整筆回滾，不會留下沒扣到堂數的預約。
+    hours.deduct_for_reservation(db, reservation, created_by=current_user.id)
     db.commit()
     db.refresh(reservation)
     return reservation
@@ -168,11 +170,23 @@ def update_reservation(
 
 
 @router.post("/{reservation_id}/review", response_model=ReservationOut, dependencies=[Depends(require_admin)])
-def review_reservation(reservation_id: int, payload: ReservationReview, db: Session = Depends(get_db)):
-    """對應「預約審核列表／詳情」：核准／拒絕。核准前需再次確認容量。"""
+def review_reservation(
+    reservation_id: int,
+    payload: ReservationReview,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    對應「預約審核列表／詳情」：核准／拒絕。核准前需再次確認容量。
+    堂數已在送出申請時扣抵；拒絕時退回。僅待確認的預約可審核。
+    """
     reservation = db.get(Reservation, reservation_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+    if reservation.status != ReservationStatus.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅待確認的預約可審核")
+    if payload.status not in (ReservationStatus.confirmed, ReservationStatus.rejected):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="審核結果只能是已確認或已拒絕")
 
     if payload.status == ReservationStatus.confirmed:
         product = db.get(Product, reservation.product_id)
@@ -185,7 +199,11 @@ def review_reservation(reservation_id: int, payload: ReservationReview, db: Sess
             reservation.people_count,
         )
 
+    if payload.status == ReservationStatus.rejected:
+        hours.refund_reservation(db, reservation, created_by=admin.id)
+
     reservation.status = payload.status
+    reservation.reviewed_by = admin.id
     reservation.reviewed_at = datetime.utcnow()
     db.commit()
     db.refresh(reservation)
@@ -215,11 +233,7 @@ def cancel_reservation(
     reservation.status = ReservationStatus.cancelled
     reservation.cancelled_at = datetime.utcnow()
 
-    if reservation.purchase_id:
-        purchase = db.get(Purchase, reservation.purchase_id)
-        if purchase:
-            product = db.get(Product, reservation.product_id)
-            purchase.remaining_hours += product.session_hours
+    hours.refund_reservation(db, reservation, created_by=current_user.id)
 
     db.commit()
     db.refresh(reservation)

@@ -33,6 +33,7 @@ export default function CreateBooking() {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const memberId = Form.useWatch('member_id', form);
+  const productId = Form.useWatch('product_id', form);
 
   const { data: members, isLoading: membersLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
   const { data: products, isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
@@ -43,6 +44,10 @@ export default function CreateBooking() {
     queryFn: () => listPurchases(memberId),
     enabled: memberId != null,
   });
+  // 預約只能扣抵「同一商品、仍有剩餘堂數」的購買紀錄（後端同樣會檢查）
+  const usablePurchases = (memberPurchases ?? []).filter(
+    (p) => p.product_id === productId && p.remaining_hours > 0,
+  );
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -63,6 +68,7 @@ export default function CreateBooking() {
     onSuccess: () => {
       message.success('已建立預約');
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
       navigate('/admin/reservations');
     },
     onError: (error) => {
@@ -101,6 +107,7 @@ export default function CreateBooking() {
             optionFilterProp="label"
             placeholder="選擇商品"
             options={(products ?? []).map((p) => ({ value: p.id, label: `${p.name}（${p.category}）` }))}
+            onChange={() => form.setFieldValue('purchase_id', undefined)}
           />
         </Form.Item>
 
@@ -126,12 +133,20 @@ export default function CreateBooking() {
           />
         </Form.Item>
 
-        <Form.Item name="purchase_id" label="關聯購買紀錄（選填）">
+        <Form.Item name="purchase_id" label="扣抵購買紀錄（選填，扣 1 堂）">
           <Select
             allowClear
-            disabled={!memberId}
-            placeholder={memberId ? '選擇購買紀錄' : '請先選擇會員'}
-            options={(memberPurchases ?? []).map((p) => ({
+            disabled={!memberId || !productId}
+            placeholder={
+              !memberId
+                ? '請先選擇會員'
+                : !productId
+                  ? '請先選擇商品'
+                  : usablePurchases.length
+                    ? '選擇要扣抵的購買紀錄'
+                    : '此會員沒有該商品可用的堂數'
+            }
+            options={usablePurchases.map((p) => ({
               value: p.id,
               label: `#${p.id}｜剩餘 ${p.remaining_hours} 堂｜${p.purchase_date}`,
             }))}
