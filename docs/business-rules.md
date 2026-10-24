@@ -38,11 +38,9 @@
 
 ## 購買與付款
 
-> 以下 R4–R7 為 2026-10-24 依常見做法先行實作的預設規則，**尚待業主確認**；確認或修改後請更新狀態。
-
 ### R4. 會員自助購買為「待付款」，確認收款後才入帳堂數
 
-- **狀態**：待確認
+- **確認日期**：2026-10-24
 - **規則**：會員在「購買商品」送出後建立訂單，狀態「待付款」、剩餘堂數 0，不能拿來預約。管理員在「購買紀錄」確認收款（必填付款方式，可填備註如轉帳末五碼）後改為「已付款」，並一次入帳購買的總堂數。
 - **入帳堂數以下單當下為準**：訂單記錄 `total_hours`（下單時的商品堂數 × 數量），之後商品堂數變動不影響已下的訂單。
 - **實作**：`routers/purchases.py` 的 `create_self_purchase`、`confirm_payment`；`services/hours.py` 的 `record_purchase`、`deduct_for_reservation`（拒絕未付款的購買紀錄）
@@ -50,21 +48,21 @@
 
 ### R5. 管理員登錄購買視為已收款
 
-- **狀態**：待確認
+- **確認日期**：2026-10-24
 - **規則**：管理員在「購買紀錄登錄」建立的購買，代表櫃台已收款，建立即為「已付款」並立即入帳；付款方式必填。
 - **實作**：`routers/purchases.py` 的 `create_purchase`；前端 `PurchaseEntry`
 - **測試**：`test_admin_entry_is_paid_immediately`
 
 ### R6. 用品下單即保留庫存，取消時歸還
 
-- **狀態**：待確認
+- **確認日期**：2026-10-24
 - **規則**：用品訂單在下單（含待付款）時就扣庫存，避免超賣；待付款訂單取消時歸還庫存。
 - **實作**：`routers/purchases.py` 的 `_build_purchase`、`cancel_purchase`
 - **測試**：`test_supply_stock_reserved_on_order_and_returned_on_cancel`、`test_supply_confirm_keeps_stock_deducted`
 
 ### R7. 只有「待付款」可取消，已付款暫不處理退款
 
-- **狀態**：待確認
+- **確認日期**：2026-10-24
 - **規則**：管理員可取消任一筆、會員可取消自己的待付款訂單。已付款訂單不能取消；退款流程尚未定義。待付款與已取消的訂單不可手動調整堂數。
 - **實作**：`routers/purchases.py` 的 `cancel_purchase`、`adjust_purchase_hours`
 - **測試**：`test_member_can_cancel_own_unpaid_order`、`test_cannot_cancel_paid_order`、`test_cannot_confirm_cancelled_order`、`test_cannot_adjust_unpaid_purchase`
