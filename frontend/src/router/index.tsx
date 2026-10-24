@@ -33,6 +33,7 @@ import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
 import ChangePassword from '../pages/member/ChangePassword';
+import CoachAttendance from '../pages/member/CoachAttendance';
 
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
           { path: 'bookings', element: <MyBookings /> },
           { path: 'bookings/submit', element: <SubmitBooking /> },
           { path: 'bookings/:id/add-person', element: <AddPerson /> },
+          { path: 'coaching', element: <CoachAttendance /> },
         ],
       },
     ],

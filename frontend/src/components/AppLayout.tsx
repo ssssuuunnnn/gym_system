@@ -11,6 +11,7 @@ import {
   ClockCircleOutlined,
   SettingOutlined,
   DollarOutlined,
+  CheckSquareOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -53,6 +54,9 @@ const memberMenuItems = [
   { key: '/member/bookings', label: '我的預約', icon: <CalendarOutlined /> },
 ];
 
+// 場租教練身份額外顯示：為自己帶的預約簽到／標記未到
+const coachMenuItems = [{ key: '/member/coaching', label: '學員簽到', icon: <CheckSquareOutlined /> }];
+
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,7 +81,7 @@ export default function AppLayout() {
     return <Navigate to="/member/change-password" replace />;
   }
 
-  const items = role === 'admin' ? adminMenuItems : memberMenuItems;
+  const items = role === 'admin' ? adminMenuItems : isCoach ? [...memberMenuItems, ...coachMenuItems] : memberMenuItems;
   const selectedKey = items.find((item) => location.pathname.startsWith(item.key))?.key;
 
   return (
