@@ -34,3 +34,23 @@ export function selfCheckInOpen(reservation: Reservation, durationMinutes?: numb
 export function staffCheckInOpen(reservation: Reservation, now: Dayjs = dayjs()) {
   return !now.isBefore(classStart(reservation).subtract(CHECK_IN_OPENS_BEFORE_MINUTES, 'minute'));
 }
+
+/** 下課時間：課程有單堂時長就用，否則 60 分鐘 */
+export function classEnd(reservation: Pick<Reservation, 'booking_date' | 'start_hour'>, durationMinutes?: number): Dayjs {
+  return classStart(reservation).add(durationMinutes ?? DEFAULT_DURATION_MINUTES, 'minute');
+}
+
+/** 自行簽到開放時間（開課前 30 分鐘） */
+export function selfCheckInOpensAt(reservation: Pick<Reservation, 'booking_date' | 'start_hour'>): Dayjs {
+  return classStart(reservation).subtract(CHECK_IN_OPENS_BEFORE_MINUTES, 'minute');
+}
+
+/** 「20 分鐘後開始」「3 小時後開始」「明天」「10/27（二）」這類相對時間，前台卡片用 */
+export function relativeStartLabel(start: Dayjs, now: Dayjs = dayjs()): string {
+  const minutes = start.diff(now, 'minute');
+  if (minutes <= 0) return '上課中';
+  if (minutes < 60) return `${minutes} 分鐘後開始`;
+  if (start.isSame(now, 'day')) return `${Math.floor(minutes / 60)} 小時後開始`;
+  if (start.isSame(now.add(1, 'day'), 'day')) return '明天';
+  return start.format('MM/DD');
+}

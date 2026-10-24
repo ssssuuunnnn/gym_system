@@ -27,7 +27,8 @@ export default function Login() {
       if (data.must_change_password) {
         navigate('/member/change-password');
       } else {
-        navigate(data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+        // 教練預設進入教練前台（今日課表），可在「我的」切換到會員模式
+        navigate(data.role === 'admin' ? '/admin/dashboard' : data.is_coach ? '/coach/today' : '/member/dashboard');
       }
     } catch (err) {
       message.error('帳號或密碼錯誤');

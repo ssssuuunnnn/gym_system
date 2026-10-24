@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/auth';
  */
 export default function ChangePassword() {
   const navigate = useNavigate();
-  const { role, clearMustChangePassword, logout } = useAuthStore();
+  const { role, isCoach, clearMustChangePassword, logout } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: { current: string; password: string; confirm: string }) => {
@@ -24,7 +24,7 @@ export default function ChangePassword() {
       await changePassword(values.current, values.password);
       clearMustChangePassword();
       message.success('密碼已更新');
-      navigate(role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+      navigate(role === 'admin' ? '/admin/dashboard' : isCoach ? '/coach/today' : '/member/dashboard');
     } catch (err) {
       const detail = isAxiosError<{ detail?: string }>(err) ? err.response?.data?.detail : undefined;
       message.error(detail || '修改失敗，請稍後再試');

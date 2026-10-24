@@ -1,11 +1,16 @@
 ---
 name: layout-conventions
-description: Durable rules for this repo's site-wide layout shell (frontend/src/components/AppLayout.tsx) — fixed/sticky header with scroll-triggered backdrop-blur "frosted glass" treatment, user-collapsible left sidebar/menu with icon-only collapsed state, and design-token usage. TRIGGER — use whenever building or adjusting AppLayout.tsx, any admin or member page's structure/chrome, the header, the sidebar/Sider/Menu, collapse/toggle behavior, or anything visually derived from the PulseFit design handoff in gym-system-design/. Also use when asked to align the app's layout/header/sidebar with the design guideline or the Claude Design prototype.
+description: Durable rules for this repo's two layout shells — the admin back office (frontend/src/components/AppLayout.tsx — fixed/sticky header with scroll-triggered backdrop-blur "frosted glass" treatment, user-collapsible left sidebar/menu with icon-only collapsed state, and design-token usage) and the member/coach front end (frontend/src/components/member/MemberLayout.tsx — mobile-first column, bottom tab bar, per-mode theme). TRIGGER — use whenever building or adjusting AppLayout.tsx or MemberLayout.tsx, any admin or member page's structure/chrome, the header, the sidebar/Sider/Menu, collapse/toggle behavior, or anything visually derived from the PulseFit design handoff in gym-system-design/. Also use when asked to align the app's layout/header/sidebar with the design guideline or the Claude Design prototype.
 ---
 
 # Layout conventions
 
-This repo has **one** site-wide layout shell: `frontend/src/components/AppLayout.tsx`. It wraps both the `/admin/*` and `/member/*` route trees (see `frontend/src/router/index.tsx` — both role trees render `<AppLayout />` with their own `children`, switching only the sidebar menu items by `role`). Do not create a second layout component for a role or a page — extend `AppLayout.tsx` and gate what differs (menu items, labels) on `role`/`isCoach` from `useAuthStore`, the way it already does.
+This repo has **exactly two** layout shells — don't add a third for a role or a page:
+
+- **後台 `frontend/src/components/AppLayout.tsx`** — admins only (`/admin/*`). Desktop back office: sticky header + collapsible sidebar. The rest of this file (header, sidebar, tokens) is about this shell.
+- **前台 `frontend/src/components/member/MemberLayout.tsx`** — members and coaches (`/member/*` with `mode="member"`, `/coach/*` with `mode="coach"`). See "Front-end shell" at the end.
+
+Members and coaches use their phones, so the front end is a separate, mobile-first shell rather than the admin sidebar layout restyled (decided 2026-10-24 with a Claude Design mockup, 「健身工作室前台設計稿」).
 
 These are standing rules for this shell, not a record of a past change. Apply them any time you touch `AppLayout.tsx` or add a page that needs to fit inside it.
 
@@ -28,6 +33,14 @@ These are standing rules for this shell, not a record of a past change. Apply th
 - Colors, spacing, radius, shadow, and layout metrics (header height, sider width expanded/collapsed, content padding) are defined in `gym-system-design/DESIGN_GUIDELINES.md`. Treat that file as the single source of truth for these values.
 - When implementing or reviewing layout/style code, reference the guideline's token names/values rather than re-deriving or hardcoding numbers inline — if a needed value isn't in the guideline yet, add it there (or ask) instead of inventing a one-off number in component code.
 - The underlying design tokens also exist as CSS custom properties in `gym-system-design/project/tokens/*.css` (colors.css, spacing.css, radius.css, shadow.css, typography.css, base.css) — these are the primary source the guideline doc is built from.
+
+## Front-end shell (`MemberLayout`)
+
+- **Mobile first**: one content column, `maxWidth` = `FRONT_MAX_WIDTH` (560px) centred on desktop, `padding: 24px 16px` plus room for the tab bar and `env(safe-area-inset-bottom)`. No sidebar, no global header — each page renders its own `FrontPageHeader`.
+- **Bottom tab bar**, fixed, same width as the column, 3–4 `NavLink` tabs (icon + 11px label, ≥44px touch target). Member tabs: 首頁 / 預約課程 / 我的預約 / 我的. Coach tabs: 今日課表 / 簽到紀錄 / 我的鐘點 (only 私人教練／團體課程教練 — read from `GET /coaches/me`) / 我的. Add a tab only for a top-level task; everything else is reached from a page or from 我的.
+- **Theme per mode** via a nested `ConfigProvider` with `FRONT_THEMES[mode]` from `components/member/memberTheme.ts` — the single place front-end colours live (member `#0958d9`, coach `#006d75`, darker status colours for contrast, Noto Sans TC, radius 12/16, control height 44). Components read them with `theme.useToken()`; never hard-code a front-end hex in a component.
+- **Guards** live in the shell: `mustChangePassword` → `/member/change-password`; `mode="coach"` without `isCoach` → `/member/dashboard`. Coaches land in `/coach/today` after login and switch modes from 我的.
+- **Building blocks** (`components/member/`): `FrontPageHeader`, `FrontCard` (white, radius LG, no border/shadow; `highlighted` = 2px primary ring), `CoverTile`. Prefer cards and big tap targets over tables on front-end pages.
 
 ## Scope note
 

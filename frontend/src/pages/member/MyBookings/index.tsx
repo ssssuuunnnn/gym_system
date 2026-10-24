@@ -153,7 +153,7 @@ export default function MyBookings() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           我的預約
         </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/member/bookings/submit')}>
+        <Button type="primary" onClick={() => navigate('/member/book')}>
           新增預約
         </Button>
       </div>
