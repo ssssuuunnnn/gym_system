@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -17,6 +17,10 @@ class SystemSettings(Base):
     short_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # 公司 LOGO：以 /media 靜態路徑對外提供的相對網址
     logo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # 取消期限：已確認的預約在開課前 N 小時內取消不退堂；0＝不限制
+    cancel_deadline_hours: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default="12", default=12, comment="取消期限（開課前小時數）"
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )

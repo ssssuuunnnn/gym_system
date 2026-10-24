@@ -1,15 +1,17 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.deps import get_current_user, require_admin, require_coach
+from app.deps import get_coach_profile, get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
 from app.models.product import Product
 from app.models.reservation import (
+    Attendance,
     Reservation,
     ReservationAddon,
     ReservationSource,
@@ -18,14 +20,17 @@ from app.models.reservation import (
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
 from app.schemas.reservation import (
+    AttendanceMark,
+    CoachingReservationOut,
     ReservationAddonCreate,
     ReservationAddonOut,
+    ReservationCancel,
     ReservationCreate,
     ReservationOut,
     ReservationReview,
     ReservationUpdate,
 )
-from app.services import hours
+from app.services import booking_rules, hours
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -213,28 +218,133 @@ def review_reservation(
 @router.post("/{reservation_id}/cancel", response_model=ReservationOut)
 def cancel_reservation(
     reservation_id: int,
+    payload: ReservationCancel | None = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     對應「預約審核列表」取消按鈕（管理員）與「我的預約」取消（會員／教練自助取消自己的
     待確認／已確認預約）。
+
+    取消期限（R8）：已確認的預約在開課前 N 小時內（系統設定 cancel_deadline_hours）取消，
+    仍可取消但不退堂，並標記 late_cancel。會員在已確認課程開始後不能自行取消（應由教練／管理員標記未到）。
+    管理員可用 payload.refund 覆寫是否退堂。已標記出席狀態的預約不能取消。
     """
     reservation = db.get(Reservation, reservation_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
 
-    if current_user.role != UserRole.admin and reservation.member_id != current_user.id:
+    is_admin = current_user.role == UserRole.admin
+    if not is_admin and reservation.member_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅能取消自己的預約")
 
     if reservation.status not in (ReservationStatus.pending, ReservationStatus.confirmed):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此預約狀態無法取消")
+    if reservation.attendance is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="已標記出席狀態的預約無法取消")
+    if (
+        not is_admin
+        and reservation.status == ReservationStatus.confirmed
+        and booking_rules.has_started(reservation)
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="課程已開始，無法取消")
+
+    late = booking_rules.is_late_cancel(db, reservation)
+    refund = not late
+    if is_admin and payload is not None and payload.refund is not None:
+        refund = payload.refund
 
     reservation.status = ReservationStatus.cancelled
     reservation.cancelled_at = datetime.utcnow()
+    reservation.late_cancel = late
 
-    hours.refund_reservation(db, reservation, created_by=current_user.id)
+    if refund:
+        hours.refund_reservation(db, reservation, created_by=current_user.id)
 
+    db.commit()
+    db.refresh(reservation)
+    return reservation
+
+
+@router.get("/coaching", response_model=list[CoachingReservationOut])
+def list_coaching_reservations(coach: Coach = Depends(require_coach), db: Session = Depends(get_db)):
+    """
+    教練簽到用：列出由此教練帶的已確認預約——預約指定此教練，或預約的團體課程由此教練授課。
+    不含教練本人以會員身份的預約（那些在「我的預約」）。
+    """
+    rows = (
+        db.query(Reservation)
+        .outerjoin(Course, Reservation.course_id == Course.id)
+        .filter(
+            Reservation.status == ReservationStatus.confirmed,
+            Reservation.member_id != coach.user_id,
+            or_(Reservation.coach_id == coach.id, Course.coach_id == coach.id),
+        )
+        .order_by(Reservation.booking_date, Reservation.start_hour)
+        .all()
+    )
+    return [
+        CoachingReservationOut(
+            **ReservationOut.model_validate(r).model_dump(), member_username=r.member.username
+        )
+        for r in rows
+    ]
+
+
+def _is_coach_of(db: Session, user: User, reservation: Reservation) -> bool:
+    coach = get_coach_profile(user, db)
+    if coach is None:
+        return False
+    if reservation.coach_id == coach.id:
+        return True
+    if reservation.course_id is not None:
+        course = db.get(Course, reservation.course_id)
+        return course is not None and course.coach_id == coach.id
+    return False
+
+
+@router.post("/{reservation_id}/attendance", response_model=ReservationOut)
+def mark_attendance(
+    reservation_id: int,
+    payload: AttendanceMark,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    簽到／標記未到（R9、R10）。僅「已確認」的預約可標記；已出席與未到都不退堂。
+    - 管理員、該預約的教練：開課前 30 分鐘起可標記已出席／未到（之後可補登或更正）；「未到」需開課後。
+    - 學員本人：只能在開課前 30 分鐘到下課之間標記自己「已出席」，標記後不能自行更改。
+    """
+    reservation = db.get(Reservation, reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
+
+    is_staff = current_user.role == UserRole.admin or _is_coach_of(db, current_user, reservation)
+    is_self = reservation.member_id == current_user.id
+    if not is_staff and not is_self:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="無權為此預約簽到")
+
+    if reservation.status != ReservationStatus.confirmed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅已確認的預約可簽到")
+
+    if is_staff:
+        if not booking_rules.staff_check_in_open(reservation):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="尚未到簽到時間（開課前 30 分鐘起）")
+        if payload.attendance == Attendance.no_show and not booking_rules.has_started(reservation):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="課程開始後才能標記未到")
+    else:
+        if payload.attendance != Attendance.attended:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="學員只能為自己簽到")
+        if reservation.attendance is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此預約已標記出席狀態")
+        if not booking_rules.self_check_in_open(db, reservation):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="只能在開課前 30 分鐘到下課之間簽到"
+            )
+
+    reservation.attendance = payload.attendance
+    reservation.checked_in_at = datetime.utcnow()
+    reservation.checked_in_by = current_user.id
     db.commit()
     db.refresh(reservation)
     return reservation

@@ -5,6 +5,8 @@ export interface Settings {
   company_name: string;
   short_name: string | null;
   logo_url: string | null;
+  /** 取消期限：已確認的預約在開課前 N 小時內取消不退堂；0＝不限制 */
+  cancel_deadline_hours: number;
   updated_at: string;
 }
 
@@ -12,6 +14,7 @@ export interface SettingsPayload {
   company_name?: string;
   short_name?: string | null;
   logo_url?: string | null;
+  cancel_deadline_hours?: number;
 }
 
 export async function getSettings() {

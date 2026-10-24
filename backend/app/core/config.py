@@ -21,6 +21,9 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # 工作室所在時區：預約的 booking_date + start_hour 是當地時間，取消期限／簽到時間窗以此判斷。
+    STUDIO_TIMEZONE: str = "Asia/Taipei"
+
     # 教練照片等上傳檔案的存放目錄，透過 /media 靜態路徑對外提供。
     MEDIA_DIR: str = "media"
 

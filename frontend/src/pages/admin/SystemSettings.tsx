@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, Input, Skeleton, Typography, message, theme } from 'antd';
+import { Avatar, Breadcrumb, Button, Card, Input, InputNumber, Skeleton, Typography, message, theme } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -12,6 +12,7 @@ const DEFAULT_NAME = '健身工作室管理系統';
 /**
  * 系統設定：對應「系統設定 → 基本資料」。全站僅一筆設定，非清單／詳情資源，
  * 儲存後套用至後台側欄與會員 App 的品牌顯示（見 components/AppLayout.tsx）。
+ * 「預約規則」區塊設定取消期限：已確認的預約在開課前 N 小時內取消不退堂（0＝不限制）。
  */
 export default function SystemSettings() {
   const queryClient = useQueryClient();
@@ -25,6 +26,7 @@ export default function SystemSettings() {
 
   const [companyName, setCompanyName] = useState('');
   const [shortName, setShortName] = useState('');
+  const [deadlineHours, setDeadlineHours] = useState<number | null>(12);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export default function SystemSettings() {
     if (settings) {
       setCompanyName(settings.company_name);
       setShortName(settings.short_name ?? '');
+      setDeadlineHours(settings.cancel_deadline_hours);
       setLogoFile(null);
       setLogoPreview(null);
       setLogoSize('');
@@ -47,12 +50,14 @@ export default function SystemSettings() {
   }, [settings?.updated_at]);
 
   const nameEmpty = companyName.trim() === '';
+  const deadlineInvalid = deadlineHours === null;
 
   const changes: string[] = [];
   if (settings) {
     if (companyName.trim() !== settings.company_name) changes.push('公司名稱');
     if (shortName.trim() !== (settings.short_name ?? '')) changes.push('顯示簡稱');
     if (logoFile != null || existingLogoUrl !== (settings.logo_url ?? null)) changes.push('LOGO');
+    if (deadlineHours !== settings.cancel_deadline_hours) changes.push('取消期限');
   }
 
   const pickLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +94,7 @@ export default function SystemSettings() {
         company_name: companyName.trim(),
         short_name: shortName.trim() || null,
         logo_url: logoUrl ?? null,
+        cancel_deadline_hours: deadlineHours ?? undefined,
       });
     },
     onSuccess: () => {
@@ -129,15 +135,19 @@ export default function SystemSettings() {
   if (nameEmpty) {
     dirtyLabel = '公司名稱為必填';
     dirtyColor = token.colorError;
+  } else if (deadlineInvalid) {
+    dirtyLabel = '取消期限為必填（不限制請填 0）';
+    dirtyColor = token.colorError;
   } else if (changes.length > 0) {
     dirtyLabel = `待儲存：${changes.join('、')}`;
   }
 
-  const saveDisabled = nameEmpty || changes.length === 0 || saveMutation.isPending;
+  const saveDisabled = nameEmpty || deadlineInvalid || changes.length === 0 || saveMutation.isPending;
 
   const handleCancel = () => {
     setCompanyName(settings.company_name);
     setShortName(settings.short_name ?? '');
+    setDeadlineHours(settings.cancel_deadline_hours);
     setLogoFile(null);
     setLogoPreview(null);
     setLogoSize('');
@@ -318,6 +328,30 @@ export default function SystemSettings() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="預約規則">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 840 }}>
+          <div style={row}>
+            <div style={labelCol}>{required}取消期限</div>
+            <InputNumber
+              style={{ width: 180 }}
+              min={0}
+              max={168}
+              precision={0}
+              value={deadlineHours}
+              status={deadlineInvalid ? 'error' : undefined}
+              onChange={(v) => setDeadlineHours(v)}
+              prefix="開課前"
+              suffix="小時"
+            />
+            <Text style={{ fontSize: 13 }} type={deadlineInvalid ? 'danger' : 'secondary'}>
+              {deadlineHours === 0
+                ? '目前不限制：已確認的預約隨時取消都會退堂'
+                : '已確認的預約在此期限內取消，仍可取消但不退堂；管理員取消時可例外退堂'}
+            </Text>
           </div>
         </div>
       </Card>

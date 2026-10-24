@@ -26,13 +26,46 @@
 - **實作**：`routers/reservations.py` 的 `create_reservation`、`review_reservation`；`services/hours.py` 的 `deduct_for_reservation`、`refund_reservation`
 - **測試**：`test_reject_refunds`、`test_confirm_keeps_deduction`、`test_cannot_review_a_cancelled_reservation`
 
-### R3. 取消一律退堂
+### R3. 取消期限外取消會退堂
 
-- **規則**：會員或管理員取消「待確認」或「已確認」的預約時，一律退回該預約扣掉的堂數，不論距離上課多久。目前**沒有**「開課前 N 小時內取消不退」的規則。
-- **確認日期**：2026-10-24
+- **規則**：取消「待確認」的預約，或在取消期限之前取消「已確認」的預約，退回該預約扣掉的堂數。期限內取消見 R8。
+- **確認日期**：2026-10-24（原為「一律退堂」，同日因加入取消期限改為本條）
 - **實作**：`routers/reservations.py` 的 `cancel_reservation` → `services/hours.py` 的 `refund_reservation`
-- **測試**：`test_cancel_refunds_exactly_one_hour`、`test_repeated_booking_and_cancel_never_inflates_hours`
-- **備註**：若之後要加入取消期限，預計放在「系統設定」，屆時更新本條。
+- **測試**：`test_cancel_refunds_exactly_one_hour`、`test_repeated_booking_and_cancel_never_inflates_hours`、`test_cancel_before_deadline_refunds`、`test_pending_reservation_always_refunds`
+
+### R8. 取消期限：期限內取消可以取消，但不退堂
+
+- **規則**：
+  - 已確認的預約在開課前 N 小時內取消，仍可取消，但這堂不退回，預約標記「晚取消」。
+  - N 在「系統設定 → 預約規則 → 取消期限」設定，**預設 12 小時**；設為 0 表示不限制。
+  - 「待確認」的預約工作室尚未接受，任何時候取消都退堂。
+  - 管理員取消期限內的預約時，可例外選擇退堂。
+  - 學員在已確認的課程開始後不能自行取消（應由教練／管理員標記未到）。
+- **確認日期**：2026-10-24
+- **實作**：`services/booking_rules.py` 的 `is_late_cancel`、`has_started`；`routers/reservations.py` 的 `cancel_reservation`；`system_settings.cancel_deadline_hours`
+- **測試**：`test_late_cancel_keeps_hours_deducted`、`test_deadline_zero_means_no_limit`、`test_deadline_setting_is_used`、`test_admin_can_override_refund_on_late_cancel`、`test_member_cannot_override_refund`、`test_member_cannot_cancel_after_class_started`
+
+---
+
+## 簽到與出席
+
+### R9. 未到照扣不退
+
+- **規則**：只有「已確認」的預約可標記出席狀態（已出席／未到）。已出席與未到都維持已扣的堂數，不退回。已標記出席狀態的預約不能取消。
+- **確認日期**：2026-10-24
+- **實作**：`routers/reservations.py` 的 `mark_attendance`、`cancel_reservation`
+- **測試**：`test_coach_marks_no_show_and_hours_stay_deducted`、`test_member_self_check_in_within_window`、`test_checked_in_reservation_cannot_be_cancelled`
+
+### R10. 學員可自行簽到，教練與管理員可簽到或標記未到
+
+- **規則**：
+  - **學員本人**：開課前 30 分鐘到下課之間，可為自己的預約標記「已出席」；不能標記未到，標記後不能自行更改。下課時間依團體課程的單堂時長，沒有課程則為 60 分鐘。
+  - **教練**：可為自己帶的預約（預約指定該教練，或預約的團體課程由該教練授課）標記已出席或未到。
+  - **管理員**：可為任何預約標記。
+  - 教練與管理員從開課前 30 分鐘起可標記，之後不限時間，方便補登或更正；「未到」需在開課後才能標記。
+- **確認日期**：2026-10-24（學員自行簽到的時間窗為實作時訂定）
+- **實作**：`services/booking_rules.py` 的 `self_check_in_open`、`staff_check_in_open`；`routers/reservations.py` 的 `mark_attendance`、`list_coaching_reservations`；前端 `MyBookings`、`BookingReviewList`、`CoachAttendance`（教練「學員簽到」頁）
+- **測試**：`test_member_self_check_in_outside_window`、`test_member_cannot_mark_no_show_or_change`、`test_member_cannot_check_in_for_others`、`test_course_duration_extends_self_check_in_window`、`test_coach_of_group_course_can_check_in`、`test_other_coach_cannot_check_in`、`test_no_show_only_after_class_started`、`test_staff_cannot_check_in_too_early`、`test_staff_can_correct_later`
 
 ---
 
@@ -71,7 +104,9 @@
 
 ## 堂數帳務的共通原則
 
-以下為實作上的保證，支撐 R1–R3，修改時不可破壞：
+以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：
+
+- **時間以工作室當地時間判斷**：預約的日期＋時段是工作室當地時間（`STUDIO_TIMEZONE`，預設 Asia/Taipei）。
 
 - **退回量＝實際扣掉的量**：依該預約在 `hour_ledger` 的淨額退回，重複取消或拒絕後再取消都不會多退。
 - **預約與扣堂同一交易**：堂數不足（400「剩餘堂數不足」）時預約不成立，不留下沒扣到堂數的預約。
@@ -88,4 +123,3 @@
 - 已付款訂單的退款流程（退款金額、已使用堂數如何計算）
 - 待付款訂單是否逾時自動取消
 - 方案效期：購買紀錄是否有到期日、過期堂數如何處理
-- 未到（no-show）是否扣堂
