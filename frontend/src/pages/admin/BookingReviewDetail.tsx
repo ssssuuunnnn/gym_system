@@ -9,6 +9,7 @@ import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
 import { listPurchases } from '../../api/purchases';
+import { formatServerTime } from '../../lib/datetime';
 
 const SOURCE_LABEL: Record<ReservationSource, string> = {
   member_submitted: '會員自行送出',
@@ -128,17 +129,17 @@ export default function BookingReviewDetail() {
         </Descriptions.Item>
 
         <Descriptions.Item label="建立時間">
-          {dayjs(reservation.created_at).format('YYYY-MM-DD HH:mm')}
+          {formatServerTime(reservation.created_at)}
         </Descriptions.Item>
         <Descriptions.Item label="審核人">
           {reservation.reviewed_by ? usernameByMemberId.get(reservation.reviewed_by) ?? `#${reservation.reviewed_by}` : '—'}
         </Descriptions.Item>
 
         <Descriptions.Item label="審核時間">
-          {reservation.reviewed_at ? dayjs(reservation.reviewed_at).format('YYYY-MM-DD HH:mm') : '—'}
+          {formatServerTime(reservation.reviewed_at)}
         </Descriptions.Item>
         <Descriptions.Item label="取消時間">
-          {reservation.cancelled_at ? dayjs(reservation.cancelled_at).format('YYYY-MM-DD HH:mm') : '—'}
+          {formatServerTime(reservation.cancelled_at)}
         </Descriptions.Item>
       </Descriptions>
 

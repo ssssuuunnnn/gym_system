@@ -17,7 +17,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import dayjs, { type Dayjs } from 'dayjs';
+import { type Dayjs } from 'dayjs';
 import {
   listActiveCourses,
   updateCourseStatus,
@@ -27,6 +27,7 @@ import {
 } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { sharedCourseColumns } from '../../components/courseColumns';
+import { formatServerTime } from '../../lib/datetime';
 
 const STATUS_TAG_COLOR: Record<CourseStatus, string> = {
   上架: 'success',
@@ -114,7 +115,7 @@ export default function GroupCourseList() {
       width: 150,
       render: (_, r) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13 }}>{dayjs(r.updated_at).format('YYYY-MM-DD HH:mm')}</span>
+          <span style={{ fontSize: 13 }}>{formatServerTime(r.updated_at)}</span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {r.updated_by_name ?? '—'}
           </Typography.Text>

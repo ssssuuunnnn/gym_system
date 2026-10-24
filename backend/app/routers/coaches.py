@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
 from app.models.coach import Coach
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.coach import CoachCreate, CoachOut, CoachPhotoOut, CoachUpdate
 
 router = APIRouter(prefix="/coaches", tags=["coaches"])
@@ -18,13 +18,21 @@ PHOTO_CONTENT_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
 PHOTO_MAX_BYTES = 2 * 1024 * 1024
 
 
-@router.get("", response_model=list[CoachOut], dependencies=[Depends(get_current_user)])
-def list_coaches(db: Session = Depends(get_db)):
+# 僅管理員可見的欄位：非管理員讀取教練列表時清空
+_ADMIN_ONLY_FIELDS = {"phone": None, "line_name": None, "bank_code": None, "bank_account": None, "session_rate": None}
+
+
+@router.get("", response_model=list[CoachOut])
+def list_coaches(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     對應「教練資料列表」（管理員）；其他登入會員可讀取用於預約畫面顯示教練姓名
     （如「我的預約列表」「送出預約申請」），僅新增／編輯／刪除限管理員。
+    非管理員看不到電話、Line、匯款帳號與鐘點費。
     """
-    return db.query(Coach).all()
+    coaches = db.query(Coach).all()
+    if current_user.role == UserRole.admin:
+        return coaches
+    return [CoachOut.model_validate(c).model_copy(update=_ADMIN_ONLY_FIELDS) for c in coaches]
 
 
 @router.post(

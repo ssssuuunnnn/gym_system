@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { Card, Typography, Form, Select, InputNumber, DatePicker, Button, Space, message } from 'antd';
+import { Card, Typography, Form, Select, InputNumber, DatePicker, Button, Space, Input, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { isAxiosError } from 'axios';
-import { createPurchase } from '../../api/purchases';
+import { createPurchase, PAYMENT_METHODS, type PaymentMethod } from '../../api/purchases';
 import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
 
@@ -14,11 +14,14 @@ interface FormValues {
   quantity: number;
   purchase_date: Dayjs;
   amount: number;
+  payment_method: PaymentMethod;
+  payment_note?: string;
 }
 
 /**
  * 購買紀錄登錄：對應「購買紀錄登錄」。選會員、選商品、數量、購買日期、金額。
  * 課程商品的 remaining_hours 由後端依 session_hours * quantity 自動計算；用品則由後端扣減庫存，此頁不重複計算。
+ * 此頁登錄代表已收款：建立即為「已付款」並立即入帳堂數（會員自助購買才會是待付款）。
  * 送出後清空表單留在原頁，方便櫃檯連續登錄多筆購買。
  */
 export default function PurchaseEntry() {
@@ -47,6 +50,8 @@ export default function PurchaseEntry() {
         quantity: values.quantity,
         purchase_date: values.purchase_date.format('YYYY-MM-DD'),
         amount: values.amount,
+        payment_method: values.payment_method,
+        payment_note: values.payment_note || null,
       }),
     onSuccess: () => {
       message.success('已登錄購買紀錄');
@@ -113,6 +118,19 @@ export default function PurchaseEntry() {
           extra={selectedProduct ? '已依商品單價 × 數量帶入，可手動調整' : undefined}
         >
           <InputNumber min={0} style={{ width: '100%' }} addonAfter="NT$" />
+        </Form.Item>
+
+        <Form.Item
+          name="payment_method"
+          label="付款方式"
+          rules={[{ required: true, message: '請選擇付款方式' }]}
+          extra="登錄即視為已收款，堂數會立即入帳"
+        >
+          <Select placeholder="選擇付款方式" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} />
+        </Form.Item>
+
+        <Form.Item name="payment_note" label="收款備註（選填）">
+          <Input maxLength={255} placeholder="例如：轉帳末五碼 12345" />
         </Form.Item>
 
         <Form.Item>

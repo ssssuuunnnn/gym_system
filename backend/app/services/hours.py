@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.hour_ledger import HourLedger, HourLedgerReason
 from app.models.product import ProductCategory
-from app.models.purchase import Purchase
+from app.models.purchase import PaymentStatus, Purchase
 from app.models.reservation import Reservation
 
 # 一筆預約（一個 60 分鐘時段）扣抵的堂數。1 堂＝1 小時，與 people_count 無關；
@@ -59,11 +59,13 @@ def _record(
 
 
 def record_purchase(db: Session, purchase: Purchase, created_by: int) -> None:
-    """購買成立：remaining_hours 由 0 起算，寫入一筆「購買」。用品（0 堂）不寫。"""
-    hours = Decimal(purchase.remaining_hours)
+    """
+    已付款的購買入帳：把 total_hours 加進 remaining_hours，寫入一筆「購買」。
+    在管理員登錄購買、或確認會員訂單收款時呼叫；用品（0 堂）不寫。
+    """
+    hours = Decimal(purchase.total_hours)
     if hours <= 0:
         return
-    purchase.remaining_hours = Decimal("0")
     db.flush()  # 取得 purchase.id
     _record(db, purchase, hours, HourLedgerReason.purchase, created_by=created_by)
 
@@ -75,6 +77,8 @@ def deduct_for_reservation(db: Session, reservation: Reservation, created_by: in
     purchase = lock_purchase(db, reservation.purchase_id)
     if purchase is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到購買紀錄")
+    if purchase.payment_status != PaymentStatus.paid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="購買紀錄尚未付款，無法扣抵")
     if purchase.user_id != reservation.member_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="購買紀錄不屬於該會員")
     if purchase.product.category == ProductCategory.supply:

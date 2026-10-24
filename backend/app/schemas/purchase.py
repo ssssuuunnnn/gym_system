@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.hour_ledger import HourLedgerReason
+from app.models.purchase import PaymentMethod, PaymentStatus
 
 
 class PurchaseCreate(BaseModel):
@@ -14,6 +15,9 @@ class PurchaseCreate(BaseModel):
     quantity: int
     purchase_date: date
     amount: float
+    # 管理員登錄即視為已收款；付款方式選填
+    payment_method: PaymentMethod | None = None
+    payment_note: str | None = Field(default=None, max_length=255)
 
 
 class PurchaseSelfCreate(BaseModel):
@@ -32,9 +36,23 @@ class PurchaseOut(BaseModel):
     quantity: int
     purchase_date: date
     amount: float
+    total_hours: float
     remaining_hours: float
+    payment_status: PaymentStatus
+    payment_method: PaymentMethod | None
+    payment_note: str | None
+    paid_at: datetime | None
+    paid_confirmed_by: int | None
+    cancelled_at: datetime | None
     created_by: int
     created_at: datetime
+
+
+class PaymentConfirm(BaseModel):
+    """管理員確認收款：付款方式必填，備註選填（例如轉帳末五碼）。"""
+
+    payment_method: PaymentMethod
+    payment_note: str | None = Field(default=None, max_length=255)
 
 
 class HourLedgerOut(BaseModel):
