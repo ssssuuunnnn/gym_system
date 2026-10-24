@@ -136,10 +136,10 @@ export default function BookingReviewDetail() {
         </Descriptions.Item>
 
         <Descriptions.Item label="審核時間">
-          {reservation.reviewed_at ? dayjs(reservation.reviewed_at).format('YYYY-MM-DD HH:mm') : '—'}
+          {formatServerTime(reservation.reviewed_at)}
         </Descriptions.Item>
         <Descriptions.Item label="取消時間">
-          {reservation.cancelled_at ? dayjs(reservation.cancelled_at).format('YYYY-MM-DD HH:mm') : '—'}
+          {formatServerTime(reservation.cancelled_at)}
         </Descriptions.Item>
       </Descriptions>
 

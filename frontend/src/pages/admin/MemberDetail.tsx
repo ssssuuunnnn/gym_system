@@ -19,13 +19,13 @@ import type { RadioChangeEvent } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import dayjs from 'dayjs';
 import {
   getMember,
   resetMemberPassword,
   setMemberBlacklist,
   updateMemberUsername,
 } from '../../api/users';
+import { formatServerTime } from '../../lib/datetime';
 
 const { Text } = Typography;
 
@@ -38,7 +38,7 @@ function randomPassword() {
 }
 
 function fmt(value: string | null) {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '—';
+  return formatServerTime(value);
 }
 
 /**

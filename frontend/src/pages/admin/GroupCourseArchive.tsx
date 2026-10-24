@@ -19,10 +19,11 @@ import { RollbackOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import dayjs, { type Dayjs } from 'dayjs';
+import { type Dayjs } from 'dayjs';
 import { deleteCourse, listArchivedCourses, restoreCourse, type Course } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { sharedCourseColumns } from '../../components/courseColumns';
+import { formatServerTime } from '../../lib/datetime';
 
 /**
  * 封存團體課程：對應 Claude Design「封存課程」設計稿（`GroupCourseArchive.dc.html`）。
@@ -118,7 +119,7 @@ export default function GroupCourseArchive() {
       title: '封存時間',
       dataIndex: 'archived_at',
       width: 150,
-      render: (v: string | null) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—'),
+      render: (v: string | null) => formatServerTime(v),
     },
     {
       title: '封存者',
@@ -130,7 +131,7 @@ export default function GroupCourseArchive() {
       title: '最後編輯時間',
       dataIndex: 'updated_at',
       width: 150,
-      render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+      render: (v: string) => formatServerTime(v),
     },
     {
       title: '編輯者',

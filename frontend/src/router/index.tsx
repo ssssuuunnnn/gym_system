@@ -9,6 +9,7 @@ import AdminDashboard from '../pages/admin/Dashboard';
 import CoachList from '../pages/admin/CoachList';
 import CoachForm from '../pages/admin/CoachForm';
 import CoachCourses from '../pages/admin/CoachCourses';
+import CoachPayouts from '../pages/admin/CoachPayouts';
 import ProductList from '../pages/admin/ProductList';
 import ProductForm from '../pages/admin/ProductForm';
 import PurchaseEntry from '../pages/admin/PurchaseEntry';
@@ -34,6 +35,7 @@ import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
 import ChangePassword from '../pages/member/ChangePassword';
 import CoachAttendance from '../pages/member/CoachAttendance';
+import MyPayouts from '../pages/member/MyPayouts';
 
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
@@ -60,6 +62,7 @@ export const router = createBrowserRouter([
           { path: 'coaches/:id/edit', element: <CoachForm /> },
           { path: 'coaches/:id/courses', element: <CoachCourses /> },
           { path: 'coaches/purchases', element: <CoachPurchaseQuery /> },
+          { path: 'coach-payouts', element: <CoachPayouts /> },
           { path: 'products', element: <ProductList /> },
           { path: 'products/new', element: <ProductForm /> },
           { path: 'products/:id/edit', element: <ProductForm /> },
@@ -98,6 +101,7 @@ export const router = createBrowserRouter([
           { path: 'bookings/submit', element: <SubmitBooking /> },
           { path: 'bookings/:id/add-person', element: <AddPerson /> },
           { path: 'coaching', element: <CoachAttendance /> },
+          { path: 'payouts', element: <MyPayouts /> },
         ],
       },
     ],

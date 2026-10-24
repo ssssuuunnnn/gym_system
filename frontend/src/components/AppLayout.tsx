@@ -12,6 +12,8 @@ import {
   SettingOutlined,
   DollarOutlined,
   CheckSquareOutlined,
+  AccountBookOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -39,6 +41,7 @@ const adminMenuItems = [
   { key: '/admin/dashboard', label: '儀表板', icon: <DashboardOutlined /> },
   { key: '/admin/reservations', label: '預約審核', icon: <AuditOutlined /> },
   { key: '/admin/coaches', label: '教練管理', icon: <UserSwitchOutlined /> },
+  { key: '/admin/coach-payouts', label: '教練鐘點', icon: <AccountBookOutlined /> },
   { key: '/admin/products', label: '商品管理', icon: <ShoppingOutlined /> },
   { key: '/admin/purchases', label: '購買紀錄', icon: <DollarOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
@@ -55,7 +58,10 @@ const memberMenuItems = [
 ];
 
 // 場租教練身份額外顯示：為自己帶的預約簽到／標記未到
-const coachMenuItems = [{ key: '/member/coaching', label: '學員簽到', icon: <CheckSquareOutlined /> }];
+const coachMenuItems = [
+  { key: '/member/coaching', label: '學員簽到', icon: <CheckSquareOutlined /> },
+  { key: '/member/payouts', label: '我的鐘點', icon: <WalletOutlined /> },
+];
 
 export default function AppLayout() {
   const navigate = useNavigate();
