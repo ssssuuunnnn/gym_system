@@ -78,7 +78,7 @@ def other_member(db):
 @pytest.fixture()
 def pack(db):
     """10 堂的「課程」（單次課程）方案。"""
-    product = Product(name="私人課 10 堂", category=ProductCategory.single_course, session_hours=10, price=10000)
+    product = Product(name="私人課 10 堂", category=ProductCategory.single_course, session_hours=10, original_price=10000, price=10000)
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -87,7 +87,7 @@ def pack(db):
 
 @pytest.fixture()
 def supply(db):
-    product = Product(name="乳清", category=ProductCategory.supply, session_hours=0, stock=5, price=1200)
+    product = Product(name="乳清", category=ProductCategory.supply, session_hours=0, stock=5, original_price=1200, price=1200)
     db.add(product)
     db.commit()
     db.refresh(product)

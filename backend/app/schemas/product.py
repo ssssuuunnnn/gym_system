@@ -8,6 +8,8 @@ from app.models.product import ProductCategory
 class ProductCreate(BaseModel):
     name: str
     category: ProductCategory
+    original_price: float
+    # 售價＝實際收費金額，不可高於原價
     price: float
     is_active: bool = True
     # 分類為「團體課程」時必填：所綁定的團體課程 id（堂數沿用該課程的課堂數）
@@ -21,6 +23,7 @@ class ProductCreate(BaseModel):
 class ProductUpdate(BaseModel):
     name: str | None = None
     category: ProductCategory | None = None
+    original_price: float | None = None
     price: float | None = None
     is_active: bool | None = None
     course_id: int | None = None
@@ -37,6 +40,7 @@ class ProductOut(BaseModel):
     course_id: int | None
     session_hours: int
     stock: int | None
+    original_price: float
     price: float
     is_active: bool
     created_at: datetime

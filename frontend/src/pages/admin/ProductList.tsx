@@ -37,7 +37,12 @@ export default function ProductList() {
       render: (stock: number | null, record) => (record.category === '用品' ? stock ?? 0 : '—'),
     },
     {
-      title: '價格',
+      title: '原價',
+      dataIndex: 'original_price',
+      render: (originalPrice: number) => `NT$ ${originalPrice}`,
+    },
+    {
+      title: '售價',
       dataIndex: 'price',
       render: (price: number) => `NT$ ${price}`,
     },

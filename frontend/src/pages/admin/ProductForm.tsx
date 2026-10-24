@@ -13,6 +13,7 @@ interface FormValues {
   course_id?: number;
   session_hours?: number;
   stock?: number;
+  original_price: number;
   price: number;
   is_active: boolean;
 }
@@ -55,6 +56,7 @@ export default function ProductForm() {
         course_id: editingProduct.course_id ?? undefined,
         session_hours: editingProduct.category === '課程' ? editingProduct.session_hours : undefined,
         stock: editingProduct.stock ?? undefined,
+        original_price: editingProduct.original_price,
         price: editingProduct.price,
         is_active: editingProduct.is_active,
       });
@@ -66,6 +68,7 @@ export default function ProductForm() {
       const payload: ProductPayload = {
         name: values.name,
         category: values.category,
+        original_price: values.original_price,
         price: values.price,
         is_active: values.is_active,
         course_id: values.category === '團體課程' ? values.course_id : null,
@@ -94,7 +97,7 @@ export default function ProductForm() {
         form={form}
         layout="vertical"
         style={{ maxWidth: 480 }}
-        initialValues={{ is_active: true, price: 0 }}
+        initialValues={{ is_active: true, original_price: 0, price: 0 }}
         onFinish={(values) => saveMutation.mutate(values)}
       >
         <Form.Item name="name" label="商品名稱" rules={[{ required: true, message: '請輸入商品名稱' }]}>
@@ -143,7 +146,25 @@ export default function ProductForm() {
           </Form.Item>
         )}
 
-        <Form.Item name="price" label="價格" rules={[{ required: true, message: '請輸入價格' }]}>
+        <Form.Item name="original_price" label="原價" rules={[{ required: true, message: '請輸入原價' }]}>
+          <InputNumber min={0} style={{ width: '100%' }} addonAfter="NT$" />
+        </Form.Item>
+
+        <Form.Item
+          name="price"
+          label="售價"
+          extra="實際收費金額，不可高於原價"
+          dependencies={['original_price']}
+          rules={[
+            { required: true, message: '請輸入售價' },
+            ({ getFieldValue }) => ({
+              validator: (_, value?: number) =>
+                value == null || value <= (getFieldValue('original_price') ?? 0)
+                  ? Promise.resolve()
+                  : Promise.reject(new Error('售價不可高於原價')),
+            }),
+          ]}
+        >
           <InputNumber min={0} style={{ width: '100%' }} addonAfter="NT$" />
         </Form.Item>
 

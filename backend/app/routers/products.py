@@ -44,6 +44,14 @@ def _normalize_product_fields(db: Session, data: dict, previous_course_id: int |
         data["course_id"] = None
 
 
+def _check_prices(original_price: float, price: float) -> None:
+    """原價、售價皆不可為負，且售價（實際收費）不可高於原價。"""
+    if original_price < 0 or price < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="價格不可為負數")
+    if price > original_price:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="售價不可高於原價")
+
+
 @router.get("", response_model=list[ProductOut], dependencies=[Depends(get_current_user)])
 def list_products(db: Session = Depends(get_db)):
     """
@@ -55,8 +63,9 @@ def list_products(db: Session = Depends(get_db)):
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
-    """對應「建立／編輯商品」：商品名稱、分類（團體課程／課程／用品）、價格、上架狀態。"""
+    """對應「建立／編輯商品」：商品名稱、分類（團體課程／課程／用品）、原價／售價、上架狀態。"""
     data = payload.model_dump()
+    _check_prices(data["original_price"], data["price"])
     _normalize_product_fields(db, data)
     product = Product(**data)
     db.add(product)
@@ -72,6 +81,10 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到商品")
 
     updates = payload.model_dump(exclude_unset=True)
+    _check_prices(
+        updates.get("original_price", float(product.original_price)),
+        updates.get("price", float(product.price)),
+    )
     # 以「更新後的完整狀態」重新推導衍生欄位（分類或綁定課程變動時需重算 session_hours）
     merged = {
         "category": updates.get("category", product.category),

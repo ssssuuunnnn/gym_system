@@ -47,7 +47,7 @@ def coach(db, coach_user):
 
 @pytest.fixture()
 def product(db):
-    p = Product(name="私人課", category=ProductCategory.single_course, session_hours=10, price=10000)
+    p = Product(name="私人課", category=ProductCategory.single_course, session_hours=10, original_price=10000, price=10000)
     db.add(p)
     db.commit()
     return p

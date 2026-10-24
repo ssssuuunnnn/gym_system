@@ -115,7 +115,7 @@ def test_cannot_use_someone_elses_purchase(client, admin, member, other_member, 
 def test_purchase_must_match_booked_product(client, db, admin, member, pack):
     from app.models.product import Product, ProductCategory
 
-    other = Product(name="團課 8 堂", category=ProductCategory.single_course, session_hours=8, price=4000)
+    other = Product(name="團課 8 堂", category=ProductCategory.single_course, session_hours=8, original_price=4000, price=4000)
     db.add(other)
     db.commit()
     p = buy(client, admin, member, pack)

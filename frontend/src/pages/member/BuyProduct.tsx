@@ -91,7 +91,8 @@ export default function BuyProduct() {
               isSupply
                 ? { key: 'stock', label: '庫存', children: `${selectedProduct.stock ?? 0}` }
                 : { key: 'hours', label: '堂數', children: `${selectedProduct.session_hours} 堂` },
-              { key: 'price', label: '單價', children: `NT$ ${selectedProduct.price}` },
+              { key: 'original_price', label: '原價', children: `NT$ ${selectedProduct.original_price}` },
+              { key: 'price', label: '售價', children: `NT$ ${selectedProduct.price}` },
             ]}
           />
         ) : (

@@ -25,7 +25,9 @@ class Product(Base):
     session_hours: Mapped[int] = mapped_column(nullable=False, comment="堂數，1堂＝1小時")
     # 分類為「用品」的庫存量，登錄購買時扣減；其餘分類為 None
     stock: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="用品庫存量")
-    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    # 原價：僅供顯示；實際收費一律以 price（售價）計算
+    original_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, comment="原價")
+    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, comment="售價（實際收費）")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

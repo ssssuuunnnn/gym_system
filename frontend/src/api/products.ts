@@ -13,6 +13,9 @@ export interface Product {
   session_hours: number;
   /** 分類為「用品」的庫存量；其餘為 null */
   stock: number | null;
+  /** 原價（僅顯示） */
+  original_price: number;
+  /** 售價＝實際收費 */
   price: number;
   is_active: boolean;
   created_at: string;
@@ -28,6 +31,7 @@ export async function listProducts() {
 export interface ProductPayload {
   name: string;
   category: ProductCategory;
+  original_price: number;
   price: number;
   is_active: boolean;
   /** 分類為「團體課程」時必填 */
