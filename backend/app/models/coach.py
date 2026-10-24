@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -26,6 +26,10 @@ class Coach(Base):
     specialty: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 教練照片：以 /media 靜態路徑對外提供的相對網址
     photo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # 每堂鐘點費：教練鐘點結算用（出席／未到的堂數 × 費率），僅管理員可見
+    session_rate: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=False, server_default="0", default=0, comment="每堂鐘點費"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="coach_profile", foreign_keys=[user_id])

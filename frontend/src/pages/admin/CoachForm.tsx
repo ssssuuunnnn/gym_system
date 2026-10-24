@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, Input, Modal, Result, Skeleton, Tag, message, theme } from 'antd';
+import { Avatar, Breadcrumb, Button, Card, Input, InputNumber, Modal, Result, Skeleton, Tag, message, theme } from 'antd';
 import { ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import dayjs from 'dayjs';
 import {
   createCoach,
   deleteCoach,
@@ -14,12 +13,13 @@ import {
   type CoachPayload,
 } from '../../api/coaches';
 import { listMembers } from '../../api/users';
+import { formatServerTime } from '../../lib/datetime';
 
 // 電話格式：數字、+、-、括號、空白，至少 8 碼（與教練資料設計稿一致）
 const PHONE_RE = /^[0-9+\-() ]{8,}$/;
 
-const fmtDate = (value: string) => dayjs(value).format('YYYY-MM-DD');
-const fmtDateTime = (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm');
+const fmtDate = (value: string) => formatServerTime(value, 'YYYY-MM-DD');
+const fmtDateTime = (value: string) => formatServerTime(value);
 
 /**
  * 新增／編輯教練資料：對應「教練管理 → 教練資料列表 → 新增教練／編輯教練資料」。
@@ -48,6 +48,7 @@ export default function CoachForm() {
   const [bankCode, setBankCode] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [sessionRate, setSessionRate] = useState<number | null>(0);
   const [query, setQuery] = useState('');
   const [pickedId, setPickedId] = useState<number | null>(null);
 
@@ -65,10 +66,11 @@ export default function CoachForm() {
       setName(editingCoach.name);
       setAlias(editingCoach.alias ?? '');
       setLineName(editingCoach.line_name ?? '');
-      setPhone(editingCoach.phone);
+      setPhone(editingCoach.phone ?? '');
       setBankCode(editingCoach.bank_code ?? '');
       setBankAccount(editingCoach.bank_account ?? '');
       setSpecialty(editingCoach.specialty ?? '');
+      setSessionRate(editingCoach.session_rate ?? 0);
       setPickedId(editingCoach.user_id);
       setExistingPhotoUrl(editingCoach.photo_url ?? null);
       setPhotoFile(null);
@@ -111,15 +113,16 @@ export default function CoachForm() {
       ? name !== editingCoach.name ||
         alias !== (editingCoach.alias ?? '') ||
         lineName !== (editingCoach.line_name ?? '') ||
-        phone !== editingCoach.phone ||
+        phone !== (editingCoach.phone ?? '') ||
         bankCode !== (editingCoach.bank_code ?? '') ||
         bankAccount !== (editingCoach.bank_account ?? '') ||
         specialty !== (editingCoach.specialty ?? '') ||
+        sessionRate !== (editingCoach.session_rate ?? 0) ||
         photoFile != null ||
         existingPhotoUrl !== (editingCoach.photo_url ?? null)
       : true;
 
-  const baseValid = name.trim() !== '' && phoneOk && !bankCodeBad && !bankAccountBad;
+  const baseValid = name.trim() !== '' && phoneOk && !bankCodeBad && !bankAccountBad && sessionRate !== null;
   const ready = isEdit ? baseValid && dirty : baseValid && picked != null;
 
   let readyLabel: string;
@@ -170,6 +173,7 @@ export default function CoachForm() {
           bank_account: bankAccount || null,
           specialty: specialty.trim() || null,
           photo_url: photoUrl ?? null,
+          session_rate: sessionRate ?? 0,
         };
         return updateCoach(coachId, payload);
       }
@@ -184,6 +188,7 @@ export default function CoachForm() {
         bank_account: bankAccount || null,
         specialty: specialty.trim() || null,
         photo_url: photoUrl ?? null,
+        session_rate: sessionRate ?? 0,
       };
       return createCoach(payload);
     },
@@ -345,6 +350,26 @@ export default function CoachForm() {
               onChange={(e) => setBankAccount(e.target.value.replace(/[^0-9]/g, '').slice(0, 16))}
             />
             {hint(bankNote, bankCodeBad || bankAccountBad)}
+          </div>
+
+          <div style={row}>
+            <div style={labelCol}>{required}每堂鐘點費</div>
+            <InputNumber
+              style={{ width: 200 }}
+              min={0}
+              precision={0}
+              prefix="NT$"
+              suffix="／堂"
+              value={sessionRate}
+              status={sessionRate === null ? 'error' : undefined}
+              onChange={(v) => setSessionRate(v)}
+            />
+            {hint(
+              sessionRate === null
+                ? '請輸入每堂鐘點費，不支薪請填 0'
+                : '教練鐘點結算用：已出席與未到的堂數 × 費率；團體課一堂算一次。僅管理員可見',
+              sessionRate === null,
+            )}
           </div>
 
           <div style={rowTop}>

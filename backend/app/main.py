@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import auth, coaches, courses, products, purchases, reservations, system_settings, time_slots, users
+from app.routers import auth, coach_payouts, coaches, courses, products, purchases, reservations, system_settings, time_slots, users
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(coaches.router, prefix=settings.API_V1_PREFIX)
+app.include_router(coach_payouts.router, prefix=settings.API_V1_PREFIX)
 app.include_router(products.router, prefix=settings.API_V1_PREFIX)
 app.include_router(purchases.router, prefix=settings.API_V1_PREFIX)
 app.include_router(courses.router, prefix=settings.API_V1_PREFIX)

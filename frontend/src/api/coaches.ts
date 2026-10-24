@@ -1,16 +1,21 @@
 import { apiClient } from './client';
 
+/**
+ * 非管理員讀取時，phone／line_name／bank_code／bank_account／session_rate 一律為 null（後端遮蔽）。
+ */
 export interface Coach {
   id: number;
   user_id: number;
   name: string;
   alias: string | null;
   line_name: string | null;
-  phone: string;
+  phone: string | null;
   bank_code: string | null;
   bank_account: string | null;
   specialty: string | null;
   photo_url: string | null;
+  /** 每堂鐘點費（僅管理員可見） */
+  session_rate: number | null;
   created_at: string;
 }
 
@@ -24,6 +29,7 @@ export interface CoachPayload {
   bank_account?: string | null;
   specialty?: string | null;
   photo_url?: string | null;
+  session_rate?: number;
 }
 
 export async function listCoaches() {
