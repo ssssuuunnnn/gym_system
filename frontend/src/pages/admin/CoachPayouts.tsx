@@ -63,7 +63,8 @@ function RowDetail({ row, month }: { row: CoachPayoutSummaryRow; month: string }
 }
 
 /**
- * 教練鐘點：依出席紀錄計算每位教練每月堂數與鐘點費（已出席＋未到；團體課一堂算一次），
+ * 教練鐘點：依出席紀錄計算私人教練／團體課程教練每月堂數與鐘點費（已出席＋未到）。
+ * 私人課＝教練私人課費率；團體課一堂算一次＝課程每堂教練費。場租教練不列。
  * 月份結束後可結算（鎖定快照）、標記已撥款；已結算未撥款可取消結算重算。規則見 docs/business-rules.md R11–R13。
  */
 export default function CoachPayouts() {
@@ -123,13 +124,24 @@ export default function CoachPayouts() {
       dataIndex: 'coach_name',
     },
     {
-      title: '每堂鐘點費',
+      title: '類型',
+      dataIndex: 'coach_types',
+      render: (types: CoachPayoutSummaryRow['coach_types']) => (
+        <Space size={4} wrap>
+          {types.map((t) => (
+            <Tag key={t}>{t}</Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: '私人課費率',
       key: 'rate',
       render: (_, r) =>
-        r.payout ? (
-          money(r.payout.rate)
+        !r.coach_types.includes('私人教練') ? (
+          '—'
         ) : r.session_rate > 0 ? (
-          money(r.session_rate)
+          `${money(r.session_rate)}／堂`
         ) : (
           <Space size={4}>
             <Typography.Text type="warning">未設定</Typography.Text>
@@ -155,9 +167,16 @@ export default function CoachPayouts() {
       render: (_, r) => (
         <Space size={4}>
           {r.payout ? <StatusTag status={r.payout.status} /> : <Tag>未結算</Tag>}
+          {!r.payout && r.has_zero_fee && (
+            <Tooltip title="有計費堂數的費用為 0：請確認教練的私人課費率，或團體課程的每堂教練費。">
+              <Tag color="gold" icon={<WarningOutlined />}>
+                費用未設定
+              </Tag>
+            </Tooltip>
+          )}
           {r.changed_since_settled && (
             <Tooltip
-              title={`結算後出席紀錄有異動：目前即時計算為 ${r.live_session_count} 堂（${money(r.live_amount)}）。若要更新，請取消結算後重新結算。`}
+              title={`結算後出席紀錄或費用有異動：目前即時計算為 ${r.live_session_count} 堂（${money(r.live_amount)}）。若要更新，請取消結算後重新結算。`}
             >
               <Tag color="orange" icon={<WarningOutlined />}>
                 有異動
@@ -200,7 +219,7 @@ export default function CoachPayouts() {
             <Tooltip title={disabledReason}>
               <Popconfirm
                 title={`結算 ${r.coach_name} ${month} 鐘點？`}
-                description={`${r.live_session_count} 堂 × ${money(r.session_rate)} ＝ ${money(r.live_amount)}，結算後金額鎖定。`}
+                description={`共 ${r.live_session_count} 堂，${money(r.live_amount)}，結算後金額鎖定。`}
                 disabled={!!disabledReason}
                 onConfirm={() => settleMutation.mutate(r.coach_id)}
               >
@@ -233,7 +252,7 @@ export default function CoachPayouts() {
   ];
 
   const total = (rows ?? []).reduce((sum, r) => sum + (r.payout?.amount ?? r.live_amount), 0);
-  const unsetRate = (rows ?? []).some((r) => !r.payout && r.live_session_count > 0 && r.session_rate === 0);
+  const unsetRate = (rows ?? []).some((r) => !r.payout && r.has_zero_fee);
   const payingCoach = paying ? coachById.get(paying.coach_id) : undefined;
 
   return (
@@ -264,7 +283,7 @@ export default function CoachPayouts() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          title="有教練尚未設定每堂鐘點費，結算金額會是 0，請先到教練資料設定。"
+          title="有計費堂數的費用為 0：請到教練資料設定私人課鐘點費，或到團體課程設定每堂教練費。"
         />
       )}
 
@@ -281,10 +300,10 @@ export default function CoachPayouts() {
         }}
         summary={() => (
           <Table.Summary.Row>
-            <Table.Summary.Cell index={0} colSpan={4}>
+            <Table.Summary.Cell index={0} colSpan={5}>
               <Typography.Text strong>{month} 合計</Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={4} colSpan={4}>
+            <Table.Summary.Cell index={5} colSpan={4}>
               <Typography.Text strong>{money(total)}</Typography.Text>
             </Table.Summary.Cell>
           </Table.Summary.Row>

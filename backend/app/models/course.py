@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Numeric,
     SmallInteger,
     String,
     Text,
@@ -51,6 +52,10 @@ class Course(Base):
         SmallInteger, nullable=False, server_default="1", default=1, comment="最低開班人數"
     )
     max_capacity: Mapped[int] = mapped_column(SmallInteger, nullable=False, comment="每堂報名人數上限")
+    # 每堂教練費：團體課程教練鐘點結算用，一堂不論人數給這個金額（R12）；僅管理員可見
+    coach_fee: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=False, server_default="0", default=0, comment="每堂教練費"
+    )
     session_count: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, server_default="0", default=0, comment="課堂數（未停課）"
     )

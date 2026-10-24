@@ -10,6 +10,8 @@ export interface CourseInfoValue {
   maxCapacity: number | null;
   description: string;
   durationMinutes: number;
+  /** 每堂教練費：一堂不論人數付給授課教練的金額 */
+  coachFee: number | null;
 }
 
 export interface CourseInfoCardProps {
@@ -90,6 +92,22 @@ export function CourseInfoCard(props: CourseInfoCardProps) {
             onChange={(v) => onChange({ durationMinutes: v ?? 60 })}
             style={{ width: 160 }}
           />
+        </FieldRow>
+
+        <FieldRow label="每堂教練費" required>
+          <InputNumber
+            min={0}
+            precision={0}
+            prefix="NT$"
+            suffix="／堂"
+            value={value.coachFee}
+            status={value.coachFee === null ? 'error' : undefined}
+            onChange={(v) => onChange({ coachFee: v })}
+            style={{ width: 200 }}
+          />
+          <span style={{ fontSize: 13, color: token.colorTextTertiary }}>
+            團體課程教練鐘點：每堂（已出席或未到皆計）不論人數給此金額，僅管理員可見
+          </span>
         </FieldRow>
 
         <FieldRow label="課程介紹" alignTop>

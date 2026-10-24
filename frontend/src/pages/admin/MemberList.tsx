@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import { listMembers, type Member } from '../../api/users';
 
 /**
- * 會員列表：對應「會員列表」。身份（學員／場租教練）為衍生值，來自後端 UserOut.is_coach。
+ * 會員列表：對應「會員列表」。身份（學員／教練）為衍生值，教練類型見教練資料，來自後端 UserOut.is_coach。
  */
 export default function MemberList() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function MemberList() {
     {
       title: '身份',
       dataIndex: 'is_coach',
-      render: (isCoach: boolean) => <Tag color={isCoach ? 'blue' : 'default'}>{isCoach ? '場租教練' : '學員'}</Tag>,
+      render: (isCoach: boolean) => <Tag color={isCoach ? 'blue' : 'default'}>{isCoach ? '教練' : '學員'}</Tag>,
     },
     {
       title: '加入時間',

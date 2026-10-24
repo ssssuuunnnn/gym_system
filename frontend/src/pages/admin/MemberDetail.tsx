@@ -211,7 +211,7 @@ export default function MemberDetail() {
 
           <div style={row}>
             <div style={labelCol}>身份</div>
-            <Tag color={member.is_coach ? 'blue' : 'default'}>{member.is_coach ? '場租教練' : '學員'}</Tag>
+            <Tag color={member.is_coach ? 'blue' : 'default'}>{member.is_coach ? '教練' : '學員'}</Tag>
             <Text style={{ fontSize: 13 }} type="secondary">
               由教練資料綁定衍生，需至教練管理調整
             </Text>

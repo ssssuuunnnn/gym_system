@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, Input, InputNumber, Modal, Result, Skeleton, Tag, message, theme } from 'antd';
+import { Avatar, Breadcrumb, Button, Card, Checkbox, Input, InputNumber, Modal, Result, Skeleton, Tag, message, theme } from 'antd';
 import { ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,13 +10,27 @@ import {
   listCoaches,
   updateCoach,
   uploadCoachPhoto,
+  COACH_TYPES,
   type CoachPayload,
+  type CoachType,
 } from '../../api/coaches';
 import { listMembers } from '../../api/users';
 import { formatServerTime } from '../../lib/datetime';
 
 // 電話格式：數字、+、-、括號、空白，至少 8 碼（與教練資料設計稿一致）
 const PHONE_RE = /^[0-9+\-() ]{8,}$/;
+
+/**
+ * 場租教練不屬於公司，不能與私人教練／團體課程教練並存（後端同樣檢查）：
+ * 新勾場租 → 只留場租；場租狀態下勾其他類型 → 拿掉場租。
+ */
+function normalizeCoachTypes(prev: CoachType[], next: CoachType[]): CoachType[] {
+  const addedRental = next.includes('場租教練') && !prev.includes('場租教練');
+  if (addedRental) return ['場租教練'];
+  if (next.includes('場租教練') && next.length > 1) return next.filter((t) => t !== '場租教練');
+  // 依固定順序排列，方便與既有資料比較是否有變更
+  return COACH_TYPES.filter((t) => next.includes(t));
+}
 
 const fmtDate = (value: string) => formatServerTime(value, 'YYYY-MM-DD');
 const fmtDateTime = (value: string) => formatServerTime(value);
@@ -49,6 +63,7 @@ export default function CoachForm() {
   const [bankAccount, setBankAccount] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [sessionRate, setSessionRate] = useState<number | null>(0);
+  const [coachTypes, setCoachTypes] = useState<CoachType[]>(['私人教練']);
   const [query, setQuery] = useState('');
   const [pickedId, setPickedId] = useState<number | null>(null);
 
@@ -71,6 +86,7 @@ export default function CoachForm() {
       setBankAccount(editingCoach.bank_account ?? '');
       setSpecialty(editingCoach.specialty ?? '');
       setSessionRate(editingCoach.session_rate ?? 0);
+      setCoachTypes(editingCoach.coach_types);
       setPickedId(editingCoach.user_id);
       setExistingPhotoUrl(editingCoach.photo_url ?? null);
       setPhotoFile(null);
@@ -118,11 +134,19 @@ export default function CoachForm() {
         bankAccount !== (editingCoach.bank_account ?? '') ||
         specialty !== (editingCoach.specialty ?? '') ||
         sessionRate !== (editingCoach.session_rate ?? 0) ||
+        coachTypes.join() !== editingCoach.coach_types.join() ||
         photoFile != null ||
         existingPhotoUrl !== (editingCoach.photo_url ?? null)
       : true;
 
-  const baseValid = name.trim() !== '' && phoneOk && !bankCodeBad && !bankAccountBad && sessionRate !== null;
+  const isPrivate = coachTypes.includes('私人教練');
+  const baseValid =
+    name.trim() !== '' &&
+    phoneOk &&
+    !bankCodeBad &&
+    !bankAccountBad &&
+    coachTypes.length > 0 &&
+    (!isPrivate || sessionRate !== null);
   const ready = isEdit ? baseValid && dirty : baseValid && picked != null;
 
   let readyLabel: string;
@@ -174,6 +198,7 @@ export default function CoachForm() {
           specialty: specialty.trim() || null,
           photo_url: photoUrl ?? null,
           session_rate: sessionRate ?? 0,
+          coach_types: coachTypes,
         };
         return updateCoach(coachId, payload);
       }
@@ -189,6 +214,7 @@ export default function CoachForm() {
         specialty: specialty.trim() || null,
         photo_url: photoUrl ?? null,
         session_rate: sessionRate ?? 0,
+        coach_types: coachTypes,
       };
       return createCoach(payload);
     },
@@ -273,8 +299,8 @@ export default function CoachForm() {
           </div>
           <div style={{ fontSize: 13, color: token.colorTextTertiary, paddingBottom: 4 }}>
             {isEdit
-              ? `綁定帳號 ${pickedUsername}，此帳號身份顯示為場租教練`
-              : '綁定後該會員帳號的身份會顯示為場租教練'}
+              ? `綁定帳號 ${pickedUsername}，此帳號身份為教練（類型見下方）`
+              : '綁定後該會員帳號的身份會變成教練，類型於下方設定'}
           </div>
         </div>
       </div>
@@ -353,7 +379,25 @@ export default function CoachForm() {
           </div>
 
           <div style={row}>
-            <div style={labelCol}>{required}每堂鐘點費</div>
+            <div style={labelCol}>{required}教練類型</div>
+            <Checkbox.Group
+              value={coachTypes}
+              onChange={(v) => setCoachTypes(normalizeCoachTypes(coachTypes, v as CoachType[]))}
+              options={COACH_TYPES.map((t) => ({ value: t, label: t }))}
+            />
+            {hint(
+              coachTypes.length === 0
+                ? '請至少選擇一種類型'
+                : coachTypes.includes('場租教練')
+                  ? '場租教練不屬於公司，來租借場地，系統不計鐘點'
+                  : '私人課依下方每堂鐘點費、團體課依各課程設定的每堂教練費計算',
+              coachTypes.length === 0,
+            )}
+          </div>
+
+          {isPrivate && (
+          <div style={row}>
+            <div style={labelCol}>{required}私人課鐘點費</div>
             <InputNumber
               style={{ width: 200 }}
               min={0}
@@ -367,10 +411,11 @@ export default function CoachForm() {
             {hint(
               sessionRate === null
                 ? '請輸入每堂鐘點費，不支薪請填 0'
-                : '教練鐘點結算用：已出席與未到的堂數 × 費率；團體課一堂算一次。僅管理員可見',
+                : '私人課鐘點：已出席與未到的堂數 × 費率。僅管理員可見',
               sessionRate === null,
             )}
           </div>
+          )}
 
           <div style={rowTop}>
             <div style={{ ...labelCol, paddingTop: 6 }}>專長</div>

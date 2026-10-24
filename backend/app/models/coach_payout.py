@@ -19,7 +19,7 @@ class PayoutItemKind(str, enum.Enum):
 
 class CoachPayout(Base):
     """
-    教練月結（R11–R13）：結算當下把該月的堂數、費率、金額與明細存成快照並鎖定，
+    教練月結（R11–R14）：結算當下把該月的堂數、費率、金額與明細存成快照並鎖定，
     之後修改出席紀錄或教練費率都不影響已結算金額。已結算尚未撥款時可取消結算重算。
     """
 
@@ -30,8 +30,9 @@ class CoachPayout(Base):
     coach_id: Mapped[int] = mapped_column(ForeignKey("coaches.id"), nullable=False, index=True)
     period: Mapped[date] = mapped_column(Date, nullable=False, comment="結算月份（該月 1 日）")
     session_count: Mapped[int] = mapped_column(nullable=False, comment="計費堂數")
-    rate: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, comment="結算當下的每堂鐘點費")
-    amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, comment="應付金額")
+    # 結算當下教練的私人課每堂鐘點費（參考用；團體課依各堂 fee）
+    rate: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, comment="結算當下的私人課每堂鐘點費")
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, comment="應付金額＝明細 fee 加總")
     status: Mapped[PayoutStatus] = mapped_column(Enum(PayoutStatus), nullable=False, default=PayoutStatus.settled)
     settled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     settled_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
@@ -62,6 +63,9 @@ class CoachPayoutItem(Base):
     title: Mapped[str] = mapped_column(String(100), nullable=False, comment="課程或商品名稱（快照）")
     session_date: Mapped[date] = mapped_column(Date, nullable=False)
     start_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    fee: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=False, comment="這堂的教練費（私人課＝教練費率；團體課＝課程每堂教練費）"
+    )
     attended_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, comment="已出席人數（預約筆數）")
     no_show_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, comment="未到人數（預約筆數）")
     members: Mapped[str] = mapped_column(String(500), nullable=False, comment="學員帳號（快照，逗號分隔）")

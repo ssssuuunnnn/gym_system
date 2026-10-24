@@ -55,9 +55,13 @@ export default function CourseForm() {
     enabled: courseId != null,
   });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
+  // 團體課程只能指定「團體課程教練」；編輯時保留目前綁定的教練（即使類型後來改了）
   const coachOptions = useMemo(
-    () => (coaches ?? []).map((c) => ({ value: c.id, label: c.name })),
-    [coaches],
+    () =>
+      (coaches ?? [])
+        .filter((c) => c.coach_types.includes('團體課程教練') || (mode === 'edit' && c.id === detail?.coach_id))
+        .map((c) => ({ value: c.id, label: c.name })),
+    [coaches, mode, detail?.coach_id],
   );
 
   // time_slots 是時段可用性的唯一真相來源：公休時段不可開課。
@@ -84,6 +88,7 @@ export default function CourseForm() {
     maxCapacity: null,
     description: '',
     durationMinutes: 60,
+    coachFee: 0,
   });
   const [status, setStatus] = useState<CourseStatus>('上架');
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -107,6 +112,7 @@ export default function CourseForm() {
       maxCapacity: detail.max_capacity,
       description: detail.description ?? '',
       durationMinutes: detail.duration_minutes,
+      coachFee: detail.coach_fee ?? 0,
     });
     setStatus(dup ? '下架' : detail.status);
     setCoverUrl(dup ? null : detail.cover_image_url);
@@ -183,6 +189,7 @@ export default function CourseForm() {
         duration_minutes: info.durationMinutes,
         min_capacity: info.minCapacity as number,
         max_capacity: info.maxCapacity as number,
+        coach_fee: info.coachFee ?? 0,
         description: info.description.trim() || null,
         cover_image_url: cover,
         status,
@@ -223,6 +230,7 @@ export default function CourseForm() {
   const submit = () => {
     if (!info.name.trim()) return message.error('請輸入課程名稱');
     if (info.coachId == null) return message.error('請選擇教練');
+    if (info.coachFee == null) return message.error('請填寫每堂教練費（不支薪請填 0）');
     if (info.minCapacity == null || info.maxCapacity == null) return message.error('請填寫開班人數');
     if (info.maxCapacity < info.minCapacity) return message.error('每堂人數上限不可小於最低開班人數');
     if (status !== '草稿') {
