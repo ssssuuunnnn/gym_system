@@ -5,10 +5,18 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.deps import get_current_user, require_admin
+from app.models.hour_ledger import HourLedger
 from app.models.product import Product, ProductCategory
 from app.models.purchase import Purchase
 from app.models.user import User, UserRole
-from app.schemas.purchase import PurchaseCreate, PurchaseOut, PurchaseSelfCreate
+from app.schemas.purchase import (
+    HourAdjustCreate,
+    HourLedgerOut,
+    PurchaseCreate,
+    PurchaseOut,
+    PurchaseSelfCreate,
+)
+from app.services import hours
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
@@ -44,6 +52,7 @@ def _build_purchase(db: Session, *, user_id: int, product_id: int, quantity: int
         created_by=created_by,
     )
     db.add(purchase)
+    hours.record_purchase(db, purchase, created_by=created_by)
     db.commit()
     db.refresh(purchase)
     return purchase
@@ -109,3 +118,38 @@ def create_self_purchase(
         amount=float(product.price) * payload.quantity,
         created_by=current_user.id,
     )
+
+
+@router.get("/{purchase_id}/ledger", response_model=list[HourLedgerOut])
+def list_purchase_ledger(
+    purchase_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """堂數異動紀錄：管理員可查任一筆，會員僅能查自己的購買紀錄。依時間排序。"""
+    purchase = db.get(Purchase, purchase_id)
+    if not purchase or (current_user.role != UserRole.admin and purchase.user_id != current_user.id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到購買紀錄")
+    return (
+        db.query(HourLedger)
+        .filter(HourLedger.purchase_id == purchase_id)
+        .order_by(HourLedger.created_at, HourLedger.id)
+        .all()
+    )
+
+
+@router.post("/{purchase_id}/adjust", response_model=HourLedgerOut, status_code=status.HTTP_201_CREATED)
+def adjust_purchase_hours(
+    purchase_id: int,
+    payload: HourAdjustCreate,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """管理員手動調整剩餘堂數（正數補、負數扣），必須填寫原因，調整後不可小於 0。"""
+    purchase = hours.lock_purchase(db, purchase_id)
+    if not purchase:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到購買紀錄")
+    entry = hours.adjust(db, purchase, payload.change, created_by=admin.id, note=payload.note)
+    db.commit()
+    db.refresh(entry)
+    return entry

@@ -283,7 +283,7 @@ erDiagram
 | `quantity` | int | |
 | `purchase_date` | date | |
 | `amount` | decimal(10,2) | |
-| `remaining_hours` | decimal(10,2) | 建立時 = `product.session_hours * quantity`；目前僅在「取消已確認預約」時會被加回（見已知缺口） |
+| `remaining_hours` | decimal(10,2) | 建立時 = `product.session_hours * quantity`；之後的增減一律透過 `hour_ledger` 記錄，規則見 [業務規則紀錄](business-rules.md) |
 | `created_by` | FK→users.id | 登錄的管理員 |
 | `created_at` | datetime | |
 
