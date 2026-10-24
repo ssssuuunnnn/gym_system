@@ -5,6 +5,7 @@ from sqlalchemy import Date, DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class PaymentStatus(str, enum.Enum):
@@ -20,7 +21,7 @@ class PaymentMethod(str, enum.Enum):
     other = "其他"
 
 
-class Purchase(Base):
+class Purchase(TenantMixin, Base):
     """
     購買紀錄：購買歸屬對象不限教練身份，學員與場租教練皆可登錄購買。
 

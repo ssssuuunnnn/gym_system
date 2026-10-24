@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
-from app.db.session import get_db
+from app.deps import get_db
 from app.deps import get_coach_profile, get_current_user
 from app.models.user import User, UserRole
 from app.schemas.user import ChangePassword, Token, UserOut, UserRegister
@@ -46,7 +46,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user.last_login_at = datetime.utcnow()
     db.commit()
 
-    token = create_access_token(user_id=user.id, role=user.role.value, is_coach=is_coach)
+    token = create_access_token(user_id=user.id, tenant_id=user.tenant_id, role=user.role.value, is_coach=is_coach)
     return Token(
         access_token=token,
         role=user.role,

@@ -17,6 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class CourseStatus(str, enum.Enum):
@@ -35,12 +36,13 @@ class SessionSource(str, enum.Enum):
     extra = "加開"
 
 
-class Course(Base):
+class Course(TenantMixin, Base):
     __tablename__ = "courses"
+    __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_courses_tenant_code"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    code: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True, comment="課程編號 GC-YYYY-NNN")
+    code: Mapped[str | None] = mapped_column(String(20), nullable=True, comment="課程編號 GC-YYYY-NNN（租戶內唯一）")
     coach_id: Mapped[int] = mapped_column(ForeignKey("coaches.id"), nullable=False)
     # 「主要時段」——存最小的上課星期，供列表摘要與相容用途；草稿可無排程故允許 NULL
     day_of_week: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
@@ -103,7 +105,7 @@ class Course(Base):
         return [w.weekday for w in self.weekday_rows]
 
 
-class CourseWeekday(Base):
+class CourseWeekday(TenantMixin, Base):
     """一門課的上課星期（ISO：1=週一…7=週日）；多選。"""
 
     __tablename__ = "course_weekdays"
@@ -118,7 +120,7 @@ class CourseWeekday(Base):
     course: Mapped["Course"] = relationship("Course", back_populates="weekday_rows")
 
 
-class CourseSession(Base):
+class CourseSession(TenantMixin, Base):
     """單一課堂：由排程展開或單次加開；可逐堂停課（保留紀錄）。"""
 
     __tablename__ = "course_sessions"

@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class CoachType(str, enum.Enum):
@@ -15,7 +16,7 @@ class CoachType(str, enum.Enum):
     rental = "場租教練"  # 不屬於公司，來租借場地，不計鐘點
 
 
-class Coach(Base):
+class Coach(TenantMixin, Base):
     """教練資料：綁定帳號，唯一（一帳號僅能對應一筆教練資料）。不設狀態欄位。"""
 
     __tablename__ = "coaches"

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.deps import get_db
 from app.deps import get_current_user, require_admin
 from app.models.course import Course, CourseStatus
 from app.models.product import Product, ProductCategory
