@@ -44,8 +44,9 @@ import MyPayouts from '../pages/coach/Payouts';
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
  * 每個側邊欄大類底下收合相關畫面（審核列表/詳情/建立預約同屬「預約審核」等）。
+ * 以函式建立：只有在健身房網址才建立（平台網址用 router/platform.tsx），見 App.tsx。
  */
-export const router = createBrowserRouter([
+export const createAppRouter = () => createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
 
@@ -89,10 +90,15 @@ export const router = createBrowserRouter([
   },
 
   {
+    // 修改密碼頁：任何已登入身份都可進入、不套用版面。管理員重設會員密碼，或平台開通健身房時
+    // 要求第一位管理員自行修改密碼，完成前都只能停留在這頁（AppLayout／MemberLayout 會導回來）
+    element: <RequireRole />,
+    children: [{ path: '/member/change-password', element: <ChangePassword /> }],
+  },
+
+  {
     element: <RequireRole role="member" />,
     children: [
-      // 修改密碼頁：不套用前台版面（無分頁列）；管理員要求強制修改時，完成前會員無法進入其他畫面
-      { path: '/member/change-password', element: <ChangePassword /> },
       // 會員前台（品牌藍）：手機優先版面 + 底部分頁列
       {
         path: '/member',

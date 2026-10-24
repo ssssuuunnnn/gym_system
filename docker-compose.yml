@@ -10,6 +10,8 @@ services:
       DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:-changeme_owner}
       DB_APP_USER: ${DB_APP_USER:-fitness_app}
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
+      DB_PLATFORM_USER: ${DB_PLATFORM_USER:-fitness_platform}
+      DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD:-changeme_platform}
     ports:
       - "5432:5432"
     volumes:
@@ -29,6 +31,12 @@ services:
       DATABASE_URL: postgresql+psycopg://${DB_APP_USER:-fitness_app}:${DB_APP_PASSWORD:-changeme_app}@postgres:5432/${DB_NAME:-fitness_studio}
       MIGRATION_DATABASE_URL: postgresql+psycopg://${DB_OWNER_USER:-fitness_owner}:${DB_OWNER_PASSWORD:-changeme_owner}@postgres:5432/${DB_NAME:-fitness_studio}
       APP_DB_ROLE: ${DB_APP_USER:-fitness_app}
+      # 平台管理後台（http://platform.<BASE_DOMAIN>）：只能管理健身房清單的帳號
+      PLATFORM_DATABASE_URL: postgresql+psycopg://${DB_PLATFORM_USER:-fitness_platform}:${DB_PLATFORM_PASSWORD:-changeme_platform}@postgres:5432/${DB_NAME:-fitness_studio}
+      PLATFORM_DB_ROLE: ${DB_PLATFORM_USER:-fitness_platform}
+      # 啟動時建立平台管理員（可重複執行、不覆蓋密碼）；留空則不建立，可改用 python -m app.cli create-platform-admin
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
       # 每家健身房一個子網域：<subdomain>.BASE_DOMAIN。本機可用 demo.localhost、alpha.localhost …
       BASE_DOMAIN: ${BASE_DOMAIN:-localhost}
       # 沒有子網域的網址（http://localhost）使用的健身房；啟動時自動開通。正式環境請留空

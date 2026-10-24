@@ -32,6 +32,16 @@ def create_access_token(*, user_id: int, tenant_id: int, role: str, is_coach: bo
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+PLATFORM_SCOPE = "platform"
+
+
+def create_platform_token(*, admin_id: int) -> str:
+    """平台管理員的 JWT：scope=platform、沒有 tid，所以不能拿去打任何健身房的 API（反之亦然）。"""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.PLATFORM_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": str(admin_id), "scope": PLATFORM_SCOPE, "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def decode_access_token(token: str) -> dict | None:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

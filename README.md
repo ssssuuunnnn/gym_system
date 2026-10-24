@@ -47,7 +47,7 @@ docker compose up --build
 
 - 前端：http://localhost（nginx 提供靜態檔，並將 `/api/*` 反向代理到 backend）
 - 後端 API 文件：http://localhost:8000/docs
-- PostgreSQL：`localhost:5432`（資料存於 named volume `postgres_data`；第一次建立時 `docker/postgres/init-roles.sh` 會建立資料表擁有者 `fitness_owner` 與應用程式帳號 `fitness_app`）
+- PostgreSQL：`localhost:5432`（資料存於 named volume `postgres_data`；第一次建立時 `docker/postgres/init-roles.sh` 會建立資料表擁有者 `fitness_owner`、應用程式帳號 `fitness_app` 與平台後台帳號 `fitness_platform`）
 - 子網域：瀏覽器會把 `*.localhost` 指到本機，所以 `http://demo.localhost`、`http://alpha.localhost` 都能直接開；`http://localhost` 沒有子網域時使用 `DEFAULT_TENANT`（預設 `demo`）
 
 > 舊版用 MySQL 的 `mysql_data` volume 不會被沿用；migration 歷史已整併為 PostgreSQL 初始結構，若有既有 MySQL 資料需另外搬移。
@@ -60,7 +60,15 @@ docker compose up --build
 ADMIN_USERNAME=admin ADMIN_PASSWORD=<你的密碼> docker compose up --build
 ```
 
-**開通另一家健身房**（平台管理指令，以資料表擁有者連線）：
+**平台管理後台**（開通／停用健身房、各家使用概況、協助重設管理員密碼、操作紀錄）：`http://platform.localhost`。第一位平台管理員在啟動時建立：
+
+```bash
+PLATFORM_ADMIN_USERNAME=ops PLATFORM_ADMIN_PASSWORD=<至少 8 字元> docker compose up --build
+```
+
+設計見 [`docs/adr/0002-platform-console.md`](docs/adr/0002-platform-console.md)。
+
+**用指令開通健身房**（部署、救援或自動化用；以資料表擁有者連線）：
 
 ```bash
 docker compose exec backend python -m app.cli create-tenant --subdomain alpha --name "Alpha 健身" \
@@ -72,7 +80,7 @@ docker compose exec backend python -m app.cli set-status --subdomain alpha --sta
 之後打開 `http://alpha.localhost` 用該家的 admin 登入。同一個人在兩家健身房是兩個獨立帳號。
 
 檔案結構：
-- `docker/postgres/init-roles.sh`（建立兩個資料庫帳號）
+- `docker/postgres/init-roles.sh`（建立三個資料庫帳號：擁有者、應用程式、平台後台）
 - `backend/Dockerfile`、`backend/docker-entrypoint.sh`、`backend/app/seed_admin.py`、`backend/.dockerignore`
 - `frontend/Dockerfile`（多階段建置：node 建置 → nginx 提供靜態檔）、`frontend/nginx.conf`、`frontend/.dockerignore`
 - 根目錄 `docker-compose.yml`
@@ -85,7 +93,7 @@ docker compose exec backend python -m app.cli set-status --subdomain alpha --sta
 cd backend
 pip install -r requirements.txt   # 需 Python 3.10+
 cp .env.example .env
-# 需要本機 PostgreSQL 16，並先建好 fitness_owner／fitness_app 兩個帳號（參考 docker/postgres/init-roles.sh）
+# 需要本機 PostgreSQL 16，並先建好 fitness_owner／fitness_app／fitness_platform 三個帳號（參考 docker/postgres/init-roles.sh）
 alembic upgrade head
 python -m app.cli create-tenant --subdomain demo --admin-username admin --admin-password <你的密碼>
 uvicorn app.main:app --reload
@@ -100,7 +108,7 @@ cp .env.example .env
 npm run dev
 ```
 
-預設會呼叫 `http://localhost:8000/api/v1`（可在 `.env` 的 `VITE_API_BASE_URL` 調整）。
+開發伺服器會把 `/api`、`/media` 轉給 `http://localhost:8000` 並保留網址，所以可以直接開 `http://<子網域>.localhost:5173`（健身房）與 `http://platform.localhost:5173`（平台管理後台）。
 
 後端測試在真的 PostgreSQL 上執行（以受 RLS 限制的帳號連線，才能驗證租戶隔離），預設連 `fitness_test` 資料庫，可用 `TEST_DATABASE_URL`／`TEST_MIGRATION_DATABASE_URL` 覆寫：
 

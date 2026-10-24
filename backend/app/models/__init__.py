@@ -5,6 +5,7 @@ course_weekdays / course_sessions 兩張子表）。
 """
 
 from app.models.tenant import Tenant, TenantMixin, TenantStatus  # noqa: F401
+from app.models.platform import PLATFORM_TABLE_NAMES, PlatformAdmin, PlatformAuditLog  # noqa: F401
 from app.models.coach import Coach  # noqa: F401
 from app.models.coach_payout import CoachPayout, CoachPayoutItem, PayoutItemKind, PayoutStatus  # noqa: F401
 from app.models.course import (  # noqa: F401

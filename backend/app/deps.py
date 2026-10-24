@@ -1,4 +1,3 @@
-import re
 import time
 from collections.abc import Generator
 
@@ -7,21 +6,23 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import decode_access_token
+from app.core.security import PLATFORM_SCOPE, decode_access_token
 from app.core.tenant_context import TenantInfo, current_tenant
 from app.db import session as db_session
 from app.db.session import TENANT_INFO_KEY
 from app.models.coach import Coach
+from app.models.platform import PlatformAdmin
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import User, UserRole
+from app.services.tenants import SUBDOMAIN_RE
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-# 子網域格式：小寫英數與連字號，不可以連字號開頭或結尾
-SUBDOMAIN_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
-# 子網域 → 租戶的短暫快取，避免每個請求都查 tenants（停用狀態最多延遲 TTL 秒生效）
+# 子網域 → 租戶的短暫快取，避免每個請求都查 tenants（停用狀態最多延遲 TTL 秒生效）。
+# 「查無此家」只快取很短的時間：剛開通的健身房不會因為先前有人打過網址而一直顯示找不到。
 _TENANT_CACHE_TTL = 30.0
+_TENANT_MISS_TTL = 5.0
 _tenant_cache: dict[str, tuple[float, TenantInfo | None, TenantStatus | None]] = {}
 
 
@@ -42,7 +43,7 @@ def subdomain_from_host(host: str) -> str | None:
 def _lookup_tenant(subdomain: str) -> tuple[TenantInfo | None, TenantStatus | None]:
     now = time.monotonic()
     cached = _tenant_cache.get(subdomain)
-    if cached and now - cached[0] < _TENANT_CACHE_TTL:
+    if cached and now - cached[0] < (_TENANT_CACHE_TTL if cached[1] is not None else _TENANT_MISS_TTL):
         return cached[1], cached[2]
     with db_session.SessionLocal() as s:
         tenant = s.query(Tenant).filter(Tenant.subdomain == subdomain).first()
@@ -95,8 +96,8 @@ def get_current_user(
         raise credentials_error
 
     user_id = payload.get("sub")
-    # token 必須屬於目前網址的租戶：拿 A 家的 token 打 B 家的網址一律拒絕
-    if user_id is None or payload.get("tid") != tenant.id:
+    # token 必須屬於目前網址的租戶：拿 A 家的 token 打 B 家的網址一律拒絕；平台管理員的 token 沒有 tid，也會被拒絕
+    if user_id is None or payload.get("scope") is not None or payload.get("tid") != tenant.id:
         raise credentials_error
 
     user = db.get(User, int(user_id))
@@ -125,3 +126,41 @@ def require_coach(current_user: User = Depends(get_current_user), db: Session = 
     if coach is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅教練身份會員可執行此操作")
     return coach
+
+
+# ---------- 平台管理後台（見 docs/adr/0002-platform-console.md） ----------
+
+platform_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/platform/auth/login")
+
+
+def require_platform_host(request: Request) -> None:
+    """平台 API 只在 <PLATFORM_SUBDOMAIN>.<BASE_DOMAIN> 提供；在健身房網址上一律 404。"""
+    if subdomain_from_host(request.headers.get("host", "")) != settings.PLATFORM_SUBDOMAIN:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+
+def get_platform_db() -> Generator[Session, None, None]:
+    """平台帳號的 Session：不屬於任何租戶；要操作某家的帳號時用 act_as_tenant() 切換。"""
+    db = db_session.PlatformSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_current_platform_admin(
+    token: str = Depends(platform_oauth2_scheme),
+    db: Session = Depends(get_platform_db),
+) -> PlatformAdmin:
+    credentials_error = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="無法驗證登入狀態",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = decode_access_token(token)
+    if payload is None or payload.get("scope") != PLATFORM_SCOPE or payload.get("sub") is None:
+        raise credentials_error
+    admin = db.get(PlatformAdmin, int(payload["sub"]))
+    if admin is None or not admin.is_active:
+        raise credentials_error
+    return admin
