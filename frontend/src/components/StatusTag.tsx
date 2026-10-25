@@ -25,6 +25,13 @@ const STATUS_COLOR: Record<string, string> = {
   已約體驗: 'blue',
   已成為會員: 'green',
   未成交: 'default',
+  // LINE 通知發送結果
+  待發送: 'default',
+  重試中: 'orange',
+  成功: 'green',
+  失敗: 'red',
+  超過上限: 'gold',
+  '未設定 LINE': 'default',
 };
 
 export default function StatusTag({ status }: { status: string }) {

@@ -28,6 +28,11 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["PLATFORM_DATABASE_URL"] = TEST_PLATFORM_DATABASE_URL
 os.environ["MIGRATION_DATABASE_URL"] = TEST_MIGRATION_DATABASE_URL
 os.environ["BASE_DOMAIN"] = "localhost"
+# LINE 通知：測試用的假金鑰（實際呼叫由 tests/test_line.py 的假 client 攔下），不啟動背景重試
+os.environ["LINE_CHANNEL_SECRET"] = "test-line-secret"
+os.environ["LINE_CHANNEL_ACCESS_TOKEN"] = "test-line-token"
+os.environ["LINE_BOT_BASIC_ID"] = "@testbot"
+os.environ["LINE_DISPATCH_INTERVAL_SECONDS"] = "0"
 os.environ["DEFAULT_TENANT"] = ""
 
 from pathlib import Path  # noqa: E402

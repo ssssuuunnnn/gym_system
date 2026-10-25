@@ -72,6 +72,7 @@ class TenantUpdate(TenantContact):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     timezone: str | None = None
+    line_monthly_cap: int | None = Field(default=None, ge=0, le=100000)
 
 
 class TenantStatusUpdate(BaseModel):
@@ -99,6 +100,7 @@ class TenantOut(BaseModel):
     contact_email: str | None
     contact_phone: str | None
     note: str | None
+    line_monthly_cap: int
     created_at: datetime
     updated_at: datetime
     stats: TenantStats = TenantStats()
@@ -149,3 +151,45 @@ class AuditLogOut(BaseModel):
     action_label: str
     detail: dict | None
     created_at: datetime
+
+
+# ---------- LINE 通知（docs/adr/0004-line-notifications.md） ----------
+
+
+class LineGymUsage(BaseModel):
+    tenant_id: int
+    name: str
+    subdomain: str
+    recipients: int
+    sent: int
+    cap: int
+    failed: int
+    skipped: int
+    retrying: int
+
+
+class LineUsageSummary(BaseModel):
+    configured: bool
+    bot_name: str
+    plan_quota: int
+    month: str
+    sent: int
+    failed: int
+    skipped: int
+    recipients: int
+    gyms_with_recipients: int
+    gyms: list[LineGymUsage]
+
+
+class LineLogOut(BaseModel):
+    id: int
+    tenant_id: int
+    tenant_name: str | None
+    event: str
+    status: str
+    recipient_count: int
+    sent_count: int
+    attempts: int
+    note: str | None
+    created_at: datetime
+    updated_at: datetime

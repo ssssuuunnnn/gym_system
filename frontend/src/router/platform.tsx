@@ -5,6 +5,7 @@ import TenantList from '../pages/platform/TenantList';
 import TenantForm from '../pages/platform/TenantForm';
 import TenantDetail from '../pages/platform/TenantDetail';
 import AuditLogs from '../pages/platform/AuditLogs';
+import LineNotifications from '../pages/platform/LineNotifications';
 import Account from '../pages/platform/Account';
 
 /**
@@ -21,6 +22,7 @@ export const createPlatformRouter = () =>
         { path: '/tenants', element: <TenantList /> },
         { path: '/tenants/new', element: <TenantForm /> },
         { path: '/tenants/:id', element: <TenantDetail /> },
+        { path: '/line', element: <LineNotifications /> },
         { path: '/audit-logs', element: <AuditLogs /> },
         { path: '/account', element: <Account /> },
       ],

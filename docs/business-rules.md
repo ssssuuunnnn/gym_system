@@ -199,6 +199,38 @@
 
 ---
 
+## LINE 通知店家
+
+### R20. 接收人以一次性綁定碼加入
+
+- **確認日期**：2026-10-25
+- **規則**：管理員在「系統設定 › LINE 通知」產生 6 位數綁定碼（10 分鐘內有效、只能使用一次、資料庫只存雜湊），接收人加平台通知帳號為好友後傳送綁定碼即完成綁定，預設接收全部三種通知。同一 LINE 帳號 10 分鐘內輸入錯誤 5 次即暫停 10 分鐘。綁定碼剛好同時對應兩家健身房時不綁定，請對方重新產生。接收人封鎖通知帳號時自動停止通知；後台「移除」也只是停用，可用新綁定碼重新加入。
+- **實作**：`routers/line.py`、`routers/line_webhook.py`、migration `0004` 的 `line_consume_bind_code`／`line_deactivate_user`
+- **測試**：`test_settings_and_bind_code`、`test_bind_by_code`、`test_expired_and_ambiguous_codes`、`test_bind_attempt_rate_limit`
+
+### R21. 三種事件才通知，管理員自己建立的預約不通知
+
+- **確認日期**：2026-10-25
+- **規則**：只在「新的體驗課詢問」「會員自行下單（待付款）」「會員送出預約（待審核）」時通知有勾選該事件的接收人。管理員在後台登錄的購買或預約不通知。
+- **實作**：`services/line.py` 的 `notify_*`，呼叫點在 `routers/site.py`、`purchases.py`、`reservations.py`
+- **測試**：`test_member_purchase_notifies_subscribers_only`、`test_member_booking_notifies_but_admin_booking_does_not`、`test_nobody_subscribed_creates_nothing`
+
+### R22. 通知內容最少化，不含手機號碼
+
+- **確認日期**：2026-10-25
+- **規則**：通知只寫姓氏（王先生／小姐）、想體驗的項目與方便時段、方案與金額、預約項目時間與人數，**不含手機號碼、Email、備註**；完整資料要點連結登入後台查看。訊息送出後，系統清除暫存的收件人與訊息內容，只留事件、則數與結果；平台後台也看不到收件人與內容。
+- **實作**：`services/line.py`（`masked_name`、`_finish`）、`platform_line_log`
+- **測試**：`test_inquiry_notification_hides_phone`、`test_platform_usage_logs_and_cap`
+
+### R23. 每家健身房每月上限，失敗重試 3 次
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：一則通知發給幾個人就算幾則。每家健身房每月上限預設 300 則（平台可調整，會寫入操作紀錄），以健身房當地時間的每月 1 日起算；送出會超過上限的通知不發送，記為「超過上限」。LINE 暫時無回應時於 1、5、30 分鐘後重試，仍失敗或 LINE 拒絕則記為「失敗」。平台未設定 LINE 帳號時不發送，記為「未設定 LINE」。
+- **實作**：`services/line.py` 的 `_process`、`tenants.line_monthly_cap`
+- **測試**：`test_monthly_cap`、`test_retry_then_success_and_permanent_failure`、`test_retries_give_up_after_three`、`test_not_configured_skips`
+
+---
+
 ## 堂數帳務的共通原則
 
 以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：
@@ -220,4 +252,5 @@
 - 已付款訂單的退款流程（退款金額、已使用堂數如何計算）
 - 待付款訂單是否逾時自動取消
 - 方案效期：購買紀錄是否有到期日、過期堂數如何處理
-- 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email／LINE 通知
+- 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email 通知
+- LINE 通知：健身房自備 LINE 官方帳號、通知會員（預約提醒等）、超過平台方案額度的費用分攤

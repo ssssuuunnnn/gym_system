@@ -25,6 +25,8 @@ export interface Tenant {
   note: string | null;
   created_at: string;
   updated_at: string;
+  /** LINE 通知每月上限（則） */
+  line_monthly_cap: number;
   stats: TenantStats;
 }
 
@@ -48,6 +50,7 @@ export interface TenantCreatePayload extends TenantContactPayload {
 export interface TenantUpdatePayload extends TenantContactPayload {
   name?: string;
   timezone?: string;
+  line_monthly_cap?: number;
 }
 
 export interface SubdomainCheck {
@@ -157,5 +160,60 @@ export async function resetTenantAdminPassword(
 
 export async function listAuditLogs(params: { tenant_id?: number; limit?: number } = {}) {
   const { data } = await platformClient.get<AuditLog[]>('/audit-logs', { params });
+  return data;
+}
+
+/* ---------- LINE 通知（docs/adr/0004-line-notifications.md） ---------- */
+
+export type LineLogStatus = '待發送' | '重試中' | '成功' | '失敗' | '超過上限' | '未設定 LINE';
+
+export interface LineGymUsage {
+  tenant_id: number;
+  name: string;
+  subdomain: string;
+  recipients: number;
+  sent: number;
+  cap: number;
+  failed: number;
+  skipped: number;
+  retrying: number;
+}
+
+export interface LineUsageSummary {
+  configured: boolean;
+  bot_name: string;
+  /** 平台 LINE 方案每月可發送則數 */
+  plan_quota: number;
+  /** YYYY-MM */
+  month: string;
+  sent: number;
+  failed: number;
+  skipped: number;
+  recipients: number;
+  gyms_with_recipients: number;
+  gyms: LineGymUsage[];
+}
+
+export interface LineLog {
+  id: number;
+  tenant_id: number;
+  tenant_name: string | null;
+  event: string;
+  status: LineLogStatus;
+  recipient_count: number;
+  sent_count: number;
+  attempts: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getLineUsage(month?: string) {
+  const { data } = await platformClient.get<LineUsageSummary>('/line/summary', { params: { month } });
+  return data;
+}
+
+export async function listLineLogs(params: { status?: LineLogStatus; limit?: number } = {}) {
+  const { data } = await platformClient.get<LineLog[]>('/line/logs', { params });
   return data;
 }

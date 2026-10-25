@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.orm import Session
@@ -33,6 +33,7 @@ from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
 from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, SiteContent
+from app.services import line as line_service
 from app.services.schedule import group_sessions
 
 router = APIRouter(tags=["site"], include_in_schema=False)
@@ -363,7 +364,7 @@ def _validate_inquiry(form: dict, content: SiteContent) -> tuple[dict, dict]:
 
 
 @router.post("/site/inquiry", response_class=HTMLResponse)
-async def submit_inquiry(request: Request):
+async def submit_inquiry(request: Request, background_tasks: BackgroundTasks):
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return tenant
@@ -391,19 +392,22 @@ async def submit_inquiry(request: Request):
             state = FormState(values=values, errors=errors)
             return _html(render_site(request, db, tenant, content, form=state), 400, noindex=True)
 
-        db.add(
-            Inquiry(
-                name=values["name"],
-                phone=values["phone"],
-                line_id=values["line_id"] or None,
-                interest=values["interest"] or None,
-                preferred_slot=values["slot"] or None,
-                message=values["message"] or None,
-                consent_at=datetime.utcnow(),
-                ip_hash=ip_hash,
-            )
+        inquiry = Inquiry(
+            name=values["name"],
+            phone=values["phone"],
+            line_id=values["line_id"] or None,
+            interest=values["interest"] or None,
+            preferred_slot=values["slot"] or None,
+            message=values["message"] or None,
+            consent_at=datetime.utcnow(),
+            ip_hash=ip_hash,
         )
+        db.add(inquiry)
+        db.flush()
+        # LINE 通知店家：新的體驗課詢問（只有姓氏，不含手機；docs/adr/0004-line-notifications.md）
+        notification_id = line_service.notify_inquiry(db, inquiry)
         db.commit()
+    line_service.schedule(background_tasks, notification_id)
     # 送出後導回首頁（避免重新整理時重送）
     return RedirectResponse("/?sent=1#trial", status_code=303)
 

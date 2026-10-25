@@ -8,7 +8,7 @@
 - 每個會改變狀態的操作都寫一筆 platform_audit_logs。
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,6 +23,9 @@ from app.models.platform import PlatformAdmin, PlatformAuditLog
 from app.models.tenant import Tenant, TenantStatus
 from app.schemas.platform import (
     AuditLogOut,
+    LineGymUsage,
+    LineLogOut,
+    LineUsageSummary,
     PlatformAdminOut,
     PlatformChangePassword,
     PlatformLogin,
@@ -37,6 +40,8 @@ from app.schemas.platform import (
     TenantStatusUpdate,
     TenantUpdate,
 )
+from app.models.line import LineEvent, LineNotificationStatus
+from app.services import line as line_service
 from app.services import tenants as tenant_service
 from app.services.tenants import AUDIT_ACTIONS, TenantError
 
@@ -360,4 +365,88 @@ def list_audit_logs(
             created_at=log.created_at,
         )
         for log in logs
+    ]
+
+
+# ---------- LINE 通知（docs/adr/0004-line-notifications.md） ----------
+
+
+def _month_start_utc(month: str | None) -> tuple[str, datetime]:
+    """YYYY-MM（台北時間的月初）→ 對應的 UTC 時間；未指定時為本月。"""
+    tz = ZoneInfo(settings.STUDIO_TIMEZONE)
+    if month:
+        try:
+            local = datetime.strptime(month, "%Y-%m")
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="月份格式為 YYYY-MM") from exc
+    else:
+        local = _month_start().replace(tzinfo=None)
+    start = local.replace(tzinfo=tz).astimezone(timezone.utc).replace(tzinfo=None)
+    return local.strftime("%Y-%m"), start
+
+
+@router.get("/line/summary", response_model=LineUsageSummary)
+def line_summary(
+    month: str | None = None,
+    _: PlatformAdmin = Depends(get_current_platform_admin),
+    db: Session = Depends(get_platform_db),
+):
+    """全平台與各健身房的 LINE 通知用量（只有彙總數字）。"""
+    label, start = _month_start_utc(month)
+    usage = {
+        row["tenant_id"]: row
+        for row in db.execute(text("SELECT * FROM platform_line_usage(:s)"), {"s": start}).mappings()
+    }
+    gyms = []
+    for tenant in db.query(Tenant).order_by(Tenant.name):
+        u = usage.get(tenant.id) or {}
+        gyms.append(
+            LineGymUsage(
+                tenant_id=tenant.id,
+                name=tenant.name,
+                subdomain=tenant.subdomain,
+                recipients=u.get("recipients", 0),
+                sent=u.get("sent", 0),
+                cap=tenant.line_monthly_cap,
+                failed=u.get("failed", 0),
+                skipped=u.get("skipped", 0),
+                retrying=u.get("retrying", 0),
+            )
+        )
+    gyms.sort(key=lambda g: (-g.sent, g.name))
+    return LineUsageSummary(
+        configured=line_service.is_configured(),
+        bot_name=settings.LINE_BOT_NAME,
+        plan_quota=settings.LINE_PLAN_MONTHLY_QUOTA,
+        month=label,
+        sent=sum(g.sent for g in gyms),
+        failed=sum(g.failed for g in gyms),
+        skipped=sum(g.skipped for g in gyms),
+        recipients=sum(g.recipients for g in gyms),
+        gyms_with_recipients=sum(1 for g in gyms if g.recipients),
+        gyms=gyms,
+    )
+
+
+@router.get("/line/logs", response_model=list[LineLogOut])
+def line_logs(
+    status_filter: LineNotificationStatus | None = Query(default=None, alias="status"),
+    limit: int = Query(default=100, ge=1, le=500),
+    _: PlatformAdmin = Depends(get_current_platform_admin),
+    db: Session = Depends(get_platform_db),
+):
+    """發送紀錄：只有事件、則數、結果與說明，不含發送對象與訊息內容。"""
+    rows = db.execute(
+        text("SELECT * FROM platform_line_log(:limit, :status)"),
+        {"limit": limit, "status": status_filter.name if status_filter else None},
+    ).mappings()
+    names = dict(db.query(Tenant.id, Tenant.name).all())
+    return [
+        LineLogOut(
+            **{k: v for k, v in row.items() if k not in ("event", "status")},
+            tenant_name=names.get(row["tenant_id"]),
+            event=LineEvent[row["event"]].value,
+            status=LineNotificationStatus[row["status"]].value,
+        )
+        for row in rows
     ]
