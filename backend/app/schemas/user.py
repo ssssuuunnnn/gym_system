@@ -45,6 +45,7 @@ class UserOut(BaseModel):
     line_linked: bool = False
     line_display_name: str | None = None
     line_linked_at: datetime | None = None
+    line_notify: bool = True
 
 
 def user_out(user, is_coach: bool) -> UserOut:

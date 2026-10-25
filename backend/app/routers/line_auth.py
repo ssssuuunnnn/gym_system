@@ -21,7 +21,7 @@ from app.core.security import (
 from app.core.tenant_context import TenantInfo
 from app.deps import get_current_user, get_db, get_tenant
 from app.models.user import User, UserRole
-from app.schemas.line_oa import LineAuthIn, LineAuthOut, LineJoinIn, LineLinkIn
+from app.schemas.line_oa import LineAuthIn, LineAuthOut, LineJoinIn, LineLinkIn, LinePreferences
 from app.schemas.user import Token, UserOut, user_out
 from app.services import line_oa as oa
 from app.services.line import LineApiError
@@ -137,6 +137,17 @@ def line_unlink(current_user: User = Depends(get_current_user), db: Session = De
             status_code=status.HTTP_400_BAD_REQUEST, detail="你還沒有設定密碼，解除後將無法登入；請先請櫃台設定密碼"
         )
     clear_line_link(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return user_out(current_user, get_coach_profile(current_user, db) is not None)
+
+
+@router.patch("/preferences", response_model=UserOut)
+def line_preferences(
+    payload: LinePreferences, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """會員自己開關「從健身房官方帳號收到的通知」（預約結果、上課提醒、收款）。"""
+    current_user.line_notify = payload.line_notify
     db.commit()
     db.refresh(current_user)
     return user_out(current_user, get_coach_profile(current_user, db) is not None)
