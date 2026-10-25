@@ -231,6 +231,38 @@
 
 ---
 
+## LINE 官方帳號（會員入口）
+
+### R24. 只有「檢查連線」通過才啟用，金鑰加密且不回傳
+
+- **確認日期**：2026-10-25
+- **規則**：健身房填入 Channel secret、access token、登入 Channel ID、LIFF ID 後，必須「檢查連線」通過（access token 有效、LIFF ID 屬於該登入 channel）才啟用；Webhook 與底部選單失敗只提示。改任何設定都會先停用、要重新檢查。金鑰加密保存，畫面只顯示末四碼。
+- **實作**：`routers/line_oa.py`、`services/line_oa.py` 的 `run_checks`、`core/crypto.py`
+- **測試**：`test_settings_validation_and_encryption`、`test_verify_enables_and_installs_menu`、`test_verify_failures`
+
+### R25. LINE 登入只認自己這家的登入 channel
+
+- **確認日期**：2026-10-25
+- **規則**：LIFF 的 ID token 一律向 LINE 驗證，且 client_id 必須是這家健身房的登入 Channel ID；未綁定時發 15 分鐘的 link_token，只能用來加入或綁定、不能呼叫其他 API，也不能拿到別家使用。黑名單會員不能登入。
+- **實作**：`routers/line_auth.py`、`core/security.create_line_link_token`
+- **測試**：`test_wrong_audience_and_bad_token`、`test_link_token_is_per_gym`、`test_blacklisted_cannot_login`、`test_tenant_isolation`
+
+### R26. 在 LINE 加入會員：姓名＋手機＋同意個資告知，沒有密碼
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：加入會員只填姓名與手機，必須勾選個人資料告知；帳號自動產生、沒有密碼，只能從 LINE 登入。管理員在會員詳情設定密碼後也能用網頁登入。同一家健身房裡一個 LINE 只能對應一個會員。
+- **實作**：`routers/line_auth.py` 的 `line_join`、`models/user.UNUSABLE_PASSWORD`
+- **測試**：`test_join_then_login`、`test_admin_member_fields`
+
+### R27. 綁定既有帳號要密碼；沒有密碼的會員不能自己解除綁定
+
+- **確認日期**：2026-10-25
+- **規則**：「我已經是會員」必須輸入正確的帳號密碼；管理員帳號不能綁定；已綁定其他 LINE 的帳號要先由櫃台解除。管理員可隨時解除會員的 LINE 綁定；會員自己只有在有密碼時才能解除。
+- **實作**：`routers/line_auth.py` 的 `line_link`／`line_unlink`、`routers/users.py` 的 `unlink_line`
+- **測試**：`test_link_existing_account`、`test_unlink`
+
+---
+
 ## 堂數帳務的共通原則
 
 以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：
@@ -253,4 +285,5 @@
 - 待付款訂單是否逾時自動取消
 - 方案效期：購買紀錄是否有到期日、過期堂數如何處理
 - 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email 通知
-- LINE 通知：健身房自備 LINE 官方帳號、通知會員（預約提醒等）、超過平台方案額度的費用分攤
+- LINE 通知：從健身房自己的官方帳號通知會員（預約結果、上課提醒、收款）、超過平台方案額度的費用分攤
+- 線上付款（信用卡、LINE Pay）

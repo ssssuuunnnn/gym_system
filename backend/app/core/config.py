@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     LINE_PLAN_MONTHLY_QUOTA: int = 3000
     # 背景重試發送：每隔幾秒檢查一次待發送的通知；0＝不啟動（測試用）
     LINE_DISPATCH_INTERVAL_SECONDS: int = 60
+    # 健身房自己的 LINE 官方帳號（見 docs/adr/0005-gym-line-oa.md）：金鑰加密後存在資料庫。
+    # 加密金鑰（Fernet，32 bytes urlsafe base64）；留空時由 SECRET_KEY 衍生——換 SECRET_KEY 會讓已存的金鑰無法解密。
+    DATA_ENCRYPTION_KEY: str = ""
 
     # 多租戶：每家健身房一個子網域 <subdomain>.<BASE_DOMAIN>，由 Host 判斷租戶。
     BASE_DOMAIN: str = "localhost"

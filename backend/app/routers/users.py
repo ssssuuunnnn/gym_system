@@ -6,11 +6,13 @@ from app.deps import get_db
 from app.deps import require_admin
 from app.models.coach import Coach
 from app.models.user import User, UserRole
+from app.services.members import clear_line_link, normalize_phone
 from app.schemas.user import (
     UserBlacklistUpdate,
     UserOut,
     UserResetPassword,
     UserUpdate,
+    user_out,
 )
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
@@ -18,7 +20,7 @@ router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(requir
 
 def _to_out(member: User, db: Session) -> UserOut:
     coach = db.query(Coach).filter(Coach.user_id == member.id).first()
-    return UserOut(**member.__dict__, is_coach=coach is not None)
+    return user_out(member, coach is not None)
 
 
 @router.get("", response_model=list[UserOut])
@@ -29,7 +31,7 @@ def list_members(db: Session = Depends(get_db)):
     """
     members = db.query(User).filter(User.role == UserRole.member).all()
     coach_user_ids = {c.user_id for c in db.query(Coach.user_id).all()}
-    return [UserOut(**m.__dict__, is_coach=m.id in coach_user_ids) for m in members]
+    return [user_out(m, m.id in coach_user_ids) for m in members]
 
 
 @router.get("/{user_id}", response_model=UserOut)
@@ -43,20 +45,36 @@ def get_member(user_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=UserOut)
 def update_member(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
-    """對應「會員詳情」會員資料卡：目前僅可變更帳號，帳號須為系統內唯一值。"""
+    """對應「會員詳情」會員資料卡：帳號（系統內唯一）、姓名、手機；只更新有送出的欄位。"""
     member = db.get(User, user_id)
     if not member:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
 
-    username = payload.username.strip()
-    if not username:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號不可空白")
+    data = payload.model_dump(exclude_unset=True)
+    if "username" in data:
+        username = (data["username"] or "").strip()
+        if not username:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號不可空白")
+        taken = db.query(User).filter(User.username == username, User.id != user_id).first()
+        if taken:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號已被使用")
+        member.username = username
+    if "display_name" in data:
+        member.display_name = (data["display_name"] or "").strip() or None
+    if "phone" in data:
+        member.phone = normalize_phone(data["phone"]) if data["phone"] else None
+    db.commit()
+    db.refresh(member)
+    return _to_out(member, db)
 
-    taken = db.query(User).filter(User.username == username, User.id != user_id).first()
-    if taken:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="帳號已被使用")
 
-    member.username = username
+@router.post("/{user_id}/unlink-line", response_model=UserOut)
+def unlink_line(user_id: int, db: Session = Depends(get_db)):
+    """對應「會員詳情」LINE 綁定：解除後會員要重新在 LINE 裡加入或綁定。沒有密碼的會員解除後只能等管理員設定密碼。"""
+    member = db.get(User, user_id)
+    if not member:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
+    clear_line_link(member)
     db.commit()
     db.refresh(member)
     return _to_out(member, db)

@@ -8,6 +8,8 @@ class SystemSettingsBase(BaseModel):
     short_name: str | None = None
     logo_url: str | None = None
     cancel_deadline_hours: int = 12
+    # 付款方式說明（轉帳帳號等），會員下單後在「我的商品」看到
+    payment_instructions: str | None = None
 
 
 class SystemSettingsUpdate(BaseModel):
@@ -16,6 +18,7 @@ class SystemSettingsUpdate(BaseModel):
     logo_url: str | None = None
     # 開課前幾小時內取消不退堂；0＝不限制，上限一週
     cancel_deadline_hours: int | None = Field(default=None, ge=0, le=168)
+    payment_instructions: str | None = Field(default=None, max_length=500)
 
 
 class SystemSettingsOut(SystemSettingsBase):

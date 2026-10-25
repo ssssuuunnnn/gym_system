@@ -64,6 +64,8 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<你的密碼> docker compose up --build
 
 **LINE 通知店家**：有新的體驗課詢問、會員下單待收款、預約待審核時，用平台共用的 LINE 官方帳號通知老闆和員工。在 `.env` 設定 `LINE_CHANNEL_SECRET`、`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_BOT_BASIC_ID`，LINE Developers 的 Webhook 設為 `https://platform.<BASE_DOMAIN>/api/v1/line/webhook`；各健身房在「系統設定 › LINE 通知」掃 QR 碼、傳綁定碼加入接收人。沒設定時不發送。設計見 [`docs/adr/0004-line-notifications.md`](docs/adr/0004-line-notifications.md)。
 
+**LINE 會員入口**：健身房在「系統設定 › LINE 官方帳號」接上自己的 LINE 官方帳號（Messaging API＋同一個 Provider 的 LINE 登入與 LIFF，精靈會列出每一步），會員就能在 LINE 裡加入會員、預約課程、查詢預約與購買方案。金鑰加密保存，正式環境請設定 `DATA_ENCRYPTION_KEY`。設計見 [`docs/adr/0005-gym-line-oa.md`](docs/adr/0005-gym-line-oa.md)。
+
 **平台管理後台**（開通／停用健身房、各家使用概況、協助重設管理員密碼、操作紀錄）：`http://platform.localhost`。第一位平台管理員在啟動時建立：
 
 ```bash

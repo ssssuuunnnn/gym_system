@@ -38,12 +38,25 @@ class UserOut(BaseModel):
     last_login_at: datetime | None
     is_blacklisted: bool
     is_coach: bool = False
+    # 會員資料與 LINE 綁定（見 ADR 0005）
+    display_name: str | None = None
+    phone: str | None = None
+    has_password: bool = True
+    line_linked: bool = False
+    line_display_name: str | None = None
+    line_linked_at: datetime | None = None
+
+
+def user_out(user, is_coach: bool) -> UserOut:
+    return UserOut.model_validate(user).model_copy(update={"is_coach": is_coach})
 
 
 class UserUpdate(BaseModel):
-    """對應「會員詳情」會員資料卡的帳號欄位。帳號須為系統內唯一值。"""
+    """對應「會員詳情」會員資料卡：帳號（系統內唯一）、姓名、手機。"""
 
-    username: str
+    username: str | None = None
+    display_name: str | None = Field(default=None, max_length=50)
+    phone: str | None = Field(default=None, max_length=30)
 
 
 class UserBlacklistUpdate(BaseModel):

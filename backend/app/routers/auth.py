@@ -1,14 +1,13 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import hash_password, verify_password
+from app.services.members import issue_token
 from app.deps import get_db
 from app.deps import get_coach_profile, get_current_user
 from app.models.user import User, UserRole
-from app.schemas.user import ChangePassword, Token, UserOut, UserRegister
+from app.schemas.user import ChangePassword, Token, UserOut, UserRegister, user_out
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -28,7 +27,7 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return UserOut(**user.__dict__, is_coach=False)
+    return user_out(user, False)
 
 
 @router.post("/login", response_model=Token)
@@ -37,22 +36,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="帳號或密碼錯誤")
-    if user.is_blacklisted:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="帳號已被列入黑名單")
-
-    coach = get_coach_profile(user, db)
-    is_coach = coach is not None
-
-    user.last_login_at = datetime.utcnow()
+    token = issue_token(user, db)
     db.commit()
-
-    token = create_access_token(user_id=user.id, tenant_id=user.tenant_id, role=user.role.value, is_coach=is_coach)
-    return Token(
-        access_token=token,
-        role=user.role,
-        is_coach=is_coach,
-        must_change_password=user.must_change_password,
-    )
+    return token
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -72,4 +58,4 @@ def change_password(
 @router.get("/me", response_model=UserOut)
 def read_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     coach = get_coach_profile(current_user, db)
-    return UserOut(**current_user.__dict__, is_coach=coach is not None)
+    return user_out(current_user, coach is not None)
