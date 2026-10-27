@@ -1,4 +1,4 @@
-import { App, Popconfirm, theme } from 'antd';
+import { App, Popconfirm, Switch, theme } from 'antd';
 import {
   RightOutlined,
   ShoppingOutlined,
@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { getMyCoachProfile } from '../../api/coaches';
 import { getMe } from '../../api/users';
-import { lineUnlink } from '../../api/lineOa';
+import { lineUnlink, setLinePreferences } from '../../api/lineOa';
 import { apiErrorMessage } from '../../api/errors';
 import { useAuthStore } from '../../store/auth';
 import FrontPageHeader from '../../components/member/FrontPageHeader';
@@ -47,6 +47,14 @@ export default function Me({ mode }: MeProps) {
     mutationFn: lineUnlink,
     onSuccess: () => {
       message.success('已解除 LINE 綁定');
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+    onError: (err) => message.error(apiErrorMessage(err)),
+  });
+  const notifyMutation = useMutation({
+    mutationFn: setLinePreferences,
+    onSuccess: (_res, on) => {
+      message.success(on ? '已開啟 LINE 通知' : '已關閉 LINE 通知');
       queryClient.invalidateQueries({ queryKey: ['me'] });
     },
     onError: (err) => message.error(apiErrorMessage(err)),
@@ -165,6 +173,21 @@ export default function Me({ mode }: MeProps) {
               </button>
             </Popconfirm>
           )}
+        </FrontCard>
+      )}
+
+      {me?.line_linked && (
+        <FrontCard style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <label htmlFor="line-notify" style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+            LINE 通知
+            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>預約結果、上課提醒、收款確認</span>
+          </label>
+          <Switch
+            id="line-notify"
+            checked={me.line_notify}
+            loading={notifyMutation.isPending}
+            onChange={(on) => notifyMutation.mutate(on)}
+          />
         </FrontCard>
       )}
 

@@ -16,6 +16,8 @@ export interface Member {
   line_linked: boolean;
   line_display_name: string | null;
   line_linked_at: string | null;
+  /** 會員是否接收健身房官方帳號的通知 */
+  line_notify: boolean;
 }
 
 export async function listMembers() {

@@ -18,7 +18,17 @@ from app.deps import get_db, get_tenant, require_admin
 from app.models.line_oa import LineOaChannel
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.schemas.line_oa import LineOaOut, LineOaPublic, LineOaUpdate, LineOaVerifyOut
+from app.models.line_oa import LineMemberMessage
+from app.schemas.line_oa import (
+    LineMemberMessageOut,
+    LineOaNotifyUpdate,
+    LineOaOut,
+    LineOaPublic,
+    LineOaQuota,
+    LineOaUpdate,
+    LineOaVerifyOut,
+)
+from app.services import line_member
 from app.services import line_oa as oa
 from app.services.line import LineApiError
 
@@ -55,6 +65,13 @@ def _to_out(db: Session, tenant: TenantInfo, channel: LineOaChannel | None) -> L
         last_error=channel.last_error,
         updated_by_name=channel.updated_by_name,
         updated_at=channel.updated_at,
+        notify_booking_result=channel.notify_booking_result,
+        notify_booking_cancel=channel.notify_booking_cancel,
+        notify_payment_confirmed=channel.notify_payment_confirmed,
+        notify_class_reminder=channel.notify_class_reminder,
+        reminder_hour=channel.reminder_hour,
+        member_monthly_cap=channel.member_monthly_cap,
+        member_sent_this_month=line_member.sent_this_month(db),
         liff_url=oa.liff_url(channel.liff_id) if channel.is_enabled else None,
         add_friend_url=oa.add_friend_url(channel.bot_basic_id) if channel.is_enabled else None,
         **base,
@@ -127,6 +144,61 @@ def disable(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_
     db.commit()
     db.refresh(channel)
     return _to_out(db, tenant, channel)
+
+
+@router.patch("/notifications", response_model=LineOaOut, dependencies=[Depends(require_admin)])
+def update_notifications(
+    payload: LineOaNotifyUpdate, tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)
+):
+    """會員通知：逐項開關、上課提醒時間、每月上限。立即生效，不需重新檢查連線。"""
+    channel = _require_channel(db)
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        if field == "reminder_hour" and value is None:
+            continue
+        setattr(channel, field, value)
+    db.commit()
+    db.refresh(channel)
+    return _to_out(db, tenant, channel)
+
+
+@router.get("/quota", response_model=LineOaQuota, dependencies=[Depends(require_admin)])
+def quota(db: Session = Depends(get_db)):
+    """向 LINE 查詢官方帳號本月的訊息額度與已用量（含其他工具發的訊息）。"""
+    channel = _require_channel(db)
+    client = oa.client_for(channel)
+    if client is None:
+        return LineOaQuota(error="金鑰無法解密，請重新設定")
+    try:
+        q = client.get_quota()
+        used = client.get_quota_consumption().get("totalUsage")
+    except LineApiError as exc:
+        return LineOaQuota(error=f"無法向 LINE 查詢額度：{exc.message}")
+    limited = q.get("type") == "limited"
+    return LineOaQuota(limited=limited, limit=q.get("value") if limited else None, used=used)
+
+
+@router.get("/messages", response_model=list[LineMemberMessageOut], dependencies=[Depends(require_admin)])
+def list_messages(limit: int = 30, db: Session = Depends(get_db)):
+    """最近的會員通知紀錄（不含訊息內容）。"""
+    rows = (
+        db.query(LineMemberMessage, User)
+        .join(User, User.id == LineMemberMessage.user_id)
+        .order_by(LineMemberMessage.id.desc())
+        .limit(max(1, min(limit, 200)))
+        .all()
+    )
+    return [
+        LineMemberMessageOut(
+            id=m.id,
+            event=m.event.value,
+            member_name=u.display_name or u.username,
+            status=m.status.value,
+            note=m.note,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+        )
+        for m, u in rows
+    ]
 
 
 @router.get("/public", response_model=LineOaPublic)

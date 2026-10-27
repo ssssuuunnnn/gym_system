@@ -261,6 +261,27 @@
 - **實作**：`routers/line_auth.py` 的 `line_link`／`line_unlink`、`routers/users.py` 的 `unlink_line`
 - **測試**：`test_link_existing_account`、`test_unlink`
 
+### R28. 會員通知只在「別人替會員做了事」時發
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：從健身房官方帳號推播給會員的只有：預約審核結果、櫃台代為預約、櫃台取消（寫明是否退堂）、確認收款（寫明入帳堂數）、前一天的上課提醒。會員自己送出、取消、下單不發。只發給已綁定 LINE 且沒關閉通知的會員；健身房可逐項關閉。
+- **實作**：`services/line_member.py`，呼叫點在 `routers/reservations.py`（create／review／cancel）、`routers/purchases.py`（confirm-payment）
+- **測試**：`test_review_results`、`test_admin_booking_and_cancel`、`test_cancel_shows_refund`、`test_payment_confirmed`、`test_switches_optout_and_unlinked`
+
+### R29. 上課提醒：前一天設定時段內一則，同一天合併
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：健身房設定前一天幾點提醒（預設 20:00，可選 06–22 點），系統只在該整點起 2 小時內產生；同一位會員明天的所有已確認課程合成一則，每人每天最多一則。
+- **實作**：`services/line_member.enqueue_reminders`（`REMINDER_WINDOW_HOURS`）
+- **測試**：`test_class_reminders`、`test_reminder_hour_setting`
+
+### R30. 會員通知的上限與失敗
+
+- **確認日期**：2026-10-25
+- **規則**：健身房可設每月上限（留空＝不限制），達到後當月不再推播（記為超過上限）。LINE 暫時無回應時 1、5、30 分鐘後重試；LINE 方案額度用完直接記為失敗。發送前若會員已解除綁定或關閉通知則不發。訊息送完清除內容，後台紀錄只有時間、會員、事件與結果。
+- **實作**：`services/line_member._process`、`routers/line_oa.py` 的 `/messages`
+- **測試**：`test_monthly_cap`、`test_retry_and_quota_exhausted`、`test_unlinked_after_enqueue_is_skipped`、`test_settings_validation_log_and_quota`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -285,5 +306,5 @@
 - 待付款訂單是否逾時自動取消
 - 方案效期：購買紀錄是否有到期日、過期堂數如何處理
 - 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email 通知
-- LINE 通知：從健身房自己的官方帳號通知會員（預約結果、上課提醒、收款）、超過平台方案額度的費用分攤
+- LINE 通知：超過平台方案額度的費用分攤
 - 線上付款（信用卡、LINE Pay）

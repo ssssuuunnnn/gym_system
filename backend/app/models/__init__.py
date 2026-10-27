@@ -39,4 +39,4 @@ from app.models.line import (  # noqa: F401,E402
     LineNotificationStatus,
     LineRecipient,
 )
-from app.models.line_oa import LineOaChannel  # noqa: F401,E402
+from app.models.line_oa import LineMemberEvent, LineMemberMessage, LineOaChannel  # noqa: F401,E402

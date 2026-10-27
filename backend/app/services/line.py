@@ -166,8 +166,10 @@ def _admin_url(path: str) -> str:
     return f"{settings.PUBLIC_SCHEME}://{host}{path}"
 
 
-def build_card(gym_name: str, title: str, rows: list[tuple[str, str]], button_label: str, path: str) -> dict:
-    """Flex 訊息卡片：健身房名稱、標題、幾行資訊、一顆進後台的按鈕。"""
+def build_card(
+    gym_name: str, title: str, rows: list[tuple[str, str]], button_label: str, path: str, *, uri: str | None = None
+) -> dict:
+    """Flex 訊息卡片：健身房名稱、標題、幾行資訊、一顆按鈕（預設進後台的 path；給 uri 時直接用，例如會員的 LIFF 頁面）。"""
     return {
         "type": "flex",
         "altText": f"【{gym_name}】{title}",
@@ -207,7 +209,7 @@ def build_card(gym_name: str, title: str, rows: list[tuple[str, str]], button_la
                         "type": "button",
                         "style": "primary",
                         "color": "#1677FF",
-                        "action": {"type": "uri", "label": button_label, "uri": _admin_url(path)},
+                        "action": {"type": "uri", "label": button_label, "uri": uri or _admin_url(path)},
                     }
                 ],
             },
@@ -432,6 +434,13 @@ def start_dispatch_loop() -> threading.Event | None:
                 dispatch_all_due()
             except Exception:  # 不讓背景執行緒因為一次錯誤就停止
                 logger.exception("LINE 通知背景重試失敗")
+            try:
+                # 健身房官方帳號推播給會員：上課提醒與重試（ADR 0005 第二階段）
+                from app.services import line_member
+
+                line_member.run_due()
+            except Exception:
+                logger.exception("會員 LINE 通知背景工作失敗")
 
     threading.Thread(target=loop, name="line-dispatch", daemon=True).start()
     return stop

@@ -5,6 +5,7 @@ import { disableLineOa, getLineOa, verifyLineOa, type LineOaCheck, type LineOaSe
 import { apiErrorMessage } from '../../../../api/errors';
 import { formatServerTime } from '../../../../lib/datetime';
 import { CheckList, LineOaWizard } from './LineOaWizard';
+import { LineMemberNotifyPanel } from './LineMemberNotifyPanel';
 
 const QUERY_KEY = ['line-oa'];
 const { Text, Paragraph } = Typography;
@@ -144,6 +145,8 @@ export function LineOaCard() {
                 </div>
               )}
             </div>
+
+            <LineMemberNotifyPanel settings={data} />
 
             {data.enabled && (
               <div>

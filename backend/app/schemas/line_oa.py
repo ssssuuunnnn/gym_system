@@ -30,6 +30,14 @@ class LineOaOut(BaseModel):
     liff_url: str | None = None
     add_friend_url: str | None = None
     linked_members: int = 0
+    # 會員通知（第二階段）
+    notify_booking_result: bool = True
+    notify_booking_cancel: bool = True
+    notify_payment_confirmed: bool = True
+    notify_class_reminder: bool = True
+    reminder_hour: int = 20
+    member_monthly_cap: int | None = None
+    member_sent_this_month: int = 0
 
 
 class LineOaUpdate(BaseModel):
@@ -90,3 +98,37 @@ class LineLinkIn(BaseModel):
     link_token: str
     username: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=1, max_length=200)
+
+
+class LineOaNotifyUpdate(BaseModel):
+    """會員通知設定：只更新有送出的欄位；member_monthly_cap 送 null 表示不限制。"""
+
+    notify_booking_result: bool | None = None
+    notify_booking_cancel: bool | None = None
+    notify_payment_confirmed: bool | None = None
+    notify_class_reminder: bool | None = None
+    reminder_hour: int | None = Field(default=None, ge=6, le=22)
+    member_monthly_cap: int | None = Field(default=None, ge=0, le=1000000)
+
+
+class LineOaQuota(BaseModel):
+    """LINE 官方帳號本月訊息額度（來自 LINE；讀不到時 error 有說明）。"""
+
+    limited: bool | None = None
+    limit: int | None = None
+    used: int | None = None
+    error: str | None = None
+
+
+class LineMemberMessageOut(BaseModel):
+    id: int
+    event: str
+    member_name: str
+    status: str
+    note: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LinePreferences(BaseModel):
+    line_notify: bool
