@@ -8,7 +8,7 @@ RUN npm ci
 COPY . .
 
 # 容器化部署預設走相對路徑 /api/v1，由 nginx 反向代理到 backend service，
-# 避免瀏覽器端跨網域 CORS 問題。本機 `npm run dev` 用的絕對網址設定見 .env.example。
+# 避免瀏覽器端跨網域 CORS 問題，也保留 Host 讓後端依子網域判斷健身房／平台。
 ARG VITE_API_BASE_URL=/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 

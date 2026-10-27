@@ -1,15 +1,17 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, SmallInteger, String
+from sqlalchemy import DateTime, SmallInteger, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
-class SystemSettings(Base):
-    """系統設定：全站僅一筆（singleton），無外鍵。對應「系統設定 → 基本資料」畫面。"""
+class SystemSettings(TenantMixin, Base):
+    """系統設定：每個租戶一筆。對應「系統設定 → 基本資料」畫面。"""
 
     __tablename__ = "system_settings"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_system_settings_tenant"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     company_name: Mapped[str] = mapped_column(String(100), nullable=False)

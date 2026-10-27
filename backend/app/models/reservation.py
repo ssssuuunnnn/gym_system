@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, SmallInteger, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class ReservationStatus(str, enum.Enum):
@@ -24,7 +25,7 @@ class ReservationSource(str, enum.Enum):
     admin_created = "admin_created"
 
 
-class Reservation(Base):
+class Reservation(TenantMixin, Base):
     """
     預約。容量檢查以所屬課程的每堂容量（course.max_capacity）為上限，由查詢邏輯即時計算，不另建計數表。
     source=admin_created 的預約寫入前同樣須檢查 time_slots.is_open，關閉時段不可建立。
@@ -71,7 +72,7 @@ class Reservation(Base):
     addons: Mapped[list["ReservationAddon"]] = relationship("ReservationAddon", back_populates="reservation")
 
 
-class ReservationAddon(Base):
+class ReservationAddon(TenantMixin, Base):
     """加購臨時加人：送出預約申請後另開的加購步驟，僅教練身份會員可產生。"""
 
     __tablename__ = "reservation_addons"

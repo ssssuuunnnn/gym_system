@@ -1,18 +1,18 @@
 ---
 name: layout-conventions
-description: Durable rules for this repo's two layout shells — the admin back office (frontend/src/components/AppLayout.tsx — fixed/sticky header with scroll-triggered backdrop-blur "frosted glass" treatment, user-collapsible left sidebar/menu with icon-only collapsed state, and design-token usage) and the member/coach front end (frontend/src/components/member/MemberLayout.tsx — mobile-first column, bottom tab bar, per-mode theme). TRIGGER — use whenever building or adjusting AppLayout.tsx or MemberLayout.tsx, any admin or member page's structure/chrome, the header, the sidebar/Sider/Menu, collapse/toggle behavior, or anything visually derived from the PulseFit design handoff in gym-system-design/. Also use when asked to align the app's layout/header/sidebar with the design guideline or the Claude Design prototype.
+description: Durable rules for this repo's two layout shells — the back office (frontend/src/components/BackOfficeShell.tsx, configured by AppLayout.tsx for gym admins and platform/PlatformLayout.tsx for the platform console — fixed/sticky header with scroll-triggered backdrop-blur "frosted glass" treatment, user-collapsible left sidebar/menu with icon-only collapsed state, and design-token usage) and the member/coach front end (frontend/src/components/member/MemberLayout.tsx — mobile-first column, bottom tab bar, per-mode theme). TRIGGER — use whenever building or adjusting BackOfficeShell.tsx, AppLayout.tsx, PlatformLayout.tsx or MemberLayout.tsx, any admin, platform or member page's structure/chrome, the header, the sidebar/Sider/Menu, collapse/toggle behavior, or anything visually derived from the PulseFit design handoff in gym-system-design/. Also use when asked to align the app's layout/header/sidebar with the design guideline or the Claude Design prototype.
 ---
 
 # Layout conventions
 
 This repo has **exactly two** layout shells — don't add a third for a role or a page:
 
-- **後台 `frontend/src/components/AppLayout.tsx`** — admins only (`/admin/*`). Desktop back office: sticky header + collapsible sidebar. The rest of this file (header, sidebar, tokens) is about this shell.
+- **後台 `frontend/src/components/BackOfficeShell.tsx`** — the desktop back office: sticky header + collapsible sidebar + sticky page action bar. It takes `menuItems` / `brandName` / `brandLogoUrl` / `userLabel` / `headerExtra` / `onLogout` and is configured by two thin wrappers: `AppLayout.tsx` (gym admins, `/admin/*`, brand from 系統設定) and `platform/PlatformLayout.tsx` (platform console on `platform.<BASE_DOMAIN>`, ADR 0002). A new back-office surface gets a new thin wrapper, never a copy of the shell. The rest of this file (header, sidebar, tokens) is about this shell.
 - **前台 `frontend/src/components/member/MemberLayout.tsx`** — members and coaches (`/member/*` with `mode="member"`, `/coach/*` with `mode="coach"`). See "Front-end shell" at the end.
 
 Members and coaches use their phones, so the front end is a separate, mobile-first shell rather than the admin sidebar layout restyled (decided 2026-10-24 with a Claude Design mockup, 「健身工作室前台設計稿」).
 
-These are standing rules for this shell, not a record of a past change. Apply them any time you touch `AppLayout.tsx` or add a page that needs to fit inside it.
+These are standing rules for this shell, not a record of a past change. Apply them any time you touch `BackOfficeShell.tsx` / `AppLayout.tsx` / `PlatformLayout.tsx` or add a page that needs to fit inside them.
 
 ## Header: fixed + scroll-triggered frosted glass
 

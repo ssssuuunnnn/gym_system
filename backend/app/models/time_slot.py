@@ -4,16 +4,17 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, SmallInteger, Unique
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
-class TimeSlot(Base):
+class TimeSlot(TenantMixin, Base):
     """
     時段開放設定：唯一資料來源。預約審核列表／詳情、送出預約申請（含管理員建立預約）皆讀取同一張表。
     綁定特定日期（日期＋整點小時），各日期獨立，不套用到其他週。查無紀錄視為預設開放。
     """
 
     __tablename__ = "time_slots"
-    __table_args__ = (UniqueConstraint("slot_date", "start_hour", name="uq_time_slots_date_hour"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "slot_date", "start_hour", name="uq_time_slots_tenant_date_hour"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     slot_date: Mapped[date] = mapped_column(Date, nullable=False, comment="綁定日期")

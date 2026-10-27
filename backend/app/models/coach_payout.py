@@ -5,6 +5,7 @@ from sqlalchemy import Date, DateTime, Enum, ForeignKey, Numeric, SmallInteger, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.tenant import TenantMixin
 
 
 class PayoutStatus(str, enum.Enum):
@@ -17,7 +18,7 @@ class PayoutItemKind(str, enum.Enum):
     group = "團體課"
 
 
-class CoachPayout(Base):
+class CoachPayout(TenantMixin, Base):
     """
     教練月結（R11–R14）：結算當下把該月的堂數、費率、金額與明細存成快照並鎖定，
     之後修改出席紀錄或教練費率都不影響已結算金額。已結算尚未撥款時可取消結算重算。
@@ -49,7 +50,7 @@ class CoachPayout(Base):
     )
 
 
-class CoachPayoutItem(Base):
+class CoachPayoutItem(TenantMixin, Base):
     """月結明細：一列＝一堂計費課（私人課＝一筆預約；團體課＝同課程同日同時段算一堂）。"""
 
     __tablename__ = "coach_payout_items"

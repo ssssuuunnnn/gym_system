@@ -8,7 +8,8 @@ from app.db.session import Base
 from app.models import *  # noqa: F401,F403  # 確保所有 Model 被載入以供 autogenerate
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# migration 以資料表擁有者（fitness_owner）身份執行；應用程式帳號沒有 DDL 權限（見 ADR 0001）
+config.set_main_option("sqlalchemy.url", settings.MIGRATION_DATABASE_URL.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.deps import get_db
 from app.deps import get_coach_profile, get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
