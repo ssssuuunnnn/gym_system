@@ -1,0 +1,284 @@
+{#- 形象網站「活力」版型（見 docs/adr/0003-gym-website.md）。只用 render_site() 給的公開資料；autoescape 開啟。 -#}
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+{% if description %}<meta name="description" content="{{ description }}">{% endif %}
+{% if preview %}<meta name="robots" content="noindex, nofollow">{% else %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ full_name }}">
+<meta property="og:title" content="{{ title }}">
+{% if description %}<meta property="og:description" content="{{ description }}">{% endif %}
+<meta property="og:url" content="{{ canonical }}">
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+<meta name="twitter:card" content="{{ 'summary_large_image' if og_image else 'summary' }}">
+<meta name="theme-color" content="#15181d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="/site/static/site.css?v=2">
+<style>:root { --accent: {{ accent }}; --accent-light: {{ accent_light }}; }</style>
+<script type="application/ld+json">{{ json_ld | safe }}</script>
+</head>
+<body>
+{% if preview %}<div class="preview-banner" role="status">預覽（草稿）・訪客看不到，按「發布到網站」後才會上線</div>{% endif %}
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="#top">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="" width="36" height="36">{% else %}<span class="brand-mark" aria-hidden="true">{{ company_name[:1] }}</span>{% endif %}
+      <span>{{ full_name }}</span>
+    </a>
+    {#- 桌機與手機各一份選單（只會顯示其中一份）：收合的 <details> 在瀏覽器裡一定隱藏內容，不能拿來當桌機選單 -#}
+    <nav aria-label="主選單" class="nav nav-desktop">
+      {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+      <a href="/login" class="nav-login">會員登入</a>
+      {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+    </nav>
+    <details class="menu">
+      <summary aria-label="選單"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+      <nav aria-label="主選單" class="nav nav-mobile">
+        {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+        <a href="/login" class="nav-login">會員登入</a>
+        {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+      </nav>
+    </details>
+  </div>
+</header>
+
+<main id="main">
+{% for key in sections %}
+
+{% if key == 'hero' %}
+<section id="top" class="dark">
+  <div class="wrap hero">
+    <div class="hero-text">
+      {% if c.hero.eyebrow %}<span class="eyebrow on-dark">{{ c.hero.eyebrow }}</span>{% endif %}
+      <h1>{{ c.hero.tagline or full_name }}</h1>
+      {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
+      <div class="actions">
+        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+        {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
+      </div>
+    </div>
+    {% if c.hero.image_url %}<img class="hero-img" src="{{ c.hero.image_url }}" alt="" width="1200" height="840" fetchpriority="high">{% endif %}
+  </div>
+</section>
+
+{% elif key == 'about' %}
+<section id="about" class="wrap section about">
+  <div class="about-head">
+    <span class="eyebrow">ABOUT</span>
+    <h2>{{ c.about.title }}</h2>
+  </div>
+  <div class="about-body">
+    {% if c.about.text %}<p class="prose">{{ c.about.text }}</p>{% endif %}
+    {% if c.about.features %}
+    <ul class="features">
+      {% for f in c.about.features %}<li><strong>{{ f.title }}</strong>{% if f.text %}<span>{{ f.text }}</span>{% endif %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</section>
+
+{% elif key == 'schedule' %}
+<section id="schedule" class="tint">
+  <div class="wrap section">
+    <span class="eyebrow">SCHEDULE</span>
+    <h2>{{ c.schedule.title }}</h2>
+    <p class="muted">{{ schedule_days[0].date }}（{{ schedule_days[0].label[1:] }}）～ {{ schedule_days[-1].date }}（{{ schedule_days[-1].label[1:] }}）</p>
+    <div class="week">
+      {% for d in schedule_days %}
+      <div class="day{% if not d.classes %} day-empty{% endif %}">
+        <h3 class="day-head"><span>{{ d.label }}{% if d.is_today %}<span class="today">今天</span>{% endif %}</span><span class="num">{{ d.date }}</span></h3>
+        {% for k in d.classes %}
+        <div class="class-card">
+          <span class="num time">{{ k.time }}</span>
+          <span class="class-name">{{ k.name }}</span>
+          <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分鐘</span>
+          {% if k.seats %}<span class="small seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
+        </div>
+        {% else %}
+        <p class="no-class small muted">本日無團體課</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <p>會員<a href="/login">登入</a>後可直接預約{% if 'trial' in sections %}；還不是會員？<a href="#trial"><strong>先預約一堂體驗課</strong></a>{% endif %}</p>
+  </div>
+</section>
+
+{% elif key == 'coaches' %}
+<section id="coaches" class="wrap section">
+  <span class="eyebrow">COACHES</span>
+  <h2>{{ c.coaches.title }}</h2>
+  <div class="coach-grid">
+    {% for co in coaches %}
+    <article class="coach">
+      {% if co.photo_url %}<img src="{{ co.photo_url }}" alt="{{ co.name }}" loading="lazy" width="400" height="500">{% else %}<span class="coach-photo-empty" aria-hidden="true">{{ co.name[:1] }}</span>{% endif %}
+      <h3>{{ co.name }}</h3>
+      {% if co.specialty %}<p class="specialty">{{ co.specialty }}</p>{% endif %}
+      {% if co.bio %}<p class="muted">{{ co.bio }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'pricing' %}
+<section id="pricing" class="dark">
+  <div class="wrap section">
+    <span class="eyebrow on-dark">PRICING</span>
+    <h2>{{ c.pricing.title }}</h2>
+    <div class="plans">
+      {% for p in plans %}
+      <div class="plan{% if loop.index == 2 and plans|length >= 3 %} plan-featured{% endif %}">
+        {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+        <h3>{{ p.name }}</h3>
+        <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
+        {% if p.description %}<p class="plan-desc">{{ p.description }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if c.pricing.note %}<p class="small on-dark-muted">{{ c.pricing.note }}</p>{% endif %}
+  </div>
+</section>
+
+{% elif key == 'gallery' %}
+<section id="gallery" class="wrap section">
+  <span class="eyebrow">SPACE</span>
+  <h2>{{ c.gallery.title }}</h2>
+  <div class="gallery">
+    {% for img in c.gallery.images %}
+    <figure{% if loop.first %} class="gallery-main"{% endif %}>
+      <img src="{{ img.url }}" alt="{{ img.caption }}" loading="lazy">
+      {% if img.caption %}<figcaption>{{ img.caption }}</figcaption>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'faq' %}
+<section id="faq" class="tint">
+  <div class="wrap narrow section">
+    <span class="eyebrow">FAQ</span>
+    <h2>{{ c.faq.title }}</h2>
+    <div class="faq">
+      {% for item in c.faq.items %}
+      <details{% if loop.first %} open{% endif %}>
+        <summary>{{ item.q }}</summary>
+        <p>{{ item.a }}</p>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% elif key == 'trial' %}
+<section id="trial" class="wrap section trial">
+  <span class="eyebrow">FREE TRIAL</span>
+  <h2>{{ c.trial.title }}</h2>
+  {% if form.sent %}
+  <div class="notice" role="status">
+    <strong>已收到你的預約！</strong>
+    <p>我們會盡快以電話或 LINE 與你聯繫。</p>
+    {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">加入官方 LINE</a>{% endif %}
+  </div>
+  {% else %}
+  {% if c.trial.intro %}<p class="muted">{{ c.trial.intro }}</p>{% endif %}
+  {% if form.errors.form %}<p class="form-error" role="alert">{{ form.errors.form }}</p>{% endif %}
+  {% if preview %}<p class="small muted">預覽模式：表單不會送出。</p>{% endif %}
+  <form class="trial-form" method="post" action="{{ '#' if preview else '/site/inquiry' }}" novalidate>
+    <label>姓名
+      <input name="name" type="text" autocomplete="name" required maxlength="50" value="{{ form.values.name }}"{% if form.errors.name %} aria-invalid="true" aria-describedby="err-name"{% endif %}>
+      {% if form.errors.name %}<span class="field-error" id="err-name">{{ form.errors.name }}</span>{% endif %}
+    </label>
+    <label>手機
+      <input name="phone" type="tel" autocomplete="tel" required maxlength="30" value="{{ form.values.phone }}"{% if form.errors.phone %} aria-invalid="true" aria-describedby="err-phone"{% endif %}>
+      {% if form.errors.phone %}<span class="field-error" id="err-phone">{{ form.errors.phone }}</span>{% endif %}
+    </label>
+    <label>LINE ID（選填）
+      <input name="line_id" type="text" maxlength="50" value="{{ form.values.line_id }}">
+    </label>
+    <label>想體驗
+      <select name="interest">
+        {% for opt in c.trial.interests %}<option{% if form.values.interest == opt %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>方便的時段
+      <select name="slot">
+        {% for opt in c.trial.slots %}<option{% if form.values.slot == opt %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>想對教練說的（選填）
+      <input name="message" type="text" maxlength="500" placeholder="例如：想改善肩頸、準備路跑" value="{{ form.values.message }}">
+    </label>
+    <label class="hp" aria-hidden="true">請勿填寫<input name="{{ honeypot }}" type="text" tabindex="-1" autocomplete="off"></label>
+    <div class="consent">
+      <label class="check"><input name="consent" type="checkbox" required{% if form.errors.consent %} aria-invalid="true" aria-describedby="err-consent"{% endif %}>
+        <span>我已閱讀並同意下方的個人資料蒐集告知事項，同意 {{ full_name }} 使用以上資料聯繫我安排體驗課。</span>
+      </label>
+      {% if form.errors.consent %}<span class="field-error" id="err-consent">{{ form.errors.consent }}</span>{% endif %}
+      {% if c.trial.privacy_notice %}
+      <details class="privacy"><summary>個人資料蒐集告知事項</summary><p>{{ c.trial.privacy_notice }}</p></details>
+      {% endif %}
+    </div>
+    <button class="btn btn-accent btn-lg" type="submit"{% if preview %} disabled{% endif %}>送出預約</button>
+  </form>
+  {% endif %}
+</section>
+
+{% elif key == 'contact' %}
+<section id="contact" class="tint">
+  <div class="wrap section contact">
+    <div>
+      <span class="eyebrow">CONTACT</span>
+      <h2>{{ c.contact.title }}</h2>
+      <dl class="info">
+        {% if c.contact.address %}<dt>地址</dt><dd>{{ c.contact.address }}<br><a href="https://www.google.com/maps/search/?api=1&query={{ c.contact.address | urlencode }}" rel="noopener" target="_blank">在 Google 地圖開啟</a></dd>{% endif %}
+        {% if c.contact.transport %}<dt>交通</dt><dd>{{ c.contact.transport }}</dd>{% endif %}
+        {% if c.contact.hours %}<dt>營業時間</dt><dd class="pre">{{ c.contact.hours }}</dd>{% endif %}
+        {% if c.contact.phone %}<dt>電話</dt><dd><a href="tel:{{ c.contact.phone | replace(' ', '') }}">{{ c.contact.phone }}</a></dd>{% endif %}
+      </dl>
+      {% if line_url or instagram_url or facebook_url %}
+      <div class="social">
+        {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">加入官方 LINE</a>{% endif %}
+        {% if instagram_url %}<a class="btn btn-outline" href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
+        {% if facebook_url %}<a class="btn btn-outline" href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% if c.contact.address %}
+    <iframe class="map" title="{{ full_name }} 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q={{ c.contact.address | urlencode }}&output=embed"></iframe>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% endfor %}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <span>© {{ year }} {{ full_name }}</span>
+    <nav aria-label="頁尾連結" class="footer-links">
+      <a href="/login">會員登入</a>
+      <a href="/register">加入會員</a>
+      {% if line_url %}<a href="{{ line_url }}" rel="noopener" target="_blank">LINE</a>{% endif %}
+      {% if instagram_url %}<a href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
+      {% if facebook_url %}<a href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
+    </nav>
+  </div>
+</footer>
+
+{% if 'trial' in sections and not form.sent %}
+<div class="mobile-cta">
+  {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
+  <a class="btn btn-accent" href="#trial">預約體驗課</a>
+</div>
+{% endif %}
+</body>
+</html>

@@ -60,6 +60,8 @@ docker compose up --build
 ADMIN_USERNAME=admin ADMIN_PASSWORD=<你的密碼> docker compose up --build
 ```
 
+**形象網站**：每家健身房的首頁（例如 `http://alpha.localhost`）是後端產生的形象網站，在後台「形象網站」編輯、預覽、發布；訪客預約體驗課的資料進到「詢問名單」。未發布時首頁直接是登入頁。設計見 [`docs/adr/0003-gym-website.md`](docs/adr/0003-gym-website.md)。
+
 **平台管理後台**（開通／停用健身房、各家使用概況、協助重設管理員密碼、操作紀錄）：`http://platform.localhost`。第一位平台管理員在啟動時建立：
 
 ```bash

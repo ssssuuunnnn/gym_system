@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.media import save_tenant_media
 from app.deps import get_db
+from app.services.schedule import group_sessions
 from app.deps import get_current_user, require_admin
 from app.models.coach import Coach
 from app.models.course import (
@@ -167,55 +168,25 @@ def list_schedule(
     if (end - start).days >= SCHEDULE_MAX_DAYS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"一次最多查詢 {SCHEDULE_MAX_DAYS} 天")
 
-    rows = (
-        db.query(CourseSession, Course, Coach)
-        .join(Course, CourseSession.course_id == Course.id)
-        .join(Coach, Course.coach_id == Coach.id)
-        .filter(
-            Course.status == CourseStatus.on,
-            Course.is_archived.is_(False),
-            CourseSession.is_cancelled.is_(False),
-            CourseSession.session_date >= start,
-            CourseSession.session_date <= end,
-        )
-        .order_by(CourseSession.session_date, CourseSession.start_minute, Course.id)
-        .all()
-    )
-    active = (ReservationStatus.pending, ReservationStatus.confirmed)
-    reservations = (
-        db.query(Reservation)
-        .filter(
-            Reservation.course_id.isnot(None),
-            Reservation.booking_date >= start,
-            Reservation.booking_date <= end,
-            Reservation.status.in_(active),
-        )
-        .all()
-    )
-    booked: dict[tuple, int] = {}
-    mine: dict[tuple, Reservation] = {}
-    for r in reservations:
-        key = (r.course_id, r.booking_date, r.start_hour)
-        booked[key] = booked.get(key, 0) + r.people_count
-        if r.member_id == current_user.id:
-            mine[key] = r
-
+    sessions, reservations = group_sessions(db, start, end)
+    mine: dict[tuple, Reservation] = {
+        (r.course_id, r.booking_date, r.start_hour): r for r in reservations if r.member_id == current_user.id
+    }
     result = []
-    for session, course, coach in rows:
-        key = (course.id, session.session_date, session.start_minute // 60)
-        my = mine.get(key)
+    for gs in sessions:
+        my = mine.get(gs.key)
         result.append(
             ScheduleSessionOut(
-                course_id=course.id,
-                course_name=course.name,
-                cover_image_url=course.cover_image_url,
-                coach_id=coach.id,
-                coach_name=coach.alias or coach.name,
-                session_date=session.session_date,
-                start_minute=session.start_minute,
-                duration_minutes=session.duration_minutes,
-                max_capacity=course.max_capacity,
-                booked_count=booked.get(key, 0),
+                course_id=gs.course.id,
+                course_name=gs.course.name,
+                cover_image_url=gs.course.cover_image_url,
+                coach_id=gs.coach.id,
+                coach_name=gs.coach.alias or gs.coach.name,
+                session_date=gs.session.session_date,
+                start_minute=gs.session.start_minute,
+                duration_minutes=gs.session.duration_minutes,
+                max_capacity=gs.course.max_capacity,
+                booked_count=gs.booked_count,
                 my_reservation_id=my.id if my else None,
                 my_reservation_status=my.status if my else None,
             )

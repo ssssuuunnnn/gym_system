@@ -42,6 +42,20 @@ def create_platform_token(*, admin_id: int) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+SITE_PREVIEW_SCOPE = "site_preview"
+SITE_PREVIEW_EXPIRE_MINUTES = 30
+
+
+def create_site_preview_token(*, tenant_id: int) -> str:
+    """
+    形象網站草稿預覽用的短效 token（放在 iframe 網址上，所以不能用登入 token）：
+    只能看該家的草稿，不能呼叫任何 API（get_current_user 拒絕帶 scope 的 token）。
+    """
+    expire = datetime.now(timezone.utc) + timedelta(minutes=SITE_PREVIEW_EXPIRE_MINUTES)
+    payload = {"tid": tenant_id, "scope": SITE_PREVIEW_SCOPE, "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def decode_access_token(token: str) -> dict | None:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
