@@ -58,6 +58,9 @@ class OaClient(Protocol):
     def set_default_rich_menu(self, rich_menu_id: str) -> None: ...
     def delete_rich_menu(self, rich_menu_id: str) -> None: ...
     def reply(self, reply_token: str, messages: list[dict]) -> None: ...
+    def push(self, to: str, messages: list[dict]) -> None: ...
+    def get_quota(self) -> dict: ...
+    def get_quota_consumption(self) -> dict: ...
 
 
 class HttpOaClient:
@@ -107,6 +110,15 @@ class HttpOaClient:
     def reply(self, reply_token: str, messages: list[dict]) -> None:
         self._request("POST", f"{API_BASE}/v2/bot/message/reply",
                       json={"replyToken": reply_token, "messages": messages})
+
+    def push(self, to: str, messages: list[dict]) -> None:
+        self._request("POST", f"{API_BASE}/v2/bot/message/push", json={"to": to, "messages": messages})
+
+    def get_quota(self) -> dict:
+        return self._request("GET", f"{API_BASE}/v2/bot/message/quota").json()
+
+    def get_quota_consumption(self) -> dict:
+        return self._request("GET", f"{API_BASE}/v2/bot/message/quota/consumption").json()
 
 
 def make_client(access_token: str) -> OaClient:

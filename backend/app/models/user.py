@@ -49,6 +49,8 @@ class User(TenantMixin, Base):
     line_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     line_display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     line_linked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # 會員自己可關閉從健身房官方帳號收到的通知（預約結果、上課提醒、收款）
+    line_notify: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
     @property
     def has_password(self) -> bool:

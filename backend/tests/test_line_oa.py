@@ -40,6 +40,10 @@ class FakeOa:
         # id_token → (預期的 client_id, LINE 個人資料)
         self.id_tokens: dict[str, dict] = {}
         self.verified_with: list[str] = []
+        self.pushes: list[tuple[str, list[dict]]] = []
+        self.push_error: LineApiError | None = None
+        self.quota = {"type": "limited", "value": 200}
+        self.usage = 37
 
     # OaClient
     def get_bot_info(self):
@@ -72,6 +76,17 @@ class FakeOa:
 
     def reply(self, reply_token, messages):
         self.replies.append((reply_token, messages))
+
+    def push(self, to, messages):
+        if self.push_error:
+            raise self.push_error
+        self.pushes.append((to, messages))
+
+    def get_quota(self):
+        return self.quota
+
+    def get_quota_consumption(self):
+        return {"totalUsage": self.usage}
 
     # verify_id_token
     def verify(self, id_token, client_id):
