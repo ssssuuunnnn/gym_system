@@ -236,6 +236,30 @@ def test_text_is_escaped(client, admin, gym, coach, plans, course, db):
 # ---------- 驗證與權限 ----------
 
 
+@pytest.mark.parametrize(
+    "theme, stylesheet, theme_color",
+    [("bold", None, "#15181d"), ("airy", "theme-airy.css", "#ffffff"), ("warm", "theme-warm.css", "#faf5ee")],
+)
+def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, theme_color):
+    """三種版型共用同一份內容與結構，只換外觀；草稿預覽與發布後都套用選到的版型。"""
+    full_site(client, admin, coach.id, [plans[0].id])
+    content = draft(client, admin)
+    assert content["theme"] == "bold"  # 預設
+    content["theme"] = theme
+    assert save(client, admin, content).status_code == 200
+    publish(client, admin)
+    html = client.get("/").text
+    assert f'<body class="theme-{theme}">' in html
+    assert f'<meta name="theme-color" content="{theme_color}">' in html
+    assert "小班制訓練，陪你練出改變" in html  # 內容不變
+    if stylesheet:
+        assert f"/site/static/{stylesheet}" in html
+        assert client.get(f"/site/static/{stylesheet}").status_code == 200
+    else:
+        assert "/site/static/theme-" not in html
+    assert ("Noto+Serif+TC" in html) == (theme == "warm")
+
+
 def test_validation(client, admin, gym, coach):
     content = draft(client, admin)
     bad = {**content, "contact": {**content["contact"], "facebook": "http://evil.example.com"}}
@@ -244,6 +268,7 @@ def test_validation(client, admin, gym, coach):
     assert save(client, admin, bad).status_code == 422
     bad = {**content, "brand_color": "#ff0000"}
     assert save(client, admin, bad).status_code == 422
+    assert save(client, admin, {**content, "theme": "neon"}).status_code == 422
     other_gym_image = "/media/beta/site/" + "a" * 32 + ".jpg"
     bad = {**content, "hero": {**content["hero"], "image_url": other_gym_image}}
     res = save(client, admin, bad)

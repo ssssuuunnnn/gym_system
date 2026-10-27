@@ -32,6 +32,16 @@ BRAND_COLORS: dict[str, dict[str, str]] = {
 BrandColor = Literal["#C3400D", "#0B7A75", "#2F54EB", "#722ED1", "#1F1F1F"]
 DEFAULT_BRAND_COLOR = "#C3400D"
 
+# 版型：同一份內容、不同外觀（templates/site/bold.html 共用，theme-<key>.css 覆寫顏色與形狀）。
+# theme_color 用於手機瀏覽器網址列；fonts 是額外載入的 Google Fonts。
+SITE_THEMES: dict[str, dict[str, str]] = {
+    "bold": {"name": "活力", "theme_color": "#15181d", "fonts": ""},
+    "airy": {"name": "清爽", "theme_color": "#ffffff", "fonts": ""},
+    "warm": {"name": "溫暖", "theme_color": "#faf5ee", "fonts": "&family=Noto+Serif+TC:wght@600;700"},
+}
+SiteTheme = Literal["bold", "airy", "warm"]
+DEFAULT_THEME = "bold"
+
 # 網站圖片只能是本站上傳的檔案：/media/<子網域>/site/<uuid>.<jpg|png>（子網域由路由再比對）
 SITE_IMAGE_RE = re.compile(r"^/media/[a-z0-9-]{1,63}/site/[0-9a-f]{32}\.(jpg|png)$")
 LINE_ID_RE = re.compile(r"^@?[A-Za-z0-9._-]{1,40}$")
@@ -241,7 +251,7 @@ class ContactSection(_Model):
 
 
 class SiteContent(_Model):
-    theme: Literal["bold"] = "bold"
+    theme: SiteTheme = DEFAULT_THEME
     brand_color: BrandColor = DEFAULT_BRAND_COLOR
     seo: SeoSettings = Field(default_factory=SeoSettings)
     sections: list[SectionToggle] = Field(default_factory=lambda: [SectionToggle(key=k) for k in SECTION_KEYS])

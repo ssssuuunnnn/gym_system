@@ -32,7 +32,7 @@ from app.models.inquiry import Inquiry
 from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
-from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, SiteContent
+from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, DEFAULT_THEME, SITE_THEMES, SiteContent
 from app.services import line as line_service
 from app.services.schedule import group_sessions
 
@@ -275,8 +275,12 @@ def render_site(
     if same_as:
         json_ld["sameAs"] = same_as
 
+    theme = content.theme if content.theme in SITE_THEMES else DEFAULT_THEME
     return templates.get_template("site/bold.html").render(
         c=content,
+        theme=theme,
+        theme_color=SITE_THEMES[theme]["theme_color"],
+        theme_fonts=SITE_THEMES[theme]["fonts"],
         company_name=company_name,
         full_name=full_name,
         logo_url=company.logo_url if company else None,

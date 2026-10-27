@@ -1,4 +1,5 @@
-{#- 形象網站「活力」版型（見 docs/adr/0003-gym-website.md）。只用 render_site() 給的公開資料；autoescape 開啟。 -#}
+{#- 形象網站（見 docs/adr/0003-gym-website.md）。三種版型共用這份結構：活力（site.css）、清爽／溫暖（再載入 theme-<key>.css 覆寫外觀）。
+    只用 render_site() 給的公開資料；autoescape 開啟。 -#}
 <!doctype html>
 <html lang="zh-Hant-TW">
 <head>
@@ -14,15 +15,16 @@
 <meta property="og:url" content="{{ canonical }}">
 {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
 <meta name="twitter:card" content="{{ 'summary_large_image' if og_image else 'summary' }}">
-<meta name="theme-color" content="#15181d">
+<meta name="theme-color" content="{{ theme_color }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700&display=swap">
-<link rel="stylesheet" href="/site/static/site.css?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700{{ theme_fonts }}&display=swap">
+<link rel="stylesheet" href="/site/static/site.css?v=3">
+{% if theme != 'bold' %}<link rel="stylesheet" href="/site/static/theme-{{ theme }}.css?v=1">{% endif %}
 <style>:root { --accent: {{ accent }}; --accent-light: {{ accent_light }}; }</style>
 <script type="application/ld+json">{{ json_ld | safe }}</script>
 </head>
-<body>
+<body class="theme-{{ theme }}">
 {% if preview %}<div class="preview-banner" role="status">預覽（草稿）・訪客看不到，按「發布到網站」後才會上線</div>{% endif %}
 <a class="skip" href="#main">跳到主要內容</a>
 
