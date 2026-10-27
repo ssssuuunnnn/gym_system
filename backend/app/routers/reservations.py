@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
+from app.services import line as line_service
 from app.deps import get_coach_profile, get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
@@ -99,6 +100,7 @@ def list_reservations(
 @router.post("", response_model=ReservationOut, status_code=status.HTTP_201_CREATED)
 def create_reservation(
     payload: ReservationCreate,
+    background_tasks: BackgroundTasks,
     as_admin: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -138,7 +140,14 @@ def create_reservation(
     db.add(reservation)
     # 建立預約與扣抵堂數同一交易：堂數不足或購買紀錄不符時整筆回滾，不會留下沒扣到堂數的預約。
     hours.deduct_for_reservation(db, reservation, created_by=current_user.id)
+    notification_id = None
+    if not as_admin:
+        # LINE 通知店家：有預約等待審核（docs/adr/0004-line-notifications.md）
+        db.flush()
+        course = db.get(Course, reservation.course_id) if reservation.course_id else None
+        notification_id = line_service.notify_booking(db, reservation, course.name if course else product.name)
     db.commit()
+    line_service.schedule(background_tasks, notification_id)
     db.refresh(reservation)
     return reservation
 

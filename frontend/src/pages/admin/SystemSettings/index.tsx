@@ -3,7 +3,8 @@ import { Avatar, Breadcrumb, Button, Card, Input, InputNumber, Skeleton, Typogra
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { getSettings, updateSettings, uploadSettingsLogo } from '../../api/settings';
+import { getSettings, updateSettings, uploadSettingsLogo } from '../../../api/settings';
+import { LineNotifyCard } from './components/LineNotifyCard';
 
 const { Text } = Typography;
 
@@ -13,6 +14,7 @@ const DEFAULT_NAME = '健身工作室管理系統';
  * 系統設定：對應「系統設定 → 基本資料」。全站僅一筆設定，非清單／詳情資源，
  * 儲存後套用至後台側欄與會員 App 的品牌顯示（見 components/AppLayout.tsx）。
  * 「預約規則」區塊設定取消期限：已確認的預約在開課前 N 小時內取消不退堂（0＝不限制）。
+ * 「LINE 通知」區塊管理接收人（docs/adr/0004-line-notifications.md），操作立即生效。
  */
 export default function SystemSettings() {
   const queryClient = useQueryClient();
@@ -355,6 +357,9 @@ export default function SystemSettings() {
           </div>
         </div>
       </Card>
+
+      {/* LINE 通知：各項操作立即生效，不經過下方的「儲存變更」 */}
+      <LineNotifyCard />
 
       <div
         style={{

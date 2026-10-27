@@ -1,9 +1,10 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
+from app.services import line as line_service
 from app.deps import get_current_user, require_admin
 from app.models.hour_ledger import HourLedger
 from app.models.product import Product, ProductCategory
@@ -131,6 +132,7 @@ def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_admin
 @router.post("/self", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
 def create_self_purchase(
     payload: PurchaseSelfCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -145,7 +147,7 @@ def create_self_purchase(
     if not product.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此商品未上架")
 
-    return _build_purchase(
+    purchase = _build_purchase(
         db,
         user_id=current_user.id,
         product_id=payload.product_id,
@@ -155,6 +157,11 @@ def create_self_purchase(
         created_by=current_user.id,
         paid=False,
     )
+    # LINE 通知店家：有人下單、等待確認收款（docs/adr/0004-line-notifications.md）
+    notification_id = line_service.notify_payment(db, purchase, product)
+    db.commit()
+    line_service.schedule(background_tasks, notification_id)
+    return purchase
 
 
 @router.post("/{purchase_id}/confirm-payment", response_model=PurchaseOut)

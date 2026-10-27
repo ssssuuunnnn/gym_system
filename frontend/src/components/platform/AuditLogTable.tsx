@@ -12,6 +12,7 @@ const TENANT_FIELD_LABEL: Record<string, string> = {
   contact_email: '聯絡 Email',
   contact_phone: '聯絡電話',
   note: '備註',
+  line_monthly_cap: 'LINE 通知每月上限',
 };
 
 function text(value: unknown): string {

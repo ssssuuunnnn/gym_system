@@ -27,6 +27,22 @@ class Settings(BaseSettings):
     # 平台管理員登入有效時間較短
     PLATFORM_TOKEN_EXPIRE_MINUTES: int = 120
 
+    # 網站對外的通訊協定，用來組 LINE 通知裡的後台連結（https://<子網域>.<BASE_DOMAIN>/…）
+    PUBLIC_SCHEME: str = "https"
+
+    # LINE 通知店家（見 docs/adr/0004-line-notifications.md）：平台共用一個 LINE 官方帳號（Messaging API）。
+    # 沒有設定 LINE_CHANNEL_ACCESS_TOKEN 時不會真的發送（通知記為「未設定 LINE」），方便本機開發。
+    LINE_CHANNEL_SECRET: str = ""
+    LINE_CHANNEL_ACCESS_TOKEN: str = ""
+    # 官方帳號的 Basic ID（例如 @123abcde），用來產生加好友網址與 QR 碼
+    LINE_BOT_BASIC_ID: str = ""
+    LINE_BOT_NAME: str = "健身房小幫手"
+    LINE_API_BASE: str = "https://api.line.me"
+    # 平台的 LINE 方案每月額度（只用於平台後台顯示）
+    LINE_PLAN_MONTHLY_QUOTA: int = 3000
+    # 背景重試發送：每隔幾秒檢查一次待發送的通知；0＝不啟動（測試用）
+    LINE_DISPATCH_INTERVAL_SECONDS: int = 60
+
     # 多租戶：每家健身房一個子網域 <subdomain>.<BASE_DOMAIN>，由 Host 判斷租戶。
     BASE_DOMAIN: str = "localhost"
     # 沒有子網域時（本機 localhost、IP）使用的租戶；正式環境應留空，未知網址回 404。

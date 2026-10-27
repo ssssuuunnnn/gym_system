@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -34,6 +34,9 @@ class Tenant(Base):
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="聯絡 Email")
     contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="聯絡電話")
     note: Mapped[str | None] = mapped_column(String(1000), nullable=True, comment="平台內部備註")
+    line_monthly_cap: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=300, server_default="300", comment="LINE 通知每月上限（則）"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False, server_default=func.now()
