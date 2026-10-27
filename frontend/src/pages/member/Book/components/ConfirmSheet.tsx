@@ -1,7 +1,7 @@
-import { Button, Drawer, Tag, theme } from 'antd';
+import { Button, Tag, theme } from 'antd';
 import type { Dayjs } from 'dayjs';
 import type { ReactNode } from 'react';
-import { FRONT_MAX_WIDTH } from '../../../../components/member/memberTheme';
+import BottomSheet from '../../../../components/member/BottomSheet';
 import CoverTile from '../../../../components/member/CoverTile';
 import { isoWeekday } from '../../../../lib/availability';
 import { weekdayShort } from '../../../../lib/weekday';
@@ -26,14 +26,18 @@ export interface ConfirmSheetProps {
   onClose: () => void;
   /** 沒有可用方案時的動作（前往購買） */
   onBuy: () => void;
+  /** 沒有可用方案、但有適用的待付款訂單：顯示訂單名稱，改為引導查看付款方式 */
+  unpaidPlanLabel?: string | null;
+  onViewPayment?: () => void;
 }
 
 /**
  * 確認預約的底部面板：課程、時間、自動選定的方案（扣 1 堂）、免費取消時間。
- * 會員不需要自己挑購買紀錄；沒有可用方案時改為引導購買。
+ * 會員不需要自己挑購買紀錄；沒有可用方案時改為引導購買，已有待付款的適用方案時引導付款。
  */
 export function ConfirmSheet(props: ConfirmSheetProps) {
   const { open, title, subtitle, start, end, coverSrc, planLabel, planPicker, deadlineHours, submitting, onConfirm, onClose, onBuy } = props;
+  const { unpaidPlanLabel, onViewPayment } = props;
   const { token } = theme.useToken();
   const freeCancelUntil = start && deadlineHours ? start.subtract(deadlineHours, 'hour') : null;
   const row = {
@@ -46,20 +50,7 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
   } as const;
 
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      placement="bottom"
-      size="auto"
-      title="確認預約"
-      closable={false}
-      styles={{
-        wrapper: { maxWidth: FRONT_MAX_WIDTH, marginInline: 'auto', borderRadius: '24px 24px 0 0', overflow: 'hidden' },
-        header: { borderBottom: 'none', paddingBottom: 0 },
-        title: { fontSize: 20, fontWeight: 700 },
-        body: { paddingTop: 12 },
-      }}
-    >
+    <BottomSheet open={open} onClose={onClose} title="確認預約">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <CoverTile src={coverSrc} size={52} />
@@ -76,7 +67,9 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
           <div style={row}>
             <dt style={{ fontSize: 14, color: token.colorTextSecondary }}>使用方案</dt>
             <dd style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, textAlign: 'right' }}>
-              {planLabel ?? <span style={{ color: token.colorWarningText }}>沒有可用的方案</span>}
+              {planLabel ?? (
+                <span style={{ color: token.colorWarningText }}>{unpaidPlanLabel ? `${unpaidPlanLabel}（待付款）` : '沒有可用的方案'}</span>
+              )}
               {planLabel && (
                 <Tag variant="filled" style={{ marginInlineEnd: 0, color: token.colorPrimary, background: token.colorPrimaryBg }}>
                   扣 1 堂
@@ -98,9 +91,19 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
           開課前 30 分鐘起可在首頁簽到。
         </p>
 
+        {!planLabel && unpaidPlanLabel && (
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: token.colorWarningText }}>
+            這個方案還在等工作室確認收款，確認後就能預約這堂課，我們會幫你記住這堂。
+          </p>
+        )}
+
         {planLabel ? (
           <Button type="primary" size="large" block loading={submitting} onClick={onConfirm} style={{ fontWeight: 700 }}>
             確認預約
+          </Button>
+        ) : unpaidPlanLabel ? (
+          <Button type="primary" size="large" block onClick={onViewPayment} style={{ fontWeight: 700 }}>
+            查看付款方式
           </Button>
         ) : (
           <Button type="primary" size="large" block onClick={onBuy} style={{ fontWeight: 700 }}>
@@ -111,6 +114,6 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
           再看看
         </Button>
       </div>
-    </Drawer>
+    </BottomSheet>
   );
 }

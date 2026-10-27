@@ -118,9 +118,11 @@ def notify_payment_confirmed(db: Session, purchase) -> int | None:
     member = db.get(User, purchase.user_id)
     product = purchase.product
     rows = [("方案", f"{product.name} × {purchase.quantity}"), ("金額", f"NT$ {float(purchase.amount):,.0f}")]
-    if product.category != ProductCategory.supply:
-        rows.append(("堂數", f"已入帳 {float(purchase.total_hours):g} 堂"))
-    return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, "查看我的方案", "products")
+    if product.category == ProductCategory.supply:
+        return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, "查看我的訂單", "products")
+    rows.append(("堂數", f"已入帳 {float(purchase.total_hours):g} 堂"))
+    # 課程方案：直接到預約頁；會員若是為了某堂課才買的，預約頁會自動打開那堂（前端 lib/bookIntent.ts）
+    return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, "去預約課程", "book")
 
 
 # ---------- 上課提醒 ----------

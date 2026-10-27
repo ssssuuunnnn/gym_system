@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { App, Segmented, Select, Skeleton, theme } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { getSettings } from '../../../api/settings';
 import { listTimeSlots } from '../../../api/timeSlots';
 import { buildOverrideMap, isoWeekday, resolveAvailability } from '../../../lib/availability';
 import { weekdayLabel } from '../../../lib/weekday';
+import { clearBookIntent, loadBookIntent, saveBookIntent } from '../../../lib/bookIntent';
 import { decodeUserId, useAuthStore } from '../../../store/auth';
 import FrontPageHeader from '../../../components/member/FrontPageHeader';
 import FrontCard from '../../../components/member/FrontCard';
@@ -42,9 +43,15 @@ function usable(purchases: Purchase[], match: (p: Purchase) => boolean) {
   return purchases.filter((p) => p.payment_status === '已付款' && p.remaining_hours > 0 && match(p)).reverse();
 }
 
+/** 適用但還在待付款的訂單 */
+function unpaid(purchases: Purchase[], match: (p: Purchase) => boolean) {
+  return purchases.find((p) => p.payment_status === '待付款' && match(p));
+}
+
 /**
  * 預約課程（前台）：團體課＝日期橫條 → 當天課堂卡片 → 確認面板；私人課＝選教練 → 選時段 → 確認面板。
  * 系統自動選定要扣抵的方案（團體課：綁定該課程的方案；私人課：「課程」類方案），會員不必自己挑購買紀錄。
+ * 沒有可用方案時去購買並記下這堂課；收款後再進來會直接打開這堂的確認面板（lib/bookIntent.ts）。
  */
 export default function Book() {
   const { token } = theme.useToken();
@@ -85,10 +92,12 @@ export default function Book() {
   }
   const countByDate = new Map([...sessionsByDate].map(([d, list]) => [d, list.length]));
   const daySessions = sessionsByDate.get(date.format('YYYY-MM-DD')) ?? [];
-  const groupPlanFor = (s: ScheduleSession) => usable(purchases, (p) => productById.get(p.product_id)?.course_id === s.course_id)[0];
+  const fitsGroup = (s: ScheduleSession) => (p: Purchase) => productById.get(p.product_id)?.course_id === s.course_id;
+  const groupPlanFor = (s: ScheduleSession) => usable(purchases, fitsGroup(s))[0];
 
   // ── 私人課 ──
-  const privatePlans = usable(purchases, (p) => productById.get(p.product_id)?.category === '課程');
+  const fitsPrivate = (p: Purchase) => productById.get(p.product_id)?.category === '課程';
+  const privatePlans = usable(purchases, fitsPrivate);
   const privatePlan = privatePlans.find((p) => p.id === privatePlanId) ?? privatePlans[0];
   const privateCoaches = coaches.filter((c) => c.coach_types.includes('私人教練'));
   const overrides = buildOverrideMap(slots);
@@ -120,6 +129,7 @@ export default function Book() {
     },
     onSuccess: () => {
       message.success('已送出預約，工作室確認後會顯示「已確認」');
+      clearBookIntent();
       setPending(null);
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
@@ -129,7 +139,69 @@ export default function Book() {
   });
 
   const sheetPlan = pending ? (pending.kind === 'group' ? groupPlanFor(pending.session) : privatePlan) : undefined;
+  const sheetUnpaid = pending ? unpaid(purchases, pending.kind === 'group' ? fitsGroup(pending.session) : fitsPrivate) : undefined;
+
   const pendingCoach = pending?.kind === 'private' ? coaches.find((c) => c.id === coachId) : undefined;
+
+  // 沒有方案而去購買時記下這堂課（lib/bookIntent.ts）
+  const goBuy = () => {
+    if (!pending) return;
+    if (pending.kind === 'group') {
+      saveBookIntent({
+        kind: 'group',
+        courseId: pending.session.course_id,
+        courseName: pending.session.course_name,
+        date: pending.session.session_date,
+        startMinute: pending.session.start_minute,
+      });
+    } else {
+      saveBookIntent({
+        kind: 'private',
+        coachId,
+        coachName: pendingCoach ? pendingCoach.alias || pendingCoach.name : null,
+        date: pending.start.format('YYYY-MM-DD'),
+        hour: pending.hour,
+      });
+    }
+    navigate('/member/purchase?from=book');
+  };
+
+  // 回到記下的那堂課：方案已可用時自動打開確認面板；課已過或不在課表上就忘掉
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current || schedule.isLoading || !products.length) return;
+    const intent = loadBookIntent();
+    if (!intent) {
+      resumed.current = true;
+      return;
+    }
+    const day = dayjs(intent.date);
+    if (intent.kind === 'group') {
+      const session = (schedule.data ?? []).find(
+        (s) => s.course_id === intent.courseId && s.session_date === intent.date && s.start_minute === intent.startMinute,
+      );
+      const start = day.add(intent.startMinute, 'minute');
+      if (!session || start.isBefore(dayjs()) || session.my_reservation_id) {
+        clearBookIntent();
+      } else if (groupPlanFor(session)) {
+        setTab('團體課');
+        setDate(day);
+        setPending({ kind: 'group', session, start, end: start.add(session.duration_minutes, 'minute') });
+      }
+    } else {
+      const start = day.hour(intent.hour).minute(0);
+      if (start.isBefore(dayjs())) {
+        clearBookIntent();
+      } else if (privatePlans.length) {
+        setTab('私人課');
+        setDate(day);
+        setCoachId(intent.coachId);
+        setPending({ kind: 'private', hour: intent.hour, start, end: start.add(1, 'hour') });
+      }
+    }
+    resumed.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedule.isLoading, schedule.data, products.length, purchases]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -202,7 +274,12 @@ export default function Book() {
         submitting={book.isPending}
         onConfirm={() => pending && book.mutate(pending)}
         onClose={() => setPending(null)}
-        onBuy={() => navigate('/member/purchase')}
+        onBuy={goBuy}
+        unpaidPlanLabel={sheetUnpaid ? productById.get(sheetUnpaid.product_id)?.name ?? '方案' : null}
+        onViewPayment={() => {
+          goBuy();
+          navigate('/member/products');
+        }}
       />
     </div>
   );
