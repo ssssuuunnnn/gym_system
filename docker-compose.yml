@@ -48,6 +48,17 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MEDIA_DIR: /app/media
+      # LINE 通知店家（docs/adr/0004-line-notifications.md）：平台共用一個 LINE 官方帳號（Messaging API）。
+      # 三個都留空＝不發送；Webhook 設為 https://platform.<BASE_DOMAIN>/api/v1/line/webhook
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
+      LINE_BOT_BASIC_ID: ${LINE_BOT_BASIC_ID:-}
+      LINE_BOT_NAME: ${LINE_BOT_NAME:-健身房小幫手}
+      LINE_PLAN_MONTHLY_QUOTA: ${LINE_PLAN_MONTHLY_QUOTA:-3000}
+      # 通知裡連結的網址開頭；本機沒有 https 時改成 http
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME:-http}
+      # 健身房 LINE 官方帳號金鑰的加密金鑰（docs/adr/0005-gym-line-oa.md）；留空時由 SECRET_KEY 衍生
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

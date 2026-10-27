@@ -3,7 +3,9 @@ import { Avatar, Breadcrumb, Button, Card, Input, InputNumber, Skeleton, Typogra
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { getSettings, updateSettings, uploadSettingsLogo } from '../../api/settings';
+import { getSettings, updateSettings, uploadSettingsLogo } from '../../../api/settings';
+import { LineNotifyCard } from './components/LineNotifyCard';
+import { LineOaCard } from './components/LineOaCard';
 
 const { Text } = Typography;
 
@@ -13,6 +15,8 @@ const DEFAULT_NAME = '健身工作室管理系統';
  * 系統設定：對應「系統設定 → 基本資料」。全站僅一筆設定，非清單／詳情資源，
  * 儲存後套用至後台側欄與會員 App 的品牌顯示（見 components/AppLayout.tsx）。
  * 「預約規則」區塊設定取消期限：已確認的預約在開課前 N 小時內取消不退堂（0＝不限制）。
+ * 「預約與付款」區塊另有付款方式說明（會員待付款時看到）。
+ * 「LINE 官方帳號」（docs/adr/0005-gym-line-oa.md）與「LINE 通知」（docs/adr/0004-line-notifications.md）操作立即生效。
  */
 export default function SystemSettings() {
   const queryClient = useQueryClient();
@@ -27,6 +31,7 @@ export default function SystemSettings() {
   const [companyName, setCompanyName] = useState('');
   const [shortName, setShortName] = useState('');
   const [deadlineHours, setDeadlineHours] = useState<number | null>(12);
+  const [paymentInfo, setPaymentInfo] = useState('');
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -40,6 +45,7 @@ export default function SystemSettings() {
       setCompanyName(settings.company_name);
       setShortName(settings.short_name ?? '');
       setDeadlineHours(settings.cancel_deadline_hours);
+      setPaymentInfo(settings.payment_instructions ?? '');
       setLogoFile(null);
       setLogoPreview(null);
       setLogoSize('');
@@ -58,6 +64,7 @@ export default function SystemSettings() {
     if (shortName.trim() !== (settings.short_name ?? '')) changes.push('顯示簡稱');
     if (logoFile != null || existingLogoUrl !== (settings.logo_url ?? null)) changes.push('LOGO');
     if (deadlineHours !== settings.cancel_deadline_hours) changes.push('取消期限');
+    if (paymentInfo.trim() !== (settings.payment_instructions ?? '')) changes.push('付款方式說明');
   }
 
   const pickLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +102,7 @@ export default function SystemSettings() {
         short_name: shortName.trim() || null,
         logo_url: logoUrl ?? null,
         cancel_deadline_hours: deadlineHours ?? undefined,
+        payment_instructions: paymentInfo.trim() || null,
       });
     },
     onSuccess: () => {
@@ -148,6 +156,7 @@ export default function SystemSettings() {
     setCompanyName(settings.company_name);
     setShortName(settings.short_name ?? '');
     setDeadlineHours(settings.cancel_deadline_hours);
+    setPaymentInfo(settings.payment_instructions ?? '');
     setLogoFile(null);
     setLogoPreview(null);
     setLogoSize('');
@@ -332,7 +341,7 @@ export default function SystemSettings() {
         </div>
       </Card>
 
-      <Card title="預約規則">
+      <Card title="預約與付款">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 840 }}>
           <div style={row}>
             <div style={labelCol}>{required}取消期限</div>
@@ -353,8 +362,31 @@ export default function SystemSettings() {
                 : '已確認的預約在此期限內取消，仍可取消但不退堂；管理員取消時可例外退堂'}
             </Text>
           </div>
+          <div style={rowTop}>
+            <label htmlFor="payment-instructions" style={{ ...labelCol, paddingTop: 6 }}>
+              付款方式說明
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, maxWidth: 480 }}>
+              <Input.TextArea
+                id="payment-instructions"
+                rows={3}
+                maxLength={500}
+                showCount
+                placeholder={'例如：轉帳至 國泰世華（013）1234-5678-9012，戶名 脈動健身\n轉帳後請告知末五碼，或到櫃台以現金、刷卡付款'}
+                value={paymentInfo}
+                onChange={(e) => setPaymentInfo(e.target.value)}
+              />
+              <Text style={{ fontSize: 13 }} type="secondary">
+                會員自行下單（待付款）後，在「我的方案與訂單」看到這段說明
+              </Text>
+            </div>
+          </div>
         </div>
       </Card>
+
+      {/* LINE 官方帳號與 LINE 通知：各項操作立即生效，不經過下方的「儲存變更」 */}
+      <LineOaCard />
+      <LineNotifyCard />
 
       <div
         style={{

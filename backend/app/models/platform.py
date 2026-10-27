@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.session import Base
 
 # 不屬於任何租戶的資料表（tests/test_tenancy.py 據此檢查其他表都有 tenant_id 與 RLS）
-PLATFORM_TABLE_NAMES = {"tenants", "platform_admins", "platform_audit_logs"}
+PLATFORM_TABLE_NAMES = {"tenants", "platform_admins", "platform_audit_logs", "line_bind_attempts"}
 
 
 class PlatformAdmin(Base):

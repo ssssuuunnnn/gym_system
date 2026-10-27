@@ -1,11 +1,13 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
+from app.services import line as line_service
+from app.services import line_member
 from app.deps import get_coach_profile, get_current_user, require_admin, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
@@ -99,6 +101,7 @@ def list_reservations(
 @router.post("", response_model=ReservationOut, status_code=status.HTTP_201_CREATED)
 def create_reservation(
     payload: ReservationCreate,
+    background_tasks: BackgroundTasks,
     as_admin: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -138,7 +141,20 @@ def create_reservation(
     db.add(reservation)
     # 建立預約與扣抵堂數同一交易：堂數不足或購買紀錄不符時整筆回滾，不會留下沒扣到堂數的預約。
     hours.deduct_for_reservation(db, reservation, created_by=current_user.id)
+    notification_id = None
+    if not as_admin:
+        # LINE 通知店家：有預約等待審核（docs/adr/0004-line-notifications.md）
+        db.flush()
+        course = db.get(Course, reservation.course_id) if reservation.course_id else None
+        notification_id = line_service.notify_booking(db, reservation, course.name if course else product.name)
+    member_message_id = None
+    if as_admin and reservation.member_id != current_user.id:
+        # 櫃台幫會員預約：從健身房官方帳號通知會員（ADR 0005 第二階段）
+        db.flush()
+        member_message_id = line_member.notify_booking_result(db, reservation)
     db.commit()
+    line_service.schedule(background_tasks, notification_id)
+    line_member.schedule(background_tasks, member_message_id)
     db.refresh(reservation)
     return reservation
 
@@ -178,6 +194,7 @@ def update_reservation(
 def review_reservation(
     reservation_id: int,
     payload: ReservationReview,
+    background_tasks: BackgroundTasks,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -210,7 +227,9 @@ def review_reservation(
     reservation.status = payload.status
     reservation.reviewed_by = admin.id
     reservation.reviewed_at = datetime.utcnow()
+    member_message_id = line_member.notify_booking_result(db, reservation)
     db.commit()
+    line_member.schedule(background_tasks, member_message_id)
     db.refresh(reservation)
     return reservation
 
@@ -218,6 +237,7 @@ def review_reservation(
 @router.post("/{reservation_id}/cancel", response_model=ReservationOut)
 def cancel_reservation(
     reservation_id: int,
+    background_tasks: BackgroundTasks,
     payload: ReservationCancel | None = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -261,7 +281,12 @@ def cancel_reservation(
     if refund:
         hours.refund_reservation(db, reservation, created_by=current_user.id)
 
+    member_message_id = None
+    if is_admin and reservation.member_id != current_user.id:
+        # 櫃台取消：通知會員（會員自己取消的不發）
+        member_message_id = line_member.notify_booking_cancelled(db, reservation, refunded=refund)
     db.commit()
+    line_member.schedule(background_tasks, member_message_id)
     db.refresh(reservation)
     return reservation
 

@@ -9,7 +9,7 @@ import {
   type TenantCreatePayload,
 } from '../../api/platform';
 import { apiErrorMessage } from '../../api/platformClient';
-import { showCredentials } from '../../components/platform/credentials';
+import { showCredentials } from '../../components/credentials';
 import { baseDomainWithPort, tenantUrl } from '../../lib/host';
 import { generatePassword, MIN_PASSWORD_LENGTH } from '../../lib/password';
 import { TIMEZONE_OPTIONS } from '../../lib/timezones';
@@ -51,7 +51,7 @@ export default function TenantForm() {
       showCredentials(modal, {
         title: `已開通「${tenant.name}」`,
         credentials: {
-          subdomain: tenant.subdomain,
+          loginUrl: `${tenantUrl(tenant.subdomain)}/login`,
           username: payload.admin_username,
           password: payload.admin_password,
           mustChangePassword: payload.admin_must_change_password,

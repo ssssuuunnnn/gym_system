@@ -165,6 +165,125 @@
 
 ---
 
+## 形象網站與體驗課詢問
+
+設計見 `docs/adr/0003-gym-website.md`；外觀依 2026-10-25 確認的設計稿。
+
+### R16. 網站只顯示公開欄位
+
+- **確認日期**：2026-10-25
+- **規則**：教練只顯示授課名稱（沒有時用姓名）、專長、照片與網站自我介紹；電話、LINE、匯款帳號、鐘點費不公開。課程不顯示教練費。教練與方案要在後台勾選才會公開；停售的方案不顯示。場租教練預設不勾選。
+- **實作**：`routers/site.py` 的 `_coaches`、`_plans`（只把白名單欄位交給樣板）
+- **測試**：`test_only_public_fields_reach_the_page`
+
+### R17. 草稿與發布分開
+
+- **確認日期**：2026-10-25
+- **規則**：後台修改先存成草稿，訪客看不到；按「發布到網站」才上線。可以捨棄草稿（回到線上版本）或讓網站下線（首頁回到登入頁）。從未發布的健身房，首頁就是登入頁。
+- **實作**：`routers/website.py`
+- **測試**：`test_draft_preview_and_discard`、`test_unpublish`、`test_unpublished_site_redirects_to_login`
+
+### R18. 體驗課詢問必須同意個資告知，未成為會員者保存 6 個月
+
+- **確認日期**：2026-10-25
+- **規則**：表單必須勾選同意個人資料蒐集告知事項才能送出（記錄同意時間）。沒有成為會員的詢問，送出 6 個月後自動刪除；已建立會員帳號的保留。
+- **實作**：`routers/site.py` 的 `submit_inquiry`、`routers/inquiries.py` 的 `purge_expired`
+- **測試**：`test_inquiry_validation_and_spam_guards`、`test_retention_purges_old_non_members`
+
+### R19. 課表的剩餘名額預設顯示，可關閉
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：團體課表顯示「剩 N 位／已額滿」，名額算法同會員預約（待確認＋已確認）。健身房可在「團體課表」段落關閉，只顯示課名、時間與教練。
+- **實作**：`services/schedule.py`、`routers/site.py` 的 `_schedule_days`
+- **測試**：`test_schedule_and_seats`
+
+---
+
+## LINE 通知店家
+
+### R20. 接收人以一次性綁定碼加入
+
+- **確認日期**：2026-10-25
+- **規則**：管理員在「系統設定 › LINE 通知」產生 6 位數綁定碼（10 分鐘內有效、只能使用一次、資料庫只存雜湊），接收人加平台通知帳號為好友後傳送綁定碼即完成綁定，預設接收全部三種通知。同一 LINE 帳號 10 分鐘內輸入錯誤 5 次即暫停 10 分鐘。綁定碼剛好同時對應兩家健身房時不綁定，請對方重新產生。接收人封鎖通知帳號時自動停止通知；後台「移除」也只是停用，可用新綁定碼重新加入。
+- **實作**：`routers/line.py`、`routers/line_webhook.py`、migration `0004` 的 `line_consume_bind_code`／`line_deactivate_user`
+- **測試**：`test_settings_and_bind_code`、`test_bind_by_code`、`test_expired_and_ambiguous_codes`、`test_bind_attempt_rate_limit`
+
+### R21. 三種事件才通知，管理員自己建立的預約不通知
+
+- **確認日期**：2026-10-25
+- **規則**：只在「新的體驗課詢問」「會員自行下單（待付款）」「會員送出預約（待審核）」時通知有勾選該事件的接收人。管理員在後台登錄的購買或預約不通知。
+- **實作**：`services/line.py` 的 `notify_*`，呼叫點在 `routers/site.py`、`purchases.py`、`reservations.py`
+- **測試**：`test_member_purchase_notifies_subscribers_only`、`test_member_booking_notifies_but_admin_booking_does_not`、`test_nobody_subscribed_creates_nothing`
+
+### R22. 通知內容最少化，不含手機號碼
+
+- **確認日期**：2026-10-25
+- **規則**：通知只寫姓氏（王先生／小姐）、想體驗的項目與方便時段、方案與金額、預約項目時間與人數，**不含手機號碼、Email、備註**；完整資料要點連結登入後台查看。訊息送出後，系統清除暫存的收件人與訊息內容，只留事件、則數與結果；平台後台也看不到收件人與內容。
+- **實作**：`services/line.py`（`masked_name`、`_finish`）、`platform_line_log`
+- **測試**：`test_inquiry_notification_hides_phone`、`test_platform_usage_logs_and_cap`
+
+### R23. 每家健身房每月上限，失敗重試 3 次
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：一則通知發給幾個人就算幾則。每家健身房每月上限預設 300 則（平台可調整，會寫入操作紀錄），以健身房當地時間的每月 1 日起算；送出會超過上限的通知不發送，記為「超過上限」。LINE 暫時無回應時於 1、5、30 分鐘後重試，仍失敗或 LINE 拒絕則記為「失敗」。平台未設定 LINE 帳號時不發送，記為「未設定 LINE」。
+- **實作**：`services/line.py` 的 `_process`、`tenants.line_monthly_cap`
+- **測試**：`test_monthly_cap`、`test_retry_then_success_and_permanent_failure`、`test_retries_give_up_after_three`、`test_not_configured_skips`
+
+---
+
+## LINE 官方帳號（會員入口）
+
+### R24. 只有「檢查連線」通過才啟用，金鑰加密且不回傳
+
+- **確認日期**：2026-10-25
+- **規則**：健身房填入 Channel secret、access token、登入 Channel ID、LIFF ID 後，必須「檢查連線」通過（access token 有效、LIFF ID 屬於該登入 channel）才啟用；Webhook 與底部選單失敗只提示。改任何設定都會先停用、要重新檢查。金鑰加密保存，畫面只顯示末四碼。
+- **實作**：`routers/line_oa.py`、`services/line_oa.py` 的 `run_checks`、`core/crypto.py`
+- **測試**：`test_settings_validation_and_encryption`、`test_verify_enables_and_installs_menu`、`test_verify_failures`
+
+### R25. LINE 登入只認自己這家的登入 channel
+
+- **確認日期**：2026-10-25
+- **規則**：LIFF 的 ID token 一律向 LINE 驗證，且 client_id 必須是這家健身房的登入 Channel ID；未綁定時發 15 分鐘的 link_token，只能用來加入或綁定、不能呼叫其他 API，也不能拿到別家使用。黑名單會員不能登入。
+- **實作**：`routers/line_auth.py`、`core/security.create_line_link_token`
+- **測試**：`test_wrong_audience_and_bad_token`、`test_link_token_is_per_gym`、`test_blacklisted_cannot_login`、`test_tenant_isolation`
+
+### R26. 在 LINE 加入會員：姓名＋手機＋同意個資告知，沒有密碼
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：加入會員只填姓名與手機，必須勾選個人資料告知；帳號自動產生、沒有密碼，只能從 LINE 登入。管理員在會員詳情設定密碼後也能用網頁登入。同一家健身房裡一個 LINE 只能對應一個會員。
+- **實作**：`routers/line_auth.py` 的 `line_join`、`models/user.UNUSABLE_PASSWORD`
+- **測試**：`test_join_then_login`、`test_admin_member_fields`
+
+### R27. 綁定既有帳號要密碼；沒有密碼的會員不能自己解除綁定
+
+- **確認日期**：2026-10-25
+- **規則**：「我已經是會員」必須輸入正確的帳號密碼；管理員帳號不能綁定；已綁定其他 LINE 的帳號要先由櫃台解除。管理員可隨時解除會員的 LINE 綁定；會員自己只有在有密碼時才能解除。
+- **實作**：`routers/line_auth.py` 的 `line_link`／`line_unlink`、`routers/users.py` 的 `unlink_line`
+- **測試**：`test_link_existing_account`、`test_unlink`
+
+### R28. 會員通知只在「別人替會員做了事」時發
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：從健身房官方帳號推播給會員的只有：預約審核結果、櫃台代為預約、櫃台取消（寫明是否退堂）、確認收款（寫明入帳堂數）、前一天的上課提醒。會員自己送出、取消、下單不發。只發給已綁定 LINE 且沒關閉通知的會員；健身房可逐項關閉。
+- **實作**：`services/line_member.py`，呼叫點在 `routers/reservations.py`（create／review／cancel）、`routers/purchases.py`（confirm-payment）
+- **測試**：`test_review_results`、`test_admin_booking_and_cancel`、`test_cancel_shows_refund`、`test_payment_confirmed`、`test_switches_optout_and_unlinked`
+
+### R29. 上課提醒：前一天設定時段內一則，同一天合併
+
+- **確認日期**：2026-10-25（預設值，待營運回饋）
+- **規則**：健身房設定前一天幾點提醒（預設 20:00，可選 06–22 點），系統只在該整點起 2 小時內產生；同一位會員明天的所有已確認課程合成一則，每人每天最多一則。
+- **實作**：`services/line_member.enqueue_reminders`（`REMINDER_WINDOW_HOURS`）
+- **測試**：`test_class_reminders`、`test_reminder_hour_setting`
+
+### R30. 會員通知的上限與失敗
+
+- **確認日期**：2026-10-25
+- **規則**：健身房可設每月上限（留空＝不限制），達到後當月不再推播（記為超過上限）。LINE 暫時無回應時 1、5、30 分鐘後重試；LINE 方案額度用完直接記為失敗。發送前若會員已解除綁定或關閉通知則不發。訊息送完清除內容，後台紀錄只有時間、會員、事件與結果。
+- **實作**：`services/line_member._process`、`routers/line_oa.py` 的 `/messages`
+- **測試**：`test_monthly_cap`、`test_retry_and_quota_exhausted`、`test_unlinked_after_enqueue_is_skipped`、`test_settings_validation_log_and_quota`
+
+---
+
 ## 堂數帳務的共通原則
 
 以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：
@@ -186,3 +305,6 @@
 - 已付款訂單的退款流程（退款金額、已使用堂數如何計算）
 - 待付款訂單是否逾時自動取消
 - 方案效期：購買紀錄是否有到期日、過期堂數如何處理
+- 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email 通知
+- LINE 通知：超過平台方案額度的費用分攤
+- 線上付款（信用卡、LINE Pay）

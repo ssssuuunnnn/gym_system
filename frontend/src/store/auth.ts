@@ -19,12 +19,15 @@ interface AuthState {
   username: string | null;
   /** 管理員曾重設密碼並要求會員自行修改：完成修改前僅能停留在修改密碼頁 */
   mustChangePassword: boolean;
+  /** 在健身房的 LINE 官方帳號裡（LIFF）登入：隱藏登出、修改密碼（見 docs/adr/0005-gym-line-oa.md） */
+  inLine: boolean;
   login: (params: {
     token: string;
     role: Role;
     isCoach: boolean;
     username: string;
     mustChangePassword: boolean;
+    inLine?: boolean;
   }) => void;
   clearMustChangePassword: () => void;
   logout: () => void;
@@ -52,11 +55,12 @@ export const useAuthStore = create<AuthState>()(
       isCoach: false,
       username: null,
       mustChangePassword: false,
-      login: ({ token, role, isCoach, username, mustChangePassword }) =>
-        set({ token, role, isCoach, username, mustChangePassword }),
+      inLine: false,
+      login: ({ token, role, isCoach, username, mustChangePassword, inLine = false }) =>
+        set({ token, role, isCoach, username, mustChangePassword, inLine }),
       clearMustChangePassword: () => set({ mustChangePassword: false }),
       logout: () =>
-        set({ token: null, role: null, isCoach: false, username: null, mustChangePassword: false }),
+        set({ token: null, role: null, isCoach: false, username: null, mustChangePassword: false, inLine: false }),
     }),
     { name: 'auth-storage' },
   ),

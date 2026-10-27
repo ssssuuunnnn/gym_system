@@ -26,6 +26,8 @@ import Availability from '../pages/admin/Availability';
 import MemberList from '../pages/admin/MemberList';
 import MemberDetail from '../pages/admin/MemberDetail';
 import SystemSettings from '../pages/admin/SystemSettings';
+import Website from '../pages/admin/Website';
+import Inquiries from '../pages/admin/Inquiries';
 
 import MemberLayout from '../components/member/MemberLayout';
 import MemberHome from '../pages/member/Home';
@@ -40,6 +42,7 @@ import AddPerson from '../pages/member/AddPerson';
 import ChangePassword from '../pages/member/ChangePassword';
 import CoachAttendance from '../pages/coach/Attendance';
 import MyPayouts from '../pages/coach/Payouts';
+import LiffEntry from '../pages/liff/LiffEntry';
 
 /**
  * 路由結構依「導覽結構與平台」章節確認之 6＋3 大類分組：
@@ -49,6 +52,8 @@ import MyPayouts from '../pages/coach/Payouts';
 export const createAppRouter = () => createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  // 健身房 LINE 官方帳號的 LIFF 入口（docs/adr/0005-gym-line-oa.md）：LINE 登入後轉到會員前台
+  { path: '/liff/*', element: <LiffEntry /> },
 
   {
     element: <RequireRole role="admin" />,
@@ -82,6 +87,8 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           // { path: 'slot-settings', element: <SlotSettings /> },
+          { path: 'website', element: <Website /> },
+          { path: 'inquiries', element: <Inquiries /> },
           { path: 'settings', element: <SystemSettings /> },
           { path: 'availability', element: <Availability /> },
         ],

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, SmallInteger, String, UniqueConstraint
+from sqlalchemy import DateTime, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -23,6 +23,8 @@ class SystemSettings(TenantMixin, Base):
     cancel_deadline_hours: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, server_default="12", default=12, comment="取消期限（開課前小時數）"
     )
+    # 付款方式說明（例如轉帳帳號）：會員下單後在「我的商品」看到，見 ADR 0005
+    payment_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )

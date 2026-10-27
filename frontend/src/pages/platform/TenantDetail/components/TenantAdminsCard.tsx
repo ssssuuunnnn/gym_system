@@ -11,7 +11,8 @@ import {
   type TenantAdmin,
 } from '../../../../api/platform';
 import { apiErrorMessage } from '../../../../api/platformClient';
-import { showCredentials } from '../../../../components/platform/credentials';
+import { showCredentials } from '../../../../components/credentials';
+import { tenantUrl } from '../../../../lib/host';
 import { formatServerTime } from '../../../../lib/datetime';
 import { generatePassword, MIN_PASSWORD_LENGTH } from '../../../../lib/password';
 
@@ -60,7 +61,7 @@ export function TenantAdminsCard({ tenant }: TenantAdminsCardProps) {
       showCredentials(modal, {
         title: dialog?.kind === 'reset' ? `已重設「${admin.username}」的密碼` : `已新增管理員「${admin.username}」`,
         credentials: {
-          subdomain: tenant.subdomain,
+          loginUrl: `${tenantUrl(tenant.subdomain)}/login`,
           username: admin.username,
           password: values.password,
           mustChangePassword: values.must_change_password,

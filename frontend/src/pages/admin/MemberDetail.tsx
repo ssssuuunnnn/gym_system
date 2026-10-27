@@ -6,6 +6,7 @@ import {
   Card,
   Checkbox,
   Input,
+  Popconfirm,
   Radio,
   Result,
   Skeleton,
@@ -23,8 +24,9 @@ import {
   getMember,
   resetMemberPassword,
   setMemberBlacklist,
-  updateMemberUsername,
+  updateMember,
 } from '../../api/users';
+import { unlinkMemberLine } from '../../api/lineOa';
 import { formatServerTime } from '../../lib/datetime';
 
 const { Text } = Typography;
@@ -43,7 +45,8 @@ function fmt(value: string | null) {
 
 /**
  * 會員詳情：對應「會員管理 → 會員列表 → 會員詳情」。
- * 帳號、密碼與黑名單狀態皆由管理員維護，儲存時依實際變更分別呼叫對應 API。
+ * 帳號、姓名、手機、密碼與黑名單狀態皆由管理員維護，儲存時依實際變更分別呼叫對應 API。
+ * LINE 綁定（docs/adr/0005-gym-line-oa.md）可在此解除，立即生效。
  */
 export default function MemberDetail() {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +61,8 @@ export default function MemberDetail() {
   });
 
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
   const [pwdMode, setPwdMode] = useState<'keep' | 'reset'>('keep');
   const [pwd, setPwd] = useState('');
   const [pwd2, setPwd2] = useState('');
@@ -68,6 +73,8 @@ export default function MemberDetail() {
   useEffect(() => {
     if (member) {
       setUsername(member.username);
+      setDisplayName(member.display_name ?? '');
+      setPhone(member.phone ?? '');
       setPwdMode('keep');
       setPwd('');
       setPwd2('');
@@ -101,17 +108,21 @@ export default function MemberDetail() {
     if (!member) return [] as string[];
     const list: string[] = [];
     if (username !== member.username) list.push('帳號');
+    if (displayName.trim() !== (member.display_name ?? '')) list.push('姓名');
+    if (phone.trim() !== (member.phone ?? '')) list.push('手機');
     if (reset) list.push('密碼');
     if (black !== !!member.is_blacklisted) list.push('黑名單狀態');
     return list;
-  }, [member, username, reset, black]);
+  }, [member, username, displayName, phone, reset, black]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!member) return;
-      if (username.trim() !== member.username) {
-        await updateMemberUsername(member.id, username.trim());
-      }
+      const profile: { username?: string; display_name?: string | null; phone?: string | null } = {};
+      if (username.trim() !== member.username) profile.username = username.trim();
+      if (displayName.trim() !== (member.display_name ?? '')) profile.display_name = displayName.trim() || null;
+      if (phone.trim() !== (member.phone ?? '')) profile.phone = phone.trim() || null;
+      if (Object.keys(profile).length) await updateMember(member.id, profile);
       if (reset) {
         await resetMemberPassword(member.id, {
           new_password: pwd,
@@ -131,6 +142,19 @@ export default function MemberDetail() {
     onError: (error) => {
       const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
       message.error(typeof detail === 'string' ? detail : '儲存失敗，請稍後再試');
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: () => unlinkMemberLine(memberId),
+    onSuccess: () => {
+      message.success('已解除 LINE 綁定');
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['member', memberId] });
+    },
+    onError: (error) => {
+      const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
+      message.error(typeof detail === 'string' ? detail : '解除失敗，請稍後再試');
     },
   });
 
@@ -207,6 +231,73 @@ export default function MemberDetail() {
             <Text style={{ fontSize: 13 }} type="secondary">
               {usernameEmpty ? '帳號不可空白' : '帳號須為系統內唯一值，變更後會員需以新帳號登入'}
             </Text>
+          </div>
+
+          <div style={row}>
+            <label htmlFor="member-name" style={labelCol}>
+              姓名
+            </label>
+            <Input
+              id="member-name"
+              style={{ width: 320 }}
+              maxLength={50}
+              placeholder="會員姓名"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+
+          <div style={row}>
+            <label htmlFor="member-phone" style={labelCol}>
+              手機
+            </label>
+            <Input
+              id="member-phone"
+              style={{ width: 320 }}
+              maxLength={30}
+              inputMode="tel"
+              placeholder="例如 0912345678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div style={row}>
+            <div style={labelCol}>LINE</div>
+            {member.line_linked ? (
+              <>
+                <Tag color="green">已綁定</Tag>
+                <span style={{ fontSize: 14 }}>
+                  {member.line_display_name ?? 'LINE 使用者'}
+                  <Text type="secondary" style={{ fontSize: 13, marginLeft: 8 }}>
+                    {fmt(member.line_linked_at)} 綁定
+                  </Text>
+                </span>
+                <Popconfirm
+                  title="解除 LINE 綁定？"
+                  description={
+                    member.has_password
+                      ? '會員之後要在 LINE 裡重新綁定帳號。'
+                      : '這位會員沒有密碼，解除後要先為他設定密碼才能登入。'
+                  }
+                  okText="解除綁定"
+                  okButtonProps={{ danger: true }}
+                  cancelText="取消"
+                  onConfirm={() => unlinkMutation.mutateAsync()}
+                >
+                  <Button size="small" danger>
+                    解除綁定
+                  </Button>
+                </Popconfirm>
+              </>
+            ) : (
+              <>
+                <Tag>未綁定</Tag>
+                <Text style={{ fontSize: 13 }} type="secondary">
+                  會員可在健身房的 LINE 官方帳號裡用帳號密碼綁定
+                </Text>
+              </>
+            )}
           </div>
 
           <div style={row}>
@@ -312,7 +403,9 @@ export default function MemberDetail() {
             <div style={row}>
               <div style={labelCol} />
               <Text style={{ fontSize: 13 }} type="secondary">
-                儲存時不會送出密碼變更，會員沿用現有密碼登入。
+                {member.has_password
+                  ? '儲存時不會送出密碼變更，會員沿用現有密碼登入。'
+                  : '這位會員在 LINE 加入，還沒有密碼，只能從 LINE 登入；設定密碼後也能用網頁登入。'}
               </Text>
             </div>
           )}

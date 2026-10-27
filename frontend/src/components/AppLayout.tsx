@@ -9,11 +9,15 @@ import {
   SettingOutlined,
   DollarOutlined,
   AccountBookOutlined,
+  GlobalOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
+import { Badge } from 'antd';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth';
 import { getSettings } from '../api/settings';
+import { getInquirySummary } from '../api/inquiries';
 import BackOfficeShell, { type BackOfficeMenuItem } from './BackOfficeShell';
 
 const DEFAULT_BRAND_NAME = '健身工作室管理系統';
@@ -32,6 +36,8 @@ const adminMenuItems: BackOfficeMenuItem[] = [
   { key: '/admin/purchases', label: '購買紀錄', icon: <DollarOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
+  { key: '/admin/website', label: '形象網站', icon: <GlobalOutlined /> },
+  { key: '/admin/inquiries', label: '詢問名單', icon: <MessageOutlined /> },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },
   { key: '/admin/availability', label: '公休設定', icon: <ClockCircleOutlined /> },
 ];
@@ -41,6 +47,26 @@ export default function AppLayout() {
   const { username, logout, mustChangePassword } = useAuthStore();
   // 供任何已登入身份讀取，讓側欄顯示系統設定所維護的品牌名稱／LOGO
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
+  // 側欄「詢問名單」顯示新詢問數；每分鐘更新一次
+  const { data: inquirySummary } = useQuery({
+    queryKey: ['inquiries-summary'],
+    queryFn: getInquirySummary,
+    refetchInterval: 60_000,
+  });
+  const newInquiries = inquirySummary?.new_count ?? 0;
+  const menuItems = adminMenuItems.map((item) =>
+    item.key === '/admin/inquiries' && newInquiries > 0
+      ? {
+          ...item,
+          label: (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {item.label}
+              <Badge count={newInquiries} size="small" aria-label={`${newInquiries} 筆新詢問`} />
+            </span>
+          ),
+        }
+      : item,
+  );
 
   // 管理員在「會員詳情」重設密碼並要求會員自行修改：完成修改前僅能停留在修改密碼頁
   if (mustChangePassword) {
@@ -49,7 +75,7 @@ export default function AppLayout() {
 
   return (
     <BackOfficeShell
-      menuItems={adminMenuItems}
+      menuItems={menuItems}
       brandName={settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME}
       brandLogoUrl={settings?.logo_url}
       userLabel={`${username}（管理員）`}

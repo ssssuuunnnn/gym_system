@@ -21,7 +21,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const { inLine, token } = useAuthStore.getState();
       useAuthStore.getState().logout();
+      // 在 LINE 裡登入逾時：回到 LIFF 入口自動重新登入，而不是顯示帳號密碼登入頁
+      if (inLine && token) window.location.replace('/liff');
     }
     return Promise.reject(error);
   },

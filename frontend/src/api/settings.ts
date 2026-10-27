@@ -7,6 +7,8 @@ export interface Settings {
   logo_url: string | null;
   /** 取消期限：已確認的預約在開課前 N 小時內取消不退堂；0＝不限制 */
   cancel_deadline_hours: number;
+  /** 付款方式說明（轉帳帳號等），會員下單後看到 */
+  payment_instructions: string | null;
   updated_at: string;
 }
 
@@ -15,6 +17,7 @@ export interface SettingsPayload {
   short_name?: string | null;
   logo_url?: string | null;
   cancel_deadline_hours?: number;
+  payment_instructions?: string | null;
 }
 
 export async function getSettings() {

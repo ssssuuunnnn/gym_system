@@ -1,9 +1,11 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
+from app.services import line as line_service
+from app.services import line_member
 from app.deps import get_current_user, require_admin
 from app.models.hour_ledger import HourLedger
 from app.models.product import Product, ProductCategory
@@ -131,6 +133,7 @@ def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_admin
 @router.post("/self", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
 def create_self_purchase(
     payload: PurchaseSelfCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -145,7 +148,7 @@ def create_self_purchase(
     if not product.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此商品未上架")
 
-    return _build_purchase(
+    purchase = _build_purchase(
         db,
         user_id=current_user.id,
         product_id=payload.product_id,
@@ -155,12 +158,18 @@ def create_self_purchase(
         created_by=current_user.id,
         paid=False,
     )
+    # LINE 通知店家：有人下單、等待確認收款（docs/adr/0004-line-notifications.md）
+    notification_id = line_service.notify_payment(db, purchase, product)
+    db.commit()
+    line_service.schedule(background_tasks, notification_id)
+    return purchase
 
 
 @router.post("/{purchase_id}/confirm-payment", response_model=PurchaseOut)
 def confirm_payment(
     purchase_id: int,
     payload: PaymentConfirm,
+    background_tasks: BackgroundTasks,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -174,7 +183,10 @@ def confirm_payment(
     purchase.paid_at = datetime.utcnow()
     purchase.paid_confirmed_by = admin.id
     hours.record_purchase(db, purchase, created_by=admin.id)
+    # 從健身房官方帳號通知會員已收到款項（ADR 0005 第二階段）
+    member_message_id = line_member.notify_payment_confirmed(db, purchase)
     db.commit()
+    line_member.schedule(background_tasks, member_message_id)
     db.refresh(purchase)
     return purchase
 
