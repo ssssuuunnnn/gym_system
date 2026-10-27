@@ -15,6 +15,8 @@ from app.routers import (
     courses,
     inquiries,
     line,
+    line_auth,
+    line_oa,
     line_webhook,
     platform,
     products,
@@ -67,6 +69,8 @@ app.include_router(website.router, prefix=settings.API_V1_PREFIX)
 app.include_router(inquiries.router, prefix=settings.API_V1_PREFIX)
 app.include_router(line.router, prefix=settings.API_V1_PREFIX)
 app.include_router(line_webhook.router, prefix=settings.API_V1_PREFIX)
+app.include_router(line_oa.router, prefix=settings.API_V1_PREFIX)
+app.include_router(line_auth.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(site.router)
 

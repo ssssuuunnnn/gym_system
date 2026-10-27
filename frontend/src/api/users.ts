@@ -8,6 +8,14 @@ export interface Member {
   last_login_at: string | null;
   is_blacklisted: boolean;
   is_coach: boolean;
+  /** 姓名、手機（在 LINE 加入會員時填寫，管理員可修改） */
+  display_name: string | null;
+  phone: string | null;
+  /** 只用 LINE 加入、還沒有密碼的會員為 false */
+  has_password: boolean;
+  line_linked: boolean;
+  line_display_name: string | null;
+  line_linked_at: string | null;
 }
 
 export async function listMembers() {
@@ -20,9 +28,18 @@ export async function getMember(userId: number) {
   return data;
 }
 
-/** 對應「會員詳情」會員資料卡：目前僅可變更帳號。 */
-export async function updateMemberUsername(userId: number, username: string) {
-  const { data } = await apiClient.put<Member>(`/users/${userId}`, { username });
+/** 對應「會員詳情」會員資料卡：帳號、姓名、手機（只送有變更的欄位）。 */
+export async function updateMember(
+  userId: number,
+  payload: { username?: string; display_name?: string | null; phone?: string | null },
+) {
+  const { data } = await apiClient.put<Member>(`/users/${userId}`, payload);
+  return data;
+}
+
+/** 目前登入的帳號（含 LINE 綁定狀態）。 */
+export async function getMe() {
+  const { data } = await apiClient.get<Member>('/auth/me');
   return data;
 }
 

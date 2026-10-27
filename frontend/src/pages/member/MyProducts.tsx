@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { isAxiosError } from 'axios';
 import { cancelPurchase, listPurchases, type Purchase } from '../../api/purchases';
 import { listProducts } from '../../api/products';
+import { getSettings } from '../../api/settings';
 import StatusTag from '../../components/StatusTag';
 
 /**
@@ -17,6 +18,8 @@ export default function MyProducts() {
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
   const productNameById = new Map((products ?? []).map((p) => [p.id, p.name]));
+  // 付款方式說明（系統設定 › 預約與付款）
+  const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
   const unpaidCount = (purchases ?? []).filter((p) => p.payment_status === '待付款').length;
 
   const cancelMutation = useMutation({
@@ -90,7 +93,10 @@ export default function MyProducts() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`有 ${unpaidCount} 筆訂單待付款，請向櫃台付款，確認收款後堂數才會入帳。`}
+          title={`有 ${unpaidCount} 筆訂單待付款，確認收款後堂數才會入帳。`}
+          description={
+            <span style={{ whiteSpace: 'pre-line' }}>{settings?.payment_instructions || '請向櫃台付款。'}</span>
+          }
         />
       )}
       <Table
