@@ -39,7 +39,7 @@ export function ThemePicker({ value, accent, onChange }: ThemePickerProps) {
               color: token.colorText,
             }}
           >
-            {s.layout === 'grid' ? <GridThumb swatch={s} accent={accent} /> : <StackThumb swatch={s} accent={accent} />}
+            <Thumb swatch={s} accent={accent} />
             <div style={{ padding: '8px 10px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                 {t.name}
@@ -56,6 +56,20 @@ export function ThemePicker({ value, accent, onChange }: ThemePickerProps) {
 }
 
 type Swatch = (typeof SITE_THEMES)[number]['swatch'];
+
+/** 依排版挑縮圖 */
+function Thumb({ swatch, accent }: { swatch: Swatch; accent: string }) {
+  switch (swatch.layout) {
+    case 'grid':
+      return <GridThumb swatch={swatch} accent={accent} />;
+    case 'editorial':
+      return <EditorialThumb swatch={swatch} accent={accent} />;
+    case 'sidebar':
+      return <SidebarThumb swatch={swatch} accent={accent} />;
+    default:
+      return <StackThumb swatch={swatch} accent={accent} />;
+  }
+}
 
 /** 由上而下段落的縮圖：主視覺（標題列＋按鈕＋照片）與下方兩張卡片 */
 function StackThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
@@ -112,6 +126,65 @@ function GridThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
       <div style={tile({ background: accent })} />
       <div style={tile({})} />
       <div style={tile({ gridColumn: 'span 4' })} />
+    </div>
+  );
+}
+
+/** 雜誌版型的縮圖：粗線報頭、大標題、左邊章節編號＋右邊內文與照片 */
+function EditorialThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
+  const { token } = theme.useToken();
+  const line = (width: string | number, height = 3) => (
+    <div style={{ height, width, background: s.heroText, opacity: height > 3 ? 0.9 : 0.35 }} />
+  );
+  return (
+    <div aria-hidden="true" style={{ background: s.page, padding: 8, borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ borderBottom: `2px solid ${s.heroText}`, paddingBottom: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {line('95%', 7)}
+        {line('60%', 7)}
+      </div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <div style={{ width: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ fontFamily: 'serif', fontWeight: 700, fontSize: 15, lineHeight: 1, color: accent }}>01</div>
+          {line('100%', 4)}
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ height: 22, background: `linear-gradient(135deg, ${accent}55, ${accent}22)` }} />
+          {line('100%')}
+          {line('80%')}
+        </div>
+      </div>
+      <div style={{ borderTop: `1px solid ${s.block}` }} />
+    </div>
+  );
+}
+
+/** 側欄版型的縮圖：左邊目錄，右邊主視覺卡與三張重點卡 */
+function SidebarThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
+  const { token } = theme.useToken();
+  const card = (style: React.CSSProperties) => ({ background: s.block, borderRadius: s.radius / 2, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', ...style });
+  return (
+    <div aria-hidden="true" style={{ background: s.page, display: 'flex', height: 72, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+      <div style={{ width: 36, background: s.hero, borderRight: `1px solid ${token.colorBorderSecondary}`, padding: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ width: 10, height: 10, borderRadius: 3, background: accent }} />
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{ height: 3, width: i === 0 ? '90%' : '70%', background: s.heroText, opacity: 0.3, borderRadius: 2 }} />
+        ))}
+        <div style={{ marginTop: 'auto', height: 7, background: accent, borderRadius: 3 }} />
+      </div>
+      <div style={{ flex: 1, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={card({ flex: 1, padding: 5, display: 'flex', gap: 5, alignItems: 'center' })}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ height: 5, width: '90%', background: s.heroText, borderRadius: 2 }} />
+            <div style={{ height: 6, width: 22, background: accent, borderRadius: 3 }} />
+          </div>
+          <div style={{ width: 22, height: 22, borderRadius: 4, background: `linear-gradient(135deg, ${accent}55, ${accent}22)` }} />
+        </div>
+        <div style={{ display: 'flex', gap: 4, height: 14 }}>
+          <div style={card({ flex: 1, background: accent })} />
+          <div style={card({ flex: 1 })} />
+          <div style={card({ flex: 1 })} />
+        </div>
+      </div>
     </div>
   );
 }

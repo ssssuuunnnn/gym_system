@@ -203,6 +203,7 @@ def _plans(db: Session, content: SiteContent) -> list[dict]:
                 "kind": CATEGORY_LABEL.get(product.category, ""),
                 "name": product.name,
                 "price": _money(product.price),
+                "amount": float(product.price),  # 只用來找最低價（方案起價）
                 "hours": product.session_hours if product.category != ProductCategory.supply else None,
                 "description": entry.description,
             }
@@ -244,7 +245,9 @@ def render_site(
         "contact": True,
     }
     sections = [key for key in visible if has_content[key]]
-    # 最近的一堂團體課（方格版型的「下一堂課」方塊用）
+    # 最低價的方案（方格／側欄版型的「方案起價」用；方案照後台順序排，不一定第一個最便宜）
+    cheapest_plan = min(data["plans"], key=lambda p: p["amount"]) if data["plans"] else None
+    # 最近的一堂團體課（方格／側欄版型的「下一堂課」用）
     next_class = None
     for offset, day in enumerate(data["schedule_days"]):
         if day["classes"]:
@@ -285,6 +288,7 @@ def render_site(
     theme = content.theme if content.theme in SITE_THEMES else DEFAULT_THEME
     return templates.get_template(f"site/{SITE_THEMES[theme]['template']}.html").render(
         next_class=next_class,
+        cheapest_plan=cheapest_plan,
         c=content,
         theme=theme,
         theme_color=SITE_THEMES[theme]["theme_color"],

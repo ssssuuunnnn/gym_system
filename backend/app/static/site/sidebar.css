@@ -1,0 +1,140 @@
+/*
+ * 形象網站「側欄」版型（templates/site/sidebar.html）：桌機左邊固定目錄、右邊一張張浮起的白色卡片，像 App。
+ * 以 site.css 為基礎（按鈕、表單、常見問題、聯絡資訊）；手機（< 900px）沒有側欄，用共用頁首選單。
+ * 品牌色字只放在白色卡片（≥ 5.1:1）與淺灰底 #F3F4F6（≥ 4.7:1）上；品牌色底一律白字（≥ 5.1:1）。
+ */
+.theme-sidebar {
+  --page: #f3f4f6;
+  --soft: color-mix(in srgb, var(--accent) 8%, #fff);
+  --side-w: 264px;
+  --card-radius: 20px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 6px 20px rgba(16, 24, 40, 0.06);
+}
+body.theme-sidebar { background: var(--page); }
+.theme-sidebar h2 { font-size: 24px; margin-top: 2px; }
+.theme-sidebar .btn { border-radius: 12px; }
+.theme-sidebar .menu[open] > nav { background: #fff; }
+
+/* 側欄（桌機） */
+.sb-side { display: none; }
+.sb-side .brand { font-size: 17px; padding: 4px 8px 20px; border-bottom: 1px solid var(--line); }
+.sb-side .brand img, .sb-side .brand-mark { width: 40px; height: 40px; border-radius: 12px; }
+.sb-nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 0; flex: 1 1 auto; overflow-y: auto; }
+.sb-nav a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--ink-2); text-decoration: none; font-weight: 500; }
+.sb-nav a .ico { color: var(--muted); flex: none; }
+.sb-nav a:hover { background: var(--soft); color: var(--accent); }
+.sb-nav a:hover .ico { color: var(--accent); }
+.sb-foot { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+/* 卡片 */
+.sb-main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 56px; display: flex; flex-direction: column; gap: 20px; }
+.card { background: #fff; border-radius: var(--card-radius); box-shadow: var(--shadow); padding: 28px; display: flex; flex-direction: column; gap: 20px; min-width: 0; scroll-margin-top: 24px; }
+.card-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.card-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--soft); color: var(--accent); display: flex; align-items: center; justify-content: center; flex: none; }
+.card-title { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.card-title .eyebrow { font-size: 12px; }
+.card-aside { flex: 0 1 auto; }
+
+/* 主視覺卡：左文字、右照片 */
+.sb-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 32px; align-items: center; padding: 40px; scroll-margin-top: 80px; }
+.sb-hero.no-img { grid-template-columns: minmax(0, 1fr); }
+.sb-hero-text { display: flex; flex-direction: column; gap: 20px; }
+.sb-hero h1 { font-size: 44px; font-weight: 900; line-height: 1.18; text-wrap: balance; }
+.theme-sidebar .lead { color: var(--ink-2); font-size: 17px; }
+.sb-hero-img { width: 100%; height: auto; aspect-ratio: 1 / 1; max-height: 400px; object-fit: cover; border-radius: 16px; }
+
+/* 三個重點數字 */
+.sb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.stat { gap: 6px; padding: 22px 24px; text-decoration: none; color: var(--ink); transition: transform 0.15s; }
+.stat:hover { transform: translateY(-2px); }
+.stat-num { font-size: 18px; font-weight: 700; }
+.stat-num.num, .stat-num .num { font-size: 32px; line-height: 1.1; }
+.stat-accent { background: var(--accent); color: #fff; }
+
+/* 關於：打勾清單 */
+.theme-sidebar .prose { font-size: 16px; }
+.sb-features { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sb-features li { display: flex; gap: 12px; padding: 16px; border-radius: 14px; background: var(--page); }
+.sb-features li > div { display: flex; flex-direction: column; gap: 2px; }
+.tick { width: 24px; height: 24px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+
+/* 課表 */
+.sb-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.sb-week .day { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sb-week .day-name { font-size: 14px; display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 10px; background: var(--page); }
+.sb-week .day-name .num { color: var(--muted); font-weight: 600; }
+.sb-week .day-today .day-name { background: var(--accent); color: #fff; }
+.sb-week .day-today .day-name .num { color: #fff; }
+.slot { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.slot .num { font-size: 18px; color: var(--accent); }
+.slot-name { font-weight: 700; font-size: 14px; line-height: 1.4; }
+
+/* 教練：清單列 */
+.sb-coaches { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.sb-coach { display: flex; gap: 16px; align-items: flex-start; padding: 16px; border-radius: 16px; background: var(--page); }
+.sb-coach img, .sb-coach .coach-photo-empty { width: 72px; height: 72px; border-radius: 999px; object-fit: cover; flex: none; margin: 0; aspect-ratio: 1; font-size: 28px; background: #e4e6ea; }
+.sb-coach > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sb-coach h3 { font-size: 18px; font-weight: 900; }
+
+/* 方案 */
+.sb-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.sb-plan { position: relative; border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px; }
+.sb-plan.featured { border: 2px solid var(--accent); }
+.sb-plan h3 { font-size: 19px; font-weight: 900; }
+.sb-plan .plan-kind { color: var(--accent); font-weight: 700; opacity: 1; }
+.sb-plan .price .num { font-size: 36px; }
+.badge { position: absolute; top: -12px; right: 16px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+
+/* 環境照片 */
+.sb-gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 160px; gap: 12px; }
+.sb-gallery figure { margin: 0; position: relative; border-radius: 14px; overflow: hidden; background: var(--page); }
+.sb-gallery figure.first { grid-column: span 2; grid-row: span 2; }
+.sb-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.sb-gallery figcaption { position: absolute; left: 10px; bottom: 10px; background: rgba(20, 23, 28, 0.78); color: #fff; font-size: 13px; padding: 3px 10px; border-radius: 999px; }
+
+/* 常見問題、表單、聯絡 */
+.theme-sidebar .faq details { background: var(--page); }
+.theme-sidebar .notice, .theme-sidebar .privacy p { background: var(--page); }
+.sb-contact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.sb-contact > div { display: flex; flex-direction: column; gap: 20px; }
+.theme-sidebar .map { border-radius: 16px; min-height: 300px; width: 100%; height: 100%; }
+
+/* 頁尾 */
+.theme-sidebar .site-footer { background: transparent; color: var(--muted); }
+.theme-sidebar .footer-links a { color: var(--ink); }
+
+/* 桌機：顯示側欄、隱藏共用頁首 */
+@media (min-width: 900px) {
+  body.theme-sidebar { padding-left: var(--side-w); }
+  .theme-sidebar .site-header { display: none; }
+  .sb-side {
+    display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 20; width: var(--side-w);
+    padding: 24px 16px; background: #fff; border-right: 1px solid var(--line);
+  }
+  .theme-sidebar .footer-row { max-width: 1120px; }
+}
+
+@media (max-width: 1180px) and (min-width: 900px) {
+  .sb-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sb-hero h1 { font-size: 36px; }
+}
+
+/* 手機 */
+@media (max-width: 899px) {
+  .theme-sidebar .site-header { background: rgba(243, 244, 246, 0.94); border-bottom: 0; }
+  .sb-main { padding: 8px 12px 32px; gap: 12px; }
+  .card { padding: 22px; border-radius: 18px; gap: 16px; scroll-margin-top: 80px; }
+  .sb-hero { grid-template-columns: minmax(0, 1fr); padding: 22px; gap: 20px; }
+  .sb-hero-img { order: -1; aspect-ratio: 16 / 10; }
+  .sb-hero h1 { font-size: 30px; line-height: 1.25; }
+  .sb-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .stat { padding: 16px; }
+  .stat-accent { grid-column: 1 / -1; }
+  .stat-num.num, .stat-num .num { font-size: 26px; }
+  .sb-week { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .sb-coaches { grid-template-columns: minmax(0, 1fr); }
+  .sb-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 120px; gap: 8px; }
+  .sb-contact { grid-template-columns: minmax(0, 1fr); }
+  .card-aside { flex-basis: 100%; }
+  .theme-sidebar h2 { font-size: 22px; }
+}

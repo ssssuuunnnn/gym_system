@@ -30,7 +30,7 @@ export type BrandColor = (typeof BRAND_COLORS)[number]['hex'];
 
 /**
  * 版型（與後端 SITE_THEMES 一致）。同一份內容，只換外觀；swatch 是版型縮圖用的代表色與排版
- * （網站本身的顏色，不是後台介面的顏色）：stack＝由上而下段落、grid＝方格。
+ * （網站本身的顏色，不是後台介面的顏色）：stack＝由上而下段落、grid＝方格、editorial＝雜誌、sidebar＝側欄。
  */
 export const SITE_THEMES = [
   {
@@ -60,6 +60,20 @@ export const SITE_THEMES = [
     description: '首頁就是一整片大小不一的方塊：照片、下一堂課、方案、教練一眼看完',
     suits: '課程多、想讓客人馬上看到課表與價格',
     swatch: { layout: 'grid', page: '#eef0f3', hero: '#15181d', heroText: '#ffffff', block: '#ffffff', radius: 8, serif: false },
+  },
+  {
+    key: 'editorial',
+    name: '雜誌',
+    description: '像雜誌內頁：大襯線標題、編號章節、細線留白，方案排成價目表',
+    suits: '有故事的品牌、精品工作室、想做出質感',
+    swatch: { layout: 'editorial', page: '#fbf9f4', hero: '#fbf9f4', heroText: '#16140f', block: '#d9d4c7', radius: 0, serif: true },
+  },
+  {
+    key: 'sidebar',
+    name: '側欄',
+    description: '像 App：左邊固定目錄、右邊一張張卡片，首頁就看到下一堂課與方案起價',
+    suits: '課程與方案多、想讓客人快速找到資訊',
+    swatch: { layout: 'sidebar', page: '#f3f4f6', hero: '#ffffff', heroText: '#14171c', block: '#ffffff', radius: 8, serif: false },
   },
 ] as const;
 export type SiteTheme = (typeof SITE_THEMES)[number]['key'];
