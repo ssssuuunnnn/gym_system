@@ -1,0 +1,182 @@
+{#- 形象網站「方格」排版（便當格）：所有段落變成大小不一的方塊，排在同一個網格裡，首頁一眼看到照片、下一堂課、方案與教練。
+    每個段落是一條自己的網格（.band），段落之間照後台順序由上而下，只在段落內補空位，閱讀順序不會被打亂；手機改成一欄。 -#}
+{% extends 'site/_layout.html' %}
+{% block styles %}<link rel="stylesheet" href="/site/static/bento.css?v=1">{% endblock %}
+{% block main %}
+<main id="main" class="wrap bento">
+{% for key in sections %}
+
+{% if key == 'hero' %}
+<div id="top" class="band band-hero">
+<section class="tile t-hero c2 r2" aria-labelledby="hero-title">
+  {% if c.hero.eyebrow %}<span class="eyebrow on-dark">{{ c.hero.eyebrow }}</span>{% endif %}
+  <h1 id="hero-title">{{ c.hero.tagline or full_name }}</h1>
+  {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
+  <div class="actions">
+    {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+    {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
+  </div>
+</section>
+{% if c.hero.image_url %}
+<div class="tile t-photo r2" aria-hidden="true"><img src="{{ c.hero.image_url }}" alt="" width="600" height="840" fetchpriority="high"></div>
+{% endif %}
+{% if next_class and 'schedule' in sections %}
+<a class="tile t-next" href="#schedule">
+  <span class="label">下一堂團體課</span>
+  <span class="num next-time">{{ next_class.when }} {{ next_class.time }}</span>
+  <strong>{{ next_class.name }}</strong>
+  <span class="small">{{ next_class.coach }}{% if next_class.seats %}・{{ next_class.seats }}{% endif %}</span>
+</a>
+{% endif %}
+{% if plans and 'pricing' in sections %}
+<a class="tile t-plan-teaser" href="#pricing">
+  <span class="label">方案</span>
+  <span class="price"><span>NT$</span><span class="num">{{ plans[0].price }}</span><span class="small">起</span></span>
+  <span class="small">{{ plans[0].name }}{% if plans|length > 1 %}・共 {{ plans|length }} 種方案{% endif %}</span>
+</a>
+{% endif %}
+</div>
+
+{% elif key == 'about' %}
+<section id="about" class="band band-about" aria-labelledby="about-title">
+<div class="tile t-about {{ 'c2' if c.about.features else 'c4' }}">
+  <span class="eyebrow">ABOUT</span>
+  <h2 id="about-title">{{ c.about.title }}</h2>
+  {% if c.about.text %}<p class="prose">{{ c.about.text }}</p>{% endif %}
+</div>
+{% if c.about.features %}
+<ul class="tile t-features c2">
+  {% for f in c.about.features %}
+  <li>
+    <span class="feature-no num">{{ '%02d' % loop.index }}</span>
+    <strong>{{ f.title }}</strong>
+    {% if f.text %}<span class="muted small">{{ f.text }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+</section>
+
+{% elif key == 'schedule' %}
+<section id="schedule" class="band" aria-labelledby="schedule-title">
+<div class="tile t-schedule c4">
+  <div class="tile-head">
+    <div>
+      <span class="eyebrow">SCHEDULE</span>
+      <h2 id="schedule-title">{{ c.schedule.title }}</h2>
+    </div>
+    <p class="small muted">{{ schedule_days[0].date }}（{{ schedule_days[0].label[1:] }}）～ {{ schedule_days[-1].date }}（{{ schedule_days[-1].label[1:] }}）・會員<a href="/login">登入</a>後可直接預約</p>
+  </div>
+  <div class="days">
+    {% for d in schedule_days %}
+    <div class="day{% if not d.classes %} day-empty{% endif %}{% if d.is_today %} day-today{% endif %}">
+      <h3 class="day-name">{{ d.label }}<span class="num">{{ d.date }}</span></h3>
+      {% for k in d.classes %}
+      <div class="slot">
+        <span class="num">{{ k.time }}</span>
+        <span class="slot-name">{{ k.name }}</span>
+        <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分</span>
+        {% if k.seats %}<span class="small seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
+      </div>
+      {% else %}
+      <p class="small muted">—</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</section>
+
+{% elif key == 'coaches' %}
+<section id="coaches" class="band band-coaches" aria-labelledby="coaches-title">
+<div class="tile t-label r2">
+  <span class="eyebrow">COACHES</span>
+  <h2 id="coaches-title">{{ c.coaches.title }}</h2>
+</div>
+{% for co in coaches %}
+<article class="tile t-coach r2">
+  {% if co.photo_url %}<img src="{{ co.photo_url }}" alt="{{ co.name }}" loading="lazy" width="400" height="560">{% else %}<span class="coach-photo-empty" aria-hidden="true">{{ co.name[:1] }}</span>{% endif %}
+  <div class="coach-text">
+    <h3>{{ co.name }}</h3>
+    {% if co.specialty %}<p class="specialty">{{ co.specialty }}</p>{% endif %}
+    {% if co.bio %}<p class="small">{{ co.bio }}</p>{% endif %}
+  </div>
+</article>
+{% endfor %}
+</section>
+
+{% elif key == 'pricing' %}
+<section id="pricing" class="band band-pricing" aria-labelledby="pricing-title">
+<div class="tile t-label">
+  <span class="eyebrow">PRICING</span>
+  <h2 id="pricing-title">{{ c.pricing.title }}</h2>
+  {% if c.pricing.note %}<p class="small muted">{{ c.pricing.note }}</p>{% endif %}
+</div>
+{% for p in plans %}
+<div class="tile t-plan{% if loop.index == 2 and plans|length >= 3 %} t-plan-featured{% endif %}">
+  {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+  <h3>{{ p.name }}</h3>
+  <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
+  {% if p.description %}<p class="small">{{ p.description }}</p>{% endif %}
+</div>
+{% endfor %}
+</section>
+
+{% elif key == 'gallery' %}
+<section id="gallery" class="band band-gallery" aria-label="{{ c.gallery.title }}">
+{% for img in c.gallery.images %}
+<figure class="tile t-gallery{% if loop.first %} c2 r2{% endif %}">
+  <img src="{{ img.url }}" alt="{{ img.caption }}" loading="lazy">
+  <figcaption>{% if loop.first %}<span class="eyebrow on-dark">SPACE</span> {{ c.gallery.title }}{% if img.caption %}・{% endif %}{% endif %}{{ img.caption }}</figcaption>
+</figure>
+{% endfor %}
+</section>
+
+{% elif key == 'faq' %}
+<section id="faq" class="band" aria-labelledby="faq-title">
+<div class="tile t-faq c4">
+  <span class="eyebrow">FAQ</span>
+  <h2 id="faq-title">{{ c.faq.title }}</h2>
+  <div class="faq">
+    {% for item in c.faq.items %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ item.q }}</summary>
+      <p>{{ item.a }}</p>
+    </details>
+    {% endfor %}
+  </div>
+</div>
+</section>
+
+{% elif key == 'trial' %}
+<section id="trial" class="band" aria-labelledby="trial-title">
+<div class="tile t-trial c4 trial">
+  <div class="trial-intro">
+    <span class="eyebrow">FREE TRIAL</span>
+    <h2 id="trial-title">{{ c.trial.title }}</h2>
+  </div>
+  <div class="trial-body">
+  {% include 'site/_trial_form.html' %}
+  </div>
+</div>
+</section>
+
+{% elif key == 'contact' %}
+<section id="contact" class="band" aria-labelledby="contact-title">
+<div class="tile t-contact {{ 'c2' if c.contact.address else 'c4' }}">
+  <span class="eyebrow">CONTACT</span>
+  <h2 id="contact-title">{{ c.contact.title }}</h2>
+  {% include 'site/_contact_info.html' %}
+</div>
+{% if c.contact.address %}
+<div class="tile t-map c2">
+  <iframe class="map" title="{{ full_name }} 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps?q={{ c.contact.address | urlencode }}&output=embed"></iframe>
+</div>
+{% endif %}
+</section>
+{% endif %}
+
+{% endfor %}
+</main>
+{% endblock %}
