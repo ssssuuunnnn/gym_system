@@ -7,6 +7,8 @@
 2. POST /auth/line/join（姓名、手機、同意個資告知）或 /auth/line/link（既有帳號＋密碼）→ 登入 token
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -92,6 +94,8 @@ def line_join(payload: LineJoinIn, tenant: TenantInfo = Depends(get_tenant), db:
         phone=normalize_phone(payload.phone),
     )
     set_line_link(user, line_user_id, line_name)
+    if payload.marketing_consent:
+        user.marketing_consent_at = datetime.utcnow()
     db.add(user)
     try:
         db.flush()
@@ -146,8 +150,14 @@ def line_unlink(current_user: User = Depends(get_current_user), db: Session = De
 def line_preferences(
     payload: LinePreferences, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    """會員自己開關「從健身房官方帳號收到的通知」（預約結果、上課提醒、收款）。"""
-    current_user.line_notify = payload.line_notify
+    """
+    會員自己的 LINE 設定：服務通知（預約結果、上課提醒、收款）與優惠活動訊息（行銷，R31）分開開關。
+    同意行銷時記下時間，取消就清空。
+    """
+    if payload.line_notify is not None:
+        current_user.line_notify = payload.line_notify
+    if payload.marketing_consent is not None and payload.marketing_consent != current_user.marketing_consent:
+        current_user.marketing_consent_at = datetime.utcnow() if payload.marketing_consent else None
     db.commit()
     db.refresh(current_user)
     return user_out(current_user, get_coach_profile(current_user, db) is not None)

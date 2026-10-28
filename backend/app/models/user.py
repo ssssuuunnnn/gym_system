@@ -51,10 +51,16 @@ class User(TenantMixin, Base):
     line_linked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # 會員自己可關閉從健身房官方帳號收到的通知（預約結果、上課提醒、收款）
     line_notify: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # 同意接收優惠與活動訊息（行銷）的時間；NULL＝未同意。和上面的服務通知分開，預設不同意，會員可隨時取消（R31）
+    marketing_consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     @property
     def has_password(self) -> bool:
         return not self.password_hash.startswith(UNUSABLE_PASSWORD)
+
+    @property
+    def marketing_consent(self) -> bool:
+        return self.marketing_consent_at is not None
 
     @property
     def line_linked(self) -> bool:

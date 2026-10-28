@@ -282,6 +282,29 @@
 - **實作**：`services/line_member._process`、`routers/line_oa.py` 的 `/messages`
 - **測試**：`test_monthly_cap`、`test_retry_and_quota_exhausted`、`test_unlinked_after_enqueue_is_skipped`、`test_settings_validation_log_and_quota`
 
+## 會員名單與行銷訊息
+
+### R31. 優惠訊息要會員自己同意，和服務通知分開
+
+- **確認日期**：2026-10-28
+- **規則**：「優惠與活動訊息」（行銷）和「LINE 通知」（預約結果、上課提醒、收款）是兩個獨立的同意。預設不同意；會員在 LINE 加入會員時可以勾選（選填，不勾也能加入），之後在「我的」隨時開關。同意時記下時間，取消就清空。管理員只能看，不能替會員同意。
+- **實作**：`users.marketing_consent_at`、`routers/line_auth.py`（`/join` 的 `marketing_consent`、`PATCH /preferences`）
+- **測試**：`test_marketing_consent_by_member`、`test_join_with_marketing_consent`
+
+### R32. 「上過課」＝期間內已確認且已出席的預約
+
+- **確認日期**：2026-10-28
+- **規則**：會員名單以「已確認＋已出席」的預約計算，未到、待確認、已取消都不算。可依上課期間（最長一年）、團體課／私人課、教練、期間出席次數、剩餘堂數（已付款方案加總，用品不算）、最後一次上課距今天數篩選。管理員與黑名單不列入。
+- **實作**：`services/member_segments.find_members`
+- **測試**：`test_preview_counts_attended_members_only`、`test_preview_filters`
+
+### R33. LINE 受眾只放「已綁定 LINE 且同意優惠訊息」的會員，系統不直接群發
+
+- **確認日期**：2026-10-28
+- **規則**：「建立 LINE 受眾」在伺服器重新篩一次名單，只上傳可發送的會員到健身房自己的官方帳號；系統只留受眾名稱、條件、人數，不留 LINE 使用者 ID 名單。訊息由健身房在 LINE 官方帳號後台用這個受眾群發，費用算在健身房的 LINE 方案（每送一人一則）。沒綁定或沒同意的會員可匯出 CSV 另行聯絡。
+- **實作**：`routers/member_segments.py`、`services/line_oa.HttpOaClient.create_audience`
+- **測試**：`test_create_audience_uploads_sendable_only`、`test_audience_requires_enabled_channel`、`test_admin_only_and_tenant_isolation`
+
 ---
 
 ## 堂數帳務的共通原則

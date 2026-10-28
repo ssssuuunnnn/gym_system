@@ -44,6 +44,8 @@ class FakeOa:
         self.push_error: LineApiError | None = None
         self.quota = {"type": "limited", "value": 200}
         self.usage = 37
+        self.audiences: list[tuple[str, list[str]]] = []
+        self.audience_error: LineApiError | None = None
 
     # OaClient
     def get_bot_info(self):
@@ -87,6 +89,12 @@ class FakeOa:
 
     def get_quota_consumption(self):
         return {"totalUsage": self.usage}
+
+    def create_audience(self, description, user_ids):
+        if self.audience_error:
+            raise self.audience_error
+        self.audiences.append((description, list(user_ids)))
+        return 9000 + len(self.audiences)
 
     # verify_id_token
     def verify(self, id_token, client_id):

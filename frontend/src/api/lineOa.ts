@@ -150,7 +150,13 @@ export async function lineLogin(idToken: string) {
   return data;
 }
 
-export async function lineJoin(payload: { link_token: string; display_name: string; phone: string; consent: boolean }) {
+export async function lineJoin(payload: {
+  link_token: string;
+  display_name: string;
+  phone: string;
+  consent: boolean;
+  marketing_consent?: boolean;
+}) {
   const { data } = await apiClient.post<LoginToken>('/auth/line/join', payload);
   return data;
 }
@@ -183,8 +189,8 @@ export async function listLineMemberMessages(limit = 30) {
   return data;
 }
 
-/** 會員自己開關「從健身房官方帳號收到的通知」 */
-export async function setLinePreferences(lineNotify: boolean) {
-  const { data } = await apiClient.patch('/auth/line/preferences', { line_notify: lineNotify });
+/** 會員自己的 LINE 設定：服務通知（預約結果、上課提醒、收款）與優惠活動訊息分開，只帶要改的欄位 */
+export async function setLinePreferences(payload: { line_notify?: boolean; marketing_consent?: boolean }) {
+  const { data } = await apiClient.patch('/auth/line/preferences', payload);
   return data;
 }

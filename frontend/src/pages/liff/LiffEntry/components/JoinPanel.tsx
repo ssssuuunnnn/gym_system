@@ -24,7 +24,7 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
   const [mode, setMode] = useState<Mode>('加入會員');
 
   const joinMutation = useMutation({
-    mutationFn: (v: { display_name: string; phone: string; consent: boolean }) =>
+    mutationFn: (v: { display_name: string; phone: string; consent: boolean; marketing_consent: boolean }) =>
       lineJoin({ link_token: linkToken, ...v }),
     onSuccess: onDone,
     onError: (err) => message.error(apiErrorMessage(err)),
@@ -53,7 +53,7 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
           <Form
             layout="vertical"
             requiredMark={false}
-            initialValues={{ display_name: lineDisplayName ?? '', phone: '', consent: false }}
+            initialValues={{ display_name: lineDisplayName ?? '', phone: '', consent: false, marketing_consent: false }}
             onFinish={(v) => joinMutation.mutate(v)}
           >
             <Form.Item label="姓名" name="display_name" rules={[{ required: true, whitespace: true, message: '請填寫姓名' }]}>
@@ -91,6 +91,10 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
               rules={[{ validator: (_, v) => (v ? Promise.resolve() : Promise.reject(new Error('請先閱讀並同意'))) }]}
             >
               <Checkbox>我已閱讀並同意個人資料告知</Checkbox>
+            </Form.Item>
+            {/* 行銷同意和個資告知分開、預設不勾（R31）；之後可在「我的」開關 */}
+            <Form.Item name="marketing_consent" valuePropName="checked" style={{ marginTop: -12 }}>
+              <Checkbox>我願意收到新課程、優惠與活動訊息（選填）</Checkbox>
             </Form.Item>
             <Button type="primary" htmlType="submit" block size="large" loading={joinMutation.isPending}>
               加入會員

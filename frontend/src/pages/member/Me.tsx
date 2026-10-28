@@ -52,9 +52,17 @@ export default function Me({ mode }: MeProps) {
     onError: (err) => message.error(apiErrorMessage(err)),
   });
   const notifyMutation = useMutation({
-    mutationFn: setLinePreferences,
+    mutationFn: (on: boolean) => setLinePreferences({ line_notify: on }),
     onSuccess: (_res, on) => {
       message.success(on ? '已開啟 LINE 通知' : '已關閉 LINE 通知');
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+    onError: (err) => message.error(apiErrorMessage(err)),
+  });
+  const marketingMutation = useMutation({
+    mutationFn: (on: boolean) => setLinePreferences({ marketing_consent: on }),
+    onSuccess: (_res, on) => {
+      message.success(on ? '已開啟優惠與活動訊息' : '已關閉優惠與活動訊息');
       queryClient.invalidateQueries({ queryKey: ['me'] });
     },
     onError: (err) => message.error(apiErrorMessage(err)),
@@ -187,6 +195,21 @@ export default function Me({ mode }: MeProps) {
             checked={me.line_notify}
             loading={notifyMutation.isPending}
             onChange={(on) => notifyMutation.mutate(on)}
+          />
+        </FrontCard>
+      )}
+
+      {me?.line_linked && (
+        <FrontCard style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <label htmlFor="line-marketing" style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+            優惠與活動訊息
+            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>新課程、優惠方案、活動消息（隨時可以關閉）</span>
+          </label>
+          <Switch
+            id="line-marketing"
+            checked={me.marketing_consent}
+            loading={marketingMutation.isPending}
+            onChange={(on) => marketingMutation.mutate(on)}
           />
         </FrontCard>
       )}

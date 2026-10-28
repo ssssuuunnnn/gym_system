@@ -18,6 +18,9 @@ export interface Member {
   line_linked_at: string | null;
   /** 會員是否接收健身房官方帳號的通知 */
   line_notify: boolean;
+  /** 同意接收優惠與活動訊息（行銷，和服務通知分開） */
+  marketing_consent: boolean;
+  marketing_consent_at: string | null;
 }
 
 export async function listMembers() {
