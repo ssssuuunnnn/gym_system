@@ -1,0 +1,77 @@
+{#- 形象網站共用骨架（見 docs/adr/0003-gym-website.md）：<head>、頁首、頁尾、手機底部按鈕。
+    各版型 extends 這份並填 main：bold.html（由上而下段落，活力／清爽／溫暖共用）、bento.html（方格）。
+    只用 render_site() 給的公開資料；autoescape 開啟。 -#}
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+{% if description %}<meta name="description" content="{{ description }}">{% endif %}
+{% if preview %}<meta name="robots" content="noindex, nofollow">{% else %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ full_name }}">
+<meta property="og:title" content="{{ title }}">
+{% if description %}<meta property="og:description" content="{{ description }}">{% endif %}
+<meta property="og:url" content="{{ canonical }}">
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+<meta name="twitter:card" content="{{ 'summary_large_image' if og_image else 'summary' }}">
+<meta name="theme-color" content="{{ theme_color }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700{{ theme_fonts }}&display=swap">
+<link rel="stylesheet" href="/site/static/site.css?v=3">
+{% block styles %}{% endblock %}
+<style>:root { --accent: {{ accent }}; --accent-light: {{ accent_light }}; }</style>
+<script type="application/ld+json">{{ json_ld | safe }}</script>
+</head>
+<body class="theme-{{ theme }}">
+{% if preview %}<div class="preview-banner" role="status">預覽（草稿）・訪客看不到，按「發布到網站」後才會上線</div>{% endif %}
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="#top">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="" width="36" height="36">{% else %}<span class="brand-mark" aria-hidden="true">{{ company_name[:1] }}</span>{% endif %}
+      <span>{{ full_name }}</span>
+    </a>
+    {#- 桌機與手機各一份選單（只會顯示其中一份）：收合的 <details> 在瀏覽器裡一定隱藏內容，不能拿來當桌機選單 -#}
+    <nav aria-label="主選單" class="nav nav-desktop">
+      {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+      <a href="/login" class="nav-login">會員登入</a>
+      {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+    </nav>
+    <details class="menu">
+      <summary aria-label="選單"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+      <nav aria-label="主選單" class="nav nav-mobile">
+        {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+        <a href="/login" class="nav-login">會員登入</a>
+        {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+      </nav>
+    </details>
+  </div>
+</header>
+
+{% block main %}{% endblock %}
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <span>© {{ year }} {{ full_name }}</span>
+    <nav aria-label="頁尾連結" class="footer-links">
+      <a href="/login">會員登入</a>
+      <a href="/register">加入會員</a>
+      {% if line_url %}<a href="{{ line_url }}" rel="noopener" target="_blank">LINE</a>{% endif %}
+      {% if instagram_url %}<a href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
+      {% if facebook_url %}<a href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
+    </nav>
+  </div>
+</footer>
+
+{% if 'trial' in sections and not form.sent %}
+<div class="mobile-cta">
+  {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
+  <a class="btn btn-accent" href="#trial">預約體驗課</a>
+</div>
+{% endif %}
+</body>
+</html>

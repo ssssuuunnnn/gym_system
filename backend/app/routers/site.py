@@ -244,6 +244,13 @@ def render_site(
         "contact": True,
     }
     sections = [key for key in visible if has_content[key]]
+    # 最近的一堂團體課（方格版型的「下一堂課」方塊用）
+    next_class = None
+    for offset, day in enumerate(data["schedule_days"]):
+        if day["classes"]:
+            when = "今天" if offset == 0 else "明天" if offset == 1 else day["label"]
+            next_class = {"when": when, "date": day["date"], **day["classes"][0]}
+            break
 
     def absolute(url: str | None) -> str | None:
         return f"{base}{url}" if url else None
@@ -276,7 +283,8 @@ def render_site(
         json_ld["sameAs"] = same_as
 
     theme = content.theme if content.theme in SITE_THEMES else DEFAULT_THEME
-    return templates.get_template("site/bold.html").render(
+    return templates.get_template(f"site/{SITE_THEMES[theme]['template']}.html").render(
+        next_class=next_class,
         c=content,
         theme=theme,
         theme_color=SITE_THEMES[theme]["theme_color"],

@@ -1,0 +1,14 @@
+{#- 地址、交通、營業時間、電話與社群按鈕；各版型共用 -#}
+      <dl class="info">
+        {% if c.contact.address %}<dt>地址</dt><dd>{{ c.contact.address }}<br><a href="https://www.google.com/maps/search/?api=1&query={{ c.contact.address | urlencode }}" rel="noopener" target="_blank">在 Google 地圖開啟</a></dd>{% endif %}
+        {% if c.contact.transport %}<dt>交通</dt><dd>{{ c.contact.transport }}</dd>{% endif %}
+        {% if c.contact.hours %}<dt>營業時間</dt><dd class="pre">{{ c.contact.hours }}</dd>{% endif %}
+        {% if c.contact.phone %}<dt>電話</dt><dd><a href="tel:{{ c.contact.phone | replace(' ', '') }}">{{ c.contact.phone }}</a></dd>{% endif %}
+      </dl>
+      {% if line_url or instagram_url or facebook_url %}
+      <div class="social">
+        {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">加入官方 LINE</a>{% endif %}
+        {% if instagram_url %}<a class="btn btn-outline" href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
+        {% if facebook_url %}<a class="btn btn-outline" href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
+      </div>
+      {% endif %}

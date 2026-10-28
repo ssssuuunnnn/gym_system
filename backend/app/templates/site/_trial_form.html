@@ -1,0 +1,49 @@
+{#- 體驗課表單（或送出後的感謝訊息）；各版型共用 -#}
+  {% if form.sent %}
+  <div class="notice" role="status">
+    <strong>已收到你的預約！</strong>
+    <p>我們會盡快以電話或 LINE 與你聯繫。</p>
+    {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">加入官方 LINE</a>{% endif %}
+  </div>
+  {% else %}
+  {% if c.trial.intro %}<p class="muted">{{ c.trial.intro }}</p>{% endif %}
+  {% if form.errors.form %}<p class="form-error" role="alert">{{ form.errors.form }}</p>{% endif %}
+  {% if preview %}<p class="small muted">預覽模式：表單不會送出。</p>{% endif %}
+  <form class="trial-form" method="post" action="{{ '#' if preview else '/site/inquiry' }}" novalidate>
+    <label>姓名
+      <input name="name" type="text" autocomplete="name" required maxlength="50" value="{{ form.values.name }}"{% if form.errors.name %} aria-invalid="true" aria-describedby="err-name"{% endif %}>
+      {% if form.errors.name %}<span class="field-error" id="err-name">{{ form.errors.name }}</span>{% endif %}
+    </label>
+    <label>手機
+      <input name="phone" type="tel" autocomplete="tel" required maxlength="30" value="{{ form.values.phone }}"{% if form.errors.phone %} aria-invalid="true" aria-describedby="err-phone"{% endif %}>
+      {% if form.errors.phone %}<span class="field-error" id="err-phone">{{ form.errors.phone }}</span>{% endif %}
+    </label>
+    <label>LINE ID（選填）
+      <input name="line_id" type="text" maxlength="50" value="{{ form.values.line_id }}">
+    </label>
+    <label>想體驗
+      <select name="interest">
+        {% for opt in c.trial.interests %}<option{% if form.values.interest == opt %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>方便的時段
+      <select name="slot">
+        {% for opt in c.trial.slots %}<option{% if form.values.slot == opt %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>想對教練說的（選填）
+      <input name="message" type="text" maxlength="500" placeholder="例如：想改善肩頸、準備路跑" value="{{ form.values.message }}">
+    </label>
+    <label class="hp" aria-hidden="true">請勿填寫<input name="{{ honeypot }}" type="text" tabindex="-1" autocomplete="off"></label>
+    <div class="consent">
+      <label class="check"><input name="consent" type="checkbox" required{% if form.errors.consent %} aria-invalid="true" aria-describedby="err-consent"{% endif %}>
+        <span>我已閱讀並同意下方的個人資料蒐集告知事項，同意 {{ full_name }} 使用以上資料聯繫我安排體驗課。</span>
+      </label>
+      {% if form.errors.consent %}<span class="field-error" id="err-consent">{{ form.errors.consent }}</span>{% endif %}
+      {% if c.trial.privacy_notice %}
+      <details class="privacy"><summary>個人資料蒐集告知事項</summary><p>{{ c.trial.privacy_notice }}</p></details>
+      {% endif %}
+    </div>
+    <button class="btn btn-accent btn-lg" type="submit"{% if preview %} disabled{% endif %}>送出預約</button>
+  </form>
+  {% endif %}

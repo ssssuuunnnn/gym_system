@@ -238,10 +238,15 @@ def test_text_is_escaped(client, admin, gym, coach, plans, course, db):
 
 @pytest.mark.parametrize(
     "theme, stylesheet, theme_color",
-    [("bold", None, "#15181d"), ("airy", "theme-airy.css", "#ffffff"), ("warm", "theme-warm.css", "#faf5ee")],
+    [
+        ("bold", None, "#15181d"),
+        ("airy", "theme-airy.css", "#ffffff"),
+        ("warm", "theme-warm.css", "#faf5ee"),
+        ("bento", "bento.css", "#eef0f3"),
+    ],
 )
 def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, theme_color):
-    """三種版型共用同一份內容與結構，只換外觀；草稿預覽與發布後都套用選到的版型。"""
+    """四種版型共用同一份內容：活力／清爽／溫暖是同一套段落排版只換外觀，方格是另一套排版；發布後套用選到的版型。"""
     full_site(client, admin, coach.id, [plans[0].id])
     content = draft(client, admin)
     assert content["theme"] == "bold"  # 預設
@@ -256,8 +261,16 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert f"/site/static/{stylesheet}" in html
         assert client.get(f"/site/static/{stylesheet}").status_code == 200
     else:
-        assert "/site/static/theme-" not in html
+        assert "/site/static/theme-" not in html and "bento.css" not in html
     assert ("Noto+Serif+TC" in html) == (theme == "warm")
+    # 排版：方格是另一份樣板，段落變成方塊；其餘共用由上而下的段落
+    assert ('class="wrap bento"' in html) == (theme == "bento")
+    if theme == "bento":
+        teaser = html.split('class="tile t-next"')[1].split("</a>")[0]
+        assert "明天 19:00" in teaser and "壺鈴循環" in teaser  # 最近一堂團體課
+        assert 'id="schedule"' in html and 'id="pricing"' in html and 'id="trial"' in html
+        assert "十年肌力訓練經驗" in html  # 教練介紹
+        assert html.count('name="consent"') == 1  # 共用的體驗課表單
 
 
 def test_validation(client, admin, gym, coach):

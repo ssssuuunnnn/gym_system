@@ -32,14 +32,16 @@ BRAND_COLORS: dict[str, dict[str, str]] = {
 BrandColor = Literal["#C3400D", "#0B7A75", "#2F54EB", "#722ED1", "#1F1F1F"]
 DEFAULT_BRAND_COLOR = "#C3400D"
 
-# 版型：同一份內容、不同外觀（templates/site/bold.html 共用，theme-<key>.css 覆寫顏色與形狀）。
+# 版型：同一份內容、不同外觀。template 是排版（templates/site/<template>.html）：
+# bold＝由上而下段落（活力／清爽／溫暖共用，後兩者再載入 theme-<key>.css 覆寫顏色與形狀）、bento＝方格。
 # theme_color 用於手機瀏覽器網址列；fonts 是額外載入的 Google Fonts。
 SITE_THEMES: dict[str, dict[str, str]] = {
-    "bold": {"name": "活力", "theme_color": "#15181d", "fonts": ""},
-    "airy": {"name": "清爽", "theme_color": "#ffffff", "fonts": ""},
-    "warm": {"name": "溫暖", "theme_color": "#faf5ee", "fonts": "&family=Noto+Serif+TC:wght@600;700"},
+    "bold": {"name": "活力", "template": "bold", "theme_color": "#15181d", "fonts": ""},
+    "airy": {"name": "清爽", "template": "bold", "theme_color": "#ffffff", "fonts": ""},
+    "warm": {"name": "溫暖", "template": "bold", "theme_color": "#faf5ee", "fonts": "&family=Noto+Serif+TC:wght@600;700"},
+    "bento": {"name": "方格", "template": "bento", "theme_color": "#eef0f3", "fonts": ""},
 }
-SiteTheme = Literal["bold", "airy", "warm"]
+SiteTheme = Literal["bold", "airy", "warm", "bento"]
 DEFAULT_THEME = "bold"
 
 # 網站圖片只能是本站上傳的檔案：/media/<子網域>/site/<uuid>.<jpg|png>（子網域由路由再比對）
