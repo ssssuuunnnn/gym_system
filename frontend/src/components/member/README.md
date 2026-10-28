@@ -9,6 +9,8 @@
 | `FrontPageHeader.tsx` | 頁首：小字（日期）＋大標，右側動作 |
 | `FrontCard.tsx` | 白底圓角卡片；`highlighted` 以主題色外框標示 |
 | `CoverTile.tsx` | 課程封面縮圖，沒有封面時以主題淺底＋圖示代替 |
+| `BottomSheet.tsx` | 底部面板（圓角、寬度同內容欄）；確認預約、購買方案共用 |
 
 前台頁面：`pages/member/Home`（首頁）、`pages/member/Book`（預約課程）、`pages/member/Me.tsx`（我的，會員與教練共用）、`pages/coach/Today`（今日課表）、`pages/coach/Attendance.tsx`（簽到紀錄）、`pages/coach/Payouts.tsx`（我的鐘點）。
-既有的表格式頁面（我的預約、我的商品、購買商品）仍在前台版面內，之後再逐步改成卡片式。
+`pages/member/BuyProduct/`（購買方案：方案卡片＋底部面板，可從預約頁帶入想約的課）。
+既有的表格式頁面（我的預約、我的商品）仍在前台版面內，之後再逐步改成卡片式。

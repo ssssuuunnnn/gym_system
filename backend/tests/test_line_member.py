@@ -136,7 +136,7 @@ def test_payment_confirmed(client, admin, linked, db, plan, pushes):
     assert "已收到款項" in alt(sent[-1])
     text = card(sent[-1])
     assert "私人課 10 堂 × 2" in text and "NT$ 24,000" in text and "已入帳 20 堂" in text
-    assert f"https://liff.line.me/{LIFF_ID}/products" in text
+    assert f"https://liff.line.me/{LIFF_ID}/book\"" in text and "去預約課程" in text
 
 
 def test_switches_optout_and_unlinked(client, admin, linked, other_member, db, plan, pushes):
