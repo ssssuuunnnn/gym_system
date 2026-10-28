@@ -11,6 +11,7 @@ import {
   AccountBookOutlined,
   GlobalOutlined,
   MessageOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import { Badge } from 'antd';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ const adminMenuItems: BackOfficeMenuItem[] = [
   { key: '/admin/purchases', label: '購買紀錄', icon: <DollarOutlined /> },
   { key: '/admin/courses', label: '課程管理', icon: <CalendarOutlined /> },
   { key: '/admin/members', label: '會員管理', icon: <TeamOutlined /> },
+  { key: '/admin/member-segments', label: '會員名單', icon: <NotificationOutlined /> },
   { key: '/admin/website', label: '形象網站', icon: <GlobalOutlined /> },
   { key: '/admin/inquiries', label: '詢問名單', icon: <MessageOutlined /> },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined /> },

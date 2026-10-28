@@ -92,6 +92,8 @@ class LineJoinIn(BaseModel):
     phone: str = Field(min_length=8, max_length=30)
     # 個資告知同意（必須為 true）
     consent: bool
+    # 同意接收優惠與活動訊息（選填，預設不同意；R31）
+    marketing_consent: bool = False
 
 
 class LineLinkIn(BaseModel):
@@ -131,4 +133,9 @@ class LineMemberMessageOut(BaseModel):
 
 
 class LinePreferences(BaseModel):
-    line_notify: bool
+    """會員自己的 LINE 設定：只帶要改的欄位。"""
+
+    # 服務通知（預約結果、上課提醒、收款）
+    line_notify: bool | None = None
+    # 優惠與活動訊息（行銷，R31）
+    marketing_consent: bool | None = None

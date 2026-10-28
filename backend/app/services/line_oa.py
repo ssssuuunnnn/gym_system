@@ -27,6 +27,8 @@ from app.services.line import LineApiError
 
 API_BASE = "https://api.line.me"
 DATA_API_BASE = "https://api-data.line.me"
+# 上傳受眾時每次請求最多的使用者 ID 數
+AUDIENCE_CHUNK = 10_000
 RICH_MENU_IMAGE = Path(__file__).resolve().parent.parent / "static" / "line" / "rich_menu.png"
 RICH_MENU_SIZE = (2500, 843)
 LIFF_ID_PATTERN = re.compile(r"^(\d{6,20})-[A-Za-z0-9]{4,40}$")
@@ -61,6 +63,7 @@ class OaClient(Protocol):
     def push(self, to: str, messages: list[dict]) -> None: ...
     def get_quota(self) -> dict: ...
     def get_quota_consumption(self) -> dict: ...
+    def create_audience(self, description: str, user_ids: list[str]) -> int: ...
 
 
 class HttpOaClient:
@@ -119,6 +122,19 @@ class HttpOaClient:
 
     def get_quota_consumption(self) -> dict:
         return self._request("GET", f"{API_BASE}/v2/bot/message/quota/consumption").json()
+
+    def create_audience(self, description: str, user_ids: list[str]) -> int:
+        """
+        以 LINE 使用者 ID 建立受眾（Messaging API 與 LINE 官方帳號後台共用），回傳 audienceGroupId。
+        一次最多 10,000 個 ID：第一批建立，其餘用 PUT 追加。
+        """
+        chunks = [user_ids[i:i + AUDIENCE_CHUNK] for i in range(0, len(user_ids), AUDIENCE_CHUNK)] or [[]]
+        body = {"description": description, "isIfaAudience": False, "audiences": [{"id": u} for u in chunks[0]]}
+        group_id = self._request("POST", f"{API_BASE}/v2/bot/audienceGroup/upload", json=body).json()["audienceGroupId"]
+        for chunk in chunks[1:]:
+            self._request("PUT", f"{API_BASE}/v2/bot/audienceGroup/upload",
+                          json={"audienceGroupId": group_id, "audiences": [{"id": u} for u in chunk]})
+        return group_id
 
 
 def make_client(access_token: str) -> OaClient:

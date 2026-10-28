@@ -46,6 +46,9 @@ class UserOut(BaseModel):
     line_display_name: str | None = None
     line_linked_at: datetime | None = None
     line_notify: bool = True
+    # 同意接收優惠與活動訊息（R31）
+    marketing_consent: bool = False
+    marketing_consent_at: datetime | None = None
 
 
 def user_out(user, is_coach: bool) -> UserOut:

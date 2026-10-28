@@ -301,6 +301,23 @@ export default function MemberDetail() {
           </div>
 
           <div style={row}>
+            <div style={labelCol}>優惠訊息</div>
+            {member.marketing_consent ? (
+              <>
+                <Tag color="green">同意接收</Tag>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {fmt(member.marketing_consent_at)} 同意
+                </Text>
+              </>
+            ) : (
+              <Tag>未同意</Tag>
+            )}
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              由會員自己在「我的」開關，只有同意的會員會被加進 LINE 受眾
+            </Text>
+          </div>
+
+          <div style={row}>
             <div style={labelCol}>身份</div>
             <Tag color={member.is_coach ? 'blue' : 'default'}>{member.is_coach ? '教練' : '學員'}</Tag>
             <Text style={{ fontSize: 13 }} type="secondary">
