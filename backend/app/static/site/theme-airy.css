@@ -1,0 +1,57 @@
+/*
+ * 形象網站「清爽」版型：白底、留白多、大圓角與柔和陰影，適合瑜珈、皮拉提斯、女性工作室。
+ * 沿用 site.css 的版面，只覆寫顏色與形狀；原本深色的主視覺與方案改成淺色。
+ * 品牌色在白底（5.2:1 起）與 --tint #F4F8FB（4.8:1 起）上都 ≥ 4.5:1。
+ */
+.theme-airy {
+  --ink: #1e2a33;
+  --ink-2: #3c4954;
+  --muted: #5c6670;
+  --line: #e3e9ee;
+  --tint: #f4f8fb;
+  --radius: 20px;
+  --radius-lg: 32px;
+  --font-num: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif;
+  --soft: color-mix(in srgb, var(--accent) 8%, #fff);
+  --shadow: 0 12px 40px rgba(30, 42, 51, 0.08);
+}
+.theme-airy h2 { font-weight: 700; letter-spacing: 0.02em; }
+.theme-airy .num { font-weight: 500; }
+
+/* 小標：品牌色淺底膠囊 */
+.theme-airy .eyebrow, .theme-airy .eyebrow.on-dark {
+  font-family: var(--font); font-weight: 700; font-size: 12px; letter-spacing: 0.14em;
+  color: var(--accent); background: var(--soft); padding: 4px 12px; border-radius: 999px; width: fit-content;
+}
+
+/* 原本深色的區塊改成淺色 */
+.theme-airy .dark { background: var(--soft); color: var(--ink); }
+.theme-airy #pricing.dark { background: #fff; }
+.theme-airy .lead { color: var(--ink-2); }
+.theme-airy .on-dark-muted { color: var(--muted); }
+.theme-airy .btn-ghost { color: var(--ink); border-color: #b9c3cc; background: #fff; }
+.theme-airy .btn { border-radius: 14px; }
+
+/* 主視覺：照片大圓角＋陰影 */
+.theme-airy .hero { padding-top: 88px; padding-bottom: 96px; }
+.theme-airy .hero h1 { font-weight: 700; letter-spacing: 0.02em; }
+.theme-airy .hero-img { border-radius: 40px; box-shadow: var(--shadow); }
+
+/* 卡片：白底細框＋柔和陰影 */
+.theme-airy .features li { background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.theme-airy .class-card { border-radius: 18px; }
+.theme-airy .day-head { border-bottom: 1px solid var(--line); }
+.theme-airy .coach img, .theme-airy .coach-photo-empty { border-radius: 999px 999px 28px 28px; }
+.theme-airy .coach h3 { font-weight: 700; }
+.theme-airy .plan { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.theme-airy .plan-featured { background: #fff; border: 2px solid var(--accent); }
+.theme-airy .plan-featured .plan-kind { color: var(--accent); }
+.theme-airy .plan h3 { font-weight: 700; }
+.theme-airy .price { color: var(--ink); }
+.theme-airy .gallery figure { border-radius: 28px; }
+.theme-airy .faq details { border: 1px solid var(--line); }
+.theme-airy .notice { background: var(--soft); }
+
+/* 頁尾改成淺色 */
+.theme-airy .site-footer { background: var(--tint); color: var(--muted); border-top: 1px solid var(--line); }
+.theme-airy .footer-links a { color: var(--ink); }

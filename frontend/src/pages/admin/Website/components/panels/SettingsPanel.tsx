@@ -1,7 +1,8 @@
-import { Button, Card, Form, Input, Space, Tag, Typography, theme } from 'antd';
+import { Button, Form, Input, Space, Typography, theme } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import { BRAND_COLORS, type SiteContent } from '../../../../../api/website';
 import { ImageUploader } from '../ImageUploader';
+import { ThemePicker } from '../ThemePicker';
 
 export interface SettingsPanelProps {
   content: SiteContent;
@@ -17,15 +18,8 @@ export function SettingsPanel({ content, onChange }: SettingsPanelProps) {
 
   return (
     <Form layout="vertical">
-      <Form.Item label="版型" extra="更多版型會陸續推出">
-        <Card size="small" style={{ width: 220, borderColor: token.colorPrimary }}>
-          <div style={{ height: 64, borderRadius: token.borderRadiusSM, background: token.colorText, marginBottom: 8 }} />
-          <Space>
-            <strong>活力</strong>
-            <Tag color="blue">使用中</Tag>
-          </Space>
-          <div style={{ fontSize: 12, color: token.colorTextSecondary }}>深色主視覺、大標題</div>
-        </Card>
+      <Form.Item label="版型" extra="同一份內容換不同外觀，隨時可以切換。按「儲存草稿」後右側預覽會更新，「發布到網站」後才會上線。">
+        <ThemePicker value={content.theme} accent={content.brand_color} onChange={(t) => onChange({ theme: t })} />
       </Form.Item>
 
       <Form.Item label="品牌色" extra="按鈕、標題小字與重點色。每個顏色都確認過文字看得清楚。">

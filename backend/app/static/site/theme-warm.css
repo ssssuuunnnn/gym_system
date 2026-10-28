@@ -1,0 +1,57 @@
+/*
+ * 形象網站「溫暖」版型：米白與大地色、襯線標題、拱形照片，適合社區型、復健、慢活教室。
+ * 沿用 site.css 的版面，只覆寫顏色、字體與形狀；主視覺改成米色、方案與頁尾用深咖啡。
+ * 品牌色在米白 #FAF5EE 上 ≥ 4.7:1、在淺米 --tint #F7F0E7 上 ≥ 4.5:1；放在深咖啡上的字一律用米色（> 10:1），不用品牌色。
+ */
+.theme-warm {
+  --ink: #3b2f27;
+  --ink-2: #4f4137;
+  --muted: #6b5b4e;
+  --line: #e6dccf;
+  --tint: #f7f0e7;
+  --cream: #faf5ee;
+  --dark: #3b2f27;
+  --dark-2: #4c3d33;
+  --on-dark-muted: #e9dfd2;
+  --radius: 18px;
+  --radius-lg: 28px;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-num: var(--serif);
+}
+body.theme-warm { background: var(--cream); }
+.theme-warm h1, .theme-warm h2, .theme-warm h3 { font-family: var(--serif); font-weight: 700; letter-spacing: 0.04em; }
+.theme-warm .num { font-weight: 600; }
+
+/* 小標：前面一條短線 */
+.theme-warm .eyebrow {
+  font-family: var(--font); font-weight: 500; font-size: 13px; letter-spacing: 0.24em; color: var(--accent);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.theme-warm .eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+.theme-warm .eyebrow.on-dark { color: var(--on-dark-muted); }
+
+/* 主視覺：米色底、拱形照片 */
+.theme-warm #top.dark { background: var(--cream); color: var(--ink); }
+.theme-warm #top .eyebrow.on-dark { color: var(--accent); }
+.theme-warm #top .lead { color: var(--ink-2); }
+.theme-warm #top .btn-ghost { color: var(--ink); border-color: #b9a896; }
+.theme-warm .hero h1 { font-size: 52px; line-height: 1.3; }
+.theme-warm .hero-img { border-radius: 240px 240px 28px 28px; height: 480px; }
+.theme-warm .btn { border-radius: 12px; }
+
+/* 區塊底色 */
+.theme-warm .site-header { background: rgba(250, 245, 238, 0.96); }
+.theme-warm .menu[open] > nav, .theme-warm .mobile-cta { background: var(--cream); }
+.theme-warm .tint { background: var(--tint); }
+.theme-warm .features li { background: #fff; border: 1px solid var(--line); }
+.theme-warm .class-card { background: var(--cream); }
+.theme-warm .day-head { border-bottom: 1px solid var(--ink); }
+.theme-warm .coach img, .theme-warm .coach-photo-empty { border-radius: 999px 999px 18px 18px; background: var(--tint); }
+.theme-warm .faq details { background: var(--cream); }
+.theme-warm .trial-form input[type="text"], .theme-warm .trial-form input[type="tel"], .theme-warm .trial-form select { background: #fff; border-color: #9c8b7c; }
+.theme-warm .notice, .theme-warm .privacy p { background: var(--tint); }
+
+/* 方案：深咖啡底，重點方案用米色卡 */
+.theme-warm .plan { background: var(--dark-2); }
+.theme-warm .plan-featured { background: var(--cream); color: var(--ink); }
+.theme-warm .gallery figure { border-radius: 18px; }

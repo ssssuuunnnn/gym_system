@@ -28,8 +28,37 @@ export const BRAND_COLORS = [
 ] as const;
 export type BrandColor = (typeof BRAND_COLORS)[number]['hex'];
 
+/**
+ * 版型（與後端 SITE_THEMES 一致）。同一份內容，只換外觀；swatch 是版型縮圖用的代表色
+ * （網站本身的顏色，不是後台介面的顏色）。
+ */
+export const SITE_THEMES = [
+  {
+    key: 'bold',
+    name: '活力',
+    description: '深色主視覺、粗體大字，運動感強烈',
+    suits: '重訓、拳擊、CrossFit',
+    swatch: { page: '#ffffff', hero: '#15181d', heroText: '#ffffff', block: '#f4f5f7', radius: 6, serif: false },
+  },
+  {
+    key: 'airy',
+    name: '清爽',
+    description: '白底、大量留白、圓角照片與柔和陰影',
+    suits: '瑜珈、皮拉提斯、女性工作室',
+    swatch: { page: '#ffffff', hero: '#f4f8fb', heroText: '#1e2a33', block: '#ffffff', radius: 12, serif: false },
+  },
+  {
+    key: 'warm',
+    name: '溫暖',
+    description: '米白大地色、襯線標題、拱形照片',
+    suits: '社區型、復健、慢活教室',
+    swatch: { page: '#faf5ee', hero: '#faf5ee', heroText: '#3b2f27', block: '#f7f0e7', radius: 40, serif: true },
+  },
+] as const;
+export type SiteTheme = (typeof SITE_THEMES)[number]['key'];
+
 export interface SiteContent {
-  theme: 'bold';
+  theme: SiteTheme;
   brand_color: BrandColor;
   seo: { title: string; description: string; og_image_url: string | null };
   sections: { key: SectionKey; visible: boolean }[];
