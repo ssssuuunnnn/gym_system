@@ -1,0 +1,145 @@
+/*
+ * 形象網站「雜誌」版型（templates/site/editorial.html）：紙張色底、超大襯線標題、編號章節、
+ * 左窄右寬的不對稱雙欄與細線分隔。以 site.css 為基礎（按鈕、表單、常見問題、聯絡資訊），只覆寫外觀與章節排版。
+ * 品牌色在紙張色 #FBF9F4 上 ≥ 4.9:1；全頁沒有深色底。
+ */
+.theme-editorial {
+  --paper: #fbf9f4;
+  --ink: #16140f;
+  --ink-2: #3b3830;
+  --muted: #5c584e;
+  --line: #d9d4c7;
+  --tint: #f3efe5;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-num: "Barlow Condensed", var(--serif);
+}
+body.theme-editorial { background: var(--paper); }
+.theme-editorial h1, .theme-editorial h2, .theme-editorial h3 { font-family: var(--serif); font-weight: 900; }
+.theme-editorial .btn { border-radius: 2px; }
+.theme-editorial .btn-ghost { color: var(--ink); border-color: var(--ink); }
+.theme-editorial .eyebrow { letter-spacing: 0.28em; font-size: 13px; }
+
+/* 頁首：紙張色、下方一條粗線（報頭） */
+.theme-editorial .site-header { background: rgba(251, 249, 244, 0.96); border-bottom: 3px double var(--ink); }
+.theme-editorial .brand { font-family: var(--serif); font-size: 20px; letter-spacing: 0.06em; white-space: nowrap; }
+.theme-editorial .brand-mark, .theme-editorial .brand img { border-radius: 2px; }
+.theme-editorial .menu[open] > nav, .theme-editorial .mobile-cta { background: var(--paper); }
+
+/* 封面（主視覺） */
+.ed-hero { padding-top: 40px; padding-bottom: 72px; display: flex; flex-direction: column; gap: 28px; }
+.ed-hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
+.ed-hero h1 { font-size: clamp(40px, 7vw, 92px); line-height: 1.12; letter-spacing: 0.01em; max-width: 14em; text-wrap: balance; }
+.ed-hero-body { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 48px; align-items: start; }
+.ed-hero-text { display: flex; flex-direction: column; gap: 28px; padding-top: 16px; border-top: 4px solid var(--accent); }
+.theme-editorial .lead { color: var(--ink-2); font-size: 18px; }
+.ed-cover { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.ed-cover img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.ed-cover figcaption { text-align: right; }
+
+/* 章節：左邊編號＋標題（桌機會停在畫面上），右邊內容 */
+.chapter { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 48px; padding-top: 72px; padding-bottom: 72px; border-top: 1px solid var(--line); }
+.ch-head { display: flex; flex-direction: column; gap: 10px; align-self: start; position: sticky; top: 100px; }
+.ch-no { font-size: 96px; line-height: 0.85; color: var(--accent); font-weight: 600; }
+.ch-head h2 { font-size: 34px; margin-top: 0; line-height: 1.3; }
+.ch-body { min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+
+/* 關於：首字放大 */
+.theme-editorial .prose { font-size: 18px; line-height: 2; }
+.dropcap::first-letter { float: left; font-family: var(--serif); font-weight: 900; font-size: 4.2em; line-height: 0.9; padding: 6px 10px 0 0; color: var(--accent); }
+.ed-features { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; counter-reset: feat; }
+.ed-features li { counter-increment: feat; padding: 18px 0; border-top: 1px solid var(--ink); display: flex; flex-direction: column; gap: 4px; }
+.ed-features li::before { content: counter(feat, decimal-leading-zero); font-family: var(--font-num); font-weight: 700; color: var(--accent); }
+.ed-features strong { font-family: var(--serif); font-size: 19px; }
+
+/* 課表：一天一列 */
+.timetable { border-top: 2px solid var(--ink); }
+.tt-day { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 24px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.tt-date { font-size: 17px; display: flex; flex-direction: column; gap: 2px; }
+.tt-date .num { font-family: var(--font-num); font-weight: 600; color: var(--muted); font-size: 15px; }
+.theme-editorial .today { margin: 0; font-family: var(--font); font-weight: 700; }
+.tt-classes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.tt-classes li { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 12px; }
+.tt-classes li > .small { grid-column: 2; }
+.tt-classes li.muted { display: block; }
+.tt-time { font-size: 22px; line-height: 1.2; color: var(--accent); grid-row: span 2; }
+.tt-name { font-weight: 700; font-size: 17px; }
+
+/* 教練：人物專訪，照片與文字左右交錯 */
+.profiles { gap: 40px; }
+.profile { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; align-items: end; }
+.profile:nth-child(even) img, .profile:nth-child(even) .coach-photo-empty { order: 2; }
+.profile img, .profile .coach-photo-empty { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; background: var(--tint); }
+.profile .coach-photo-empty { display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 64px; font-weight: 900; color: var(--muted); }
+.profile-text { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--ink); }
+.profile h3 { font-size: 30px; }
+.theme-editorial .specialty { font-size: 13px; letter-spacing: 0.2em; }
+
+/* 方案：價目表，名稱與價格之間點線 */
+.menu-list { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+.menu-list li { padding: 18px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.menu-row { display: flex; align-items: baseline; gap: 12px; }
+.menu-row h3 { font-size: 21px; }
+.leader { flex: 1 1 auto; min-width: 24px; border-bottom: 2px dotted var(--muted); transform: translateY(-5px); }
+.menu-price { white-space: nowrap; }
+.menu-price .num { font-size: 30px; }
+
+/* 環境照片：第一張滿版，其餘兩欄，附「圖 N」 */
+.ed-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 20px; }
+.ed-gallery figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.ed-gallery figure.wide { grid-column: 1 / -1; }
+.ed-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--tint); }
+.ed-gallery figure.wide img { aspect-ratio: 16 / 9; }
+.ed-gallery .num { color: var(--ink); font-weight: 700; }
+
+/* 常見問題：細線分隔 */
+.theme-editorial .faq { gap: 0; border-top: 2px solid var(--ink); }
+.theme-editorial .faq details { background: transparent; border-radius: 0; border-bottom: 1px solid var(--line); }
+.theme-editorial .faq summary { padding: 20px 0; font-family: var(--serif); font-size: 18px; }
+.theme-editorial .faq details p { padding: 0 0 22px; }
+
+/* 體驗課：底線式輸入框 */
+.theme-editorial .trial-form input[type="text"], .theme-editorial .trial-form input[type="tel"], .theme-editorial .trial-form select {
+  border: 0; border-bottom: 1px solid var(--ink); border-radius: 0; background: transparent; padding: 0 2px; }
+.theme-editorial .trial-form [aria-invalid="true"] { border-bottom: 2px solid var(--error); }
+.theme-editorial .notice, .theme-editorial .privacy p { background: var(--tint); border-radius: 0; }
+
+/* 聯絡 */
+.ed-contact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.ed-contact > div { display: flex; flex-direction: column; gap: 20px; }
+.theme-editorial .map { border-radius: 0; min-height: 300px; width: 100%; height: 100%; }
+
+/* 頁尾：紙張色、上方粗線 */
+.theme-editorial .site-footer { background: var(--paper); color: var(--muted); border-top: 3px double var(--ink); }
+.theme-editorial .footer-links a { color: var(--ink); }
+
+/* 平板 */
+@media (max-width: 1180px) {
+  .theme-editorial .brand { font-size: 18px; letter-spacing: 0; }
+  .theme-editorial .nav { gap: 16px; }
+}
+@media (max-width: 1024px) {
+  .chapter, .ed-hero-body { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .ch-head { position: static; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  .ch-no { font-size: 64px; }
+  .ch-head h2 { flex-basis: 100%; }
+  .ed-hero-text { order: 2; }
+}
+
+/* 手機 */
+@media (max-width: 640px) {
+  .ed-hero { padding-top: 24px; padding-bottom: 40px; gap: 20px; }
+  .ed-hero h1 { font-size: 36px; line-height: 1.25; }
+  .chapter { padding-top: 48px; padding-bottom: 48px; gap: 20px; }
+  .ch-no { font-size: 52px; }
+  .ch-head h2 { font-size: 26px; }
+  .ed-features, .ed-gallery, .ed-contact { grid-template-columns: minmax(0, 1fr); }
+  .tt-day { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .tt-date { flex-direction: row; gap: 10px; align-items: baseline; }
+  .profile { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .profile:nth-child(even) img, .profile:nth-child(even) .coach-photo-empty { order: 0; }
+  .profile img, .profile .coach-photo-empty { aspect-ratio: 4 / 3; }
+  .profile h3 { font-size: 24px; }
+  .menu-row h3 { font-size: 18px; }
+  .menu-price .num { font-size: 24px; }
+  .theme-editorial .prose { font-size: 16px; }
+}

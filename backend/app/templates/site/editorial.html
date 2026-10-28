@@ -1,0 +1,173 @@
+{#- 形象網站「雜誌」排版：像健身雜誌的內頁。超大襯線標題、編號章節（01 關於我們、02 課表…）、
+    左窄右寬的不對稱雙欄、細線分隔與大量留白；方案像價目表、照片附「圖 N」說明。
+    章節編號跟著後台的段落順序（主視覺不編號）。 -#}
+{% extends 'site/_layout.html' %}
+{% block styles %}<link rel="stylesheet" href="/site/static/editorial.css?v=1">{% endblock %}
+{% macro head(no, key, eyebrow, title) -%}
+<header class="ch-head">
+  <span class="ch-no num" aria-hidden="true">{{ no }}</span>
+  <span class="eyebrow">{{ eyebrow }}</span>
+  <h2 id="{{ key }}-title">{{ title }}</h2>
+</header>
+{%- endmacro %}
+{% block main %}
+<main id="main" class="editorial">
+{% set ns = namespace(n=0) %}
+{% for key in sections %}
+{% if key != 'hero' %}{% set ns.n = ns.n + 1 %}{% endif %}
+{% set no = '%02d' % ns.n %}
+
+{% if key == 'hero' %}
+<section id="top" class="wrap ed-hero" aria-labelledby="hero-title">
+  <div class="ed-hero-top">
+    <span class="eyebrow">{{ c.hero.eyebrow or full_name }}</span>
+    <span class="small muted num">{{ year }}</span>
+  </div>
+  <h1 id="hero-title">{{ c.hero.tagline or full_name }}</h1>
+  <div class="ed-hero-body">
+    <div class="ed-hero-text">
+      {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
+      <div class="actions">
+        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+        {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
+      </div>
+    </div>
+    {% if c.hero.image_url %}
+    <figure class="ed-cover">
+      <img src="{{ c.hero.image_url }}" alt="" width="1200" height="800" fetchpriority="high">
+      <figcaption class="small muted">{{ full_name }}</figcaption>
+    </figure>
+    {% endif %}
+  </div>
+</section>
+
+{% elif key == 'about' %}
+<section id="about" class="wrap chapter" aria-labelledby="about-title">
+  {{ head(no, 'about', 'ABOUT', c.about.title) }}
+  <div class="ch-body">
+    {% if c.about.text %}<p class="prose dropcap">{{ c.about.text }}</p>{% endif %}
+    {% if c.about.features %}
+    <ol class="ed-features">
+      {% for f in c.about.features %}
+      <li><strong>{{ f.title }}</strong>{% if f.text %}<span class="muted">{{ f.text }}</span>{% endif %}</li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+  </div>
+</section>
+
+{% elif key == 'schedule' %}
+<section id="schedule" class="wrap chapter" aria-labelledby="schedule-title">
+  {{ head(no, 'schedule', 'SCHEDULE', c.schedule.title) }}
+  <div class="ch-body">
+    <p class="small muted">{{ schedule_days[0].date }}（{{ schedule_days[0].label[1:] }}）～ {{ schedule_days[-1].date }}（{{ schedule_days[-1].label[1:] }}）・會員<a href="/login">登入</a>後可直接預約</p>
+    <div class="timetable">
+      {% for d in schedule_days %}
+      <div class="tt-day{% if not d.classes %} day-empty{% endif %}">
+        <h3 class="tt-date">{{ d.label }}<span class="num">{{ d.date }}</span>{% if d.is_today %}<span class="today">今天</span>{% endif %}</h3>
+        <ul class="tt-classes">
+          {% for k in d.classes %}
+          <li>
+            <span class="num tt-time">{{ k.time }}</span>
+            <span class="tt-name">{{ k.name }}</span>
+            <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分鐘{% if k.seats %}・<span class="seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}</span>
+          </li>
+          {% else %}
+          <li class="muted small">本日無團體課</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% elif key == 'coaches' %}
+<section id="coaches" class="wrap chapter" aria-labelledby="coaches-title">
+  {{ head(no, 'coaches', 'COACHES', c.coaches.title) }}
+  <div class="ch-body profiles">
+    {% for co in coaches %}
+    <article class="profile">
+      {% if co.photo_url %}<img src="{{ co.photo_url }}" alt="{{ co.name }}" loading="lazy" width="400" height="500">{% else %}<span class="coach-photo-empty" aria-hidden="true">{{ co.name[:1] }}</span>{% endif %}
+      <div class="profile-text">
+        {% if co.specialty %}<p class="specialty">{{ co.specialty }}</p>{% endif %}
+        <h3>{{ co.name }}</h3>
+        {% if co.bio %}<p class="muted">{{ co.bio }}</p>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'pricing' %}
+<section id="pricing" class="wrap chapter" aria-labelledby="pricing-title">
+  {{ head(no, 'pricing', 'PRICING', c.pricing.title) }}
+  <div class="ch-body">
+    <ul class="menu-list">
+      {% for p in plans %}
+      <li>
+        <div class="menu-row">
+          <h3>{{ p.name }}</h3>
+          <span class="leader" aria-hidden="true"></span>
+          <span class="menu-price"><span class="small">NT$</span> <span class="num">{{ p.price }}</span></span>
+        </div>
+        {% if p.kind or p.description %}
+        <p class="small muted">{% if p.kind %}{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}{% endif %}{% if p.kind and p.description %}　{% endif %}{{ p.description or '' }}</p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if c.pricing.note %}<p class="small muted">{{ c.pricing.note }}</p>{% endif %}
+  </div>
+</section>
+
+{% elif key == 'gallery' %}
+<section id="gallery" class="wrap chapter" aria-labelledby="gallery-title">
+  {{ head(no, 'gallery', 'SPACE', c.gallery.title) }}
+  <div class="ch-body ed-gallery">
+    {% for img in c.gallery.images %}
+    <figure{% if loop.first %} class="wide"{% endif %}>
+      <img src="{{ img.url }}" alt="{{ img.caption }}" loading="lazy">
+      <figcaption class="small muted"><span class="num">圖 {{ loop.index }}</span>{% if img.caption %}　{{ img.caption }}{% endif %}</figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'faq' %}
+<section id="faq" class="wrap chapter" aria-labelledby="faq-title">
+  {{ head(no, 'faq', 'FAQ', c.faq.title) }}
+  <div class="ch-body faq">
+    {% for item in c.faq.items %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ item.q }}</summary>
+      <p>{{ item.a }}</p>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'trial' %}
+<section id="trial" class="wrap chapter trial" aria-labelledby="trial-title">
+  {{ head(no, 'trial', 'FREE TRIAL', c.trial.title) }}
+  <div class="ch-body">
+  {% include 'site/_trial_form.html' %}
+  </div>
+</section>
+
+{% elif key == 'contact' %}
+<section id="contact" class="wrap chapter" aria-labelledby="contact-title">
+  {{ head(no, 'contact', 'CONTACT', c.contact.title) }}
+  <div class="ch-body ed-contact">
+    <div>{% include 'site/_contact_info.html' %}</div>
+    {% if c.contact.address %}
+    <iframe class="map" title="{{ full_name }} 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q={{ c.contact.address | urlencode }}&output=embed"></iframe>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% endfor %}
+</main>
+{% endblock %}

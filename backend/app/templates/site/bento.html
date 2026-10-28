@@ -31,8 +31,8 @@
 {% if plans and 'pricing' in sections %}
 <a class="tile t-plan-teaser" href="#pricing">
   <span class="label">方案</span>
-  <span class="price"><span>NT$</span><span class="num">{{ plans[0].price }}</span><span class="small">起</span></span>
-  <span class="small">{{ plans[0].name }}{% if plans|length > 1 %}・共 {{ plans|length }} 種方案{% endif %}</span>
+  <span class="price"><span>NT$</span><span class="num">{{ cheapest_plan.price }}</span><span class="small">起</span></span>
+  <span class="small">{{ cheapest_plan.name }}{% if plans|length > 1 %}・共 {{ plans|length }} 種方案{% endif %}</span>
 </a>
 {% endif %}
 </div>

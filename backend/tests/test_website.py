@@ -243,10 +243,12 @@ def test_text_is_escaped(client, admin, gym, coach, plans, course, db):
         ("airy", "theme-airy.css", "#ffffff"),
         ("warm", "theme-warm.css", "#faf5ee"),
         ("bento", "bento.css", "#eef0f3"),
+        ("editorial", "editorial.css", "#fbf9f4"),
+        ("sidebar", "sidebar.css", "#f3f4f6"),
     ],
 )
 def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, theme_color):
-    """四種版型共用同一份內容：活力／清爽／溫暖是同一套段落排版只換外觀，方格是另一套排版；發布後套用選到的版型。"""
+    """所有版型共用同一份內容：活力／清爽／溫暖是同一套段落排版只換外觀，方格、雜誌、側欄各是另一套排版；發布後套用選到的版型。"""
     full_site(client, admin, coach.id, [plans[0].id])
     content = draft(client, admin)
     assert content["theme"] == "bold"  # 預設
@@ -262,7 +264,7 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert client.get(f"/site/static/{stylesheet}").status_code == 200
     else:
         assert "/site/static/theme-" not in html and "bento.css" not in html
-    assert ("Noto+Serif+TC" in html) == (theme == "warm")
+    assert ("Noto+Serif+TC" in html) == (theme in ("warm", "editorial"))
     # 排版：方格是另一份樣板，段落變成方塊；其餘共用由上而下的段落
     assert ('class="wrap bento"' in html) == (theme == "bento")
     if theme == "bento":
@@ -271,6 +273,38 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert 'id="schedule"' in html and 'id="pricing"' in html and 'id="trial"' in html
         assert "十年肌力訓練經驗" in html  # 教練介紹
         assert html.count('name="consent"') == 1  # 共用的體驗課表單
+    assert ('class="editorial"' in html) == (theme == "editorial")
+    if theme == "editorial":
+        # 章節依段落順序編號，主視覺不編號
+        heads = [h.split("</span>")[0] for h in html.split('class="ch-no num" aria-hidden="true">')[1:]]
+        assert heads == [f"{i:02d}" for i in range(1, len(heads) + 1)] and len(heads) >= 5
+        assert 'class="menu-list"' in html and "十年肌力訓練經驗" in html
+        assert html.count('name="consent"') == 1
+    assert ('class="sb-side"' in html) == (theme == "sidebar")
+    if theme == "sidebar":
+        side = html.split('class="sb-side"')[1].split("</aside>")[0]
+        assert 'href="#schedule"' in side and 'href="#pricing"' in side and 'href="/login"' in side
+        stat = html.split('class="card stat stat-accent"')[1].split("</a>")[0]
+        assert "明天 19:00" in stat and "壺鈴循環" in stat
+        assert "位教練" in html and "十年肌力訓練經驗" in html
+        assert html.count('name="consent"') == 1
+
+
+@pytest.mark.parametrize("theme", ["bento", "sidebar"])
+def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plans, course, theme):
+    """「方案起價」取最便宜的方案，不是後台排在第一個的。"""
+    cheap = Product(name="體驗月票", category=ProductCategory.single_course, session_hours=4, price=3600)
+    db.add(cheap)
+    db.commit()
+    full_site(client, admin, coach.id, [plans[0].id, cheap.id])
+    content = draft(client, admin)
+    content["theme"] = theme
+    assert save(client, admin, content).status_code == 200
+    publish(client, admin)
+    html = client.get("/").text
+    marker = 'class="tile t-plan-teaser"' if theme == "bento" else 'class="card stat" href="#pricing"'
+    teaser = html.split(marker)[1].split("</a>")[0]
+    assert "3,600" in teaser and "12,000" not in teaser
 
 
 def test_validation(client, admin, gym, coach):

@@ -1,0 +1,207 @@
+{#- 形象網站「側欄」排版：像一個 App。桌機左邊是固定的目錄（品牌、各段落、會員登入、預約體驗課），
+    右邊每個段落是一張浮起的白色卡片，主視覺下方有三個重點數字（下一堂課、方案起價、教練人數）。
+    手機沒有側欄，改用共用的頁首選單；卡片照後台順序由上而下。 -#}
+{% extends 'site/_layout.html' %}
+{% block styles %}<link rel="stylesheet" href="/site/static/sidebar.css?v=1">{% endblock %}
+{% macro icon(key) -%}
+<svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if key == 'about' %}<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+{%- elif key == 'schedule' %}<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+{%- elif key == 'coaches' %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>
+{%- elif key == 'pricing' %}<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/>
+{%- elif key == 'gallery' %}<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/>
+{%- elif key == 'faq' %}<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>
+{%- elif key == 'trial' %}<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>
+{%- elif key == 'contact' %}<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>
+{%- else %}<path d="M4 6h16M4 12h16M4 18h16"/>{% endif %}
+</svg>
+{%- endmacro %}
+{% macro card_head(key, eyebrow, title, aside=None) -%}
+<div class="card-head">
+  <span class="card-ico">{{ icon(key) }}</span>
+  <div class="card-title">
+    <span class="eyebrow">{{ eyebrow }}</span>
+    <h2 id="{{ key }}-title">{{ title }}</h2>
+  </div>
+  {% if aside %}<p class="small muted card-aside">{{ aside }}</p>{% endif %}
+</div>
+{%- endmacro %}
+{% block main %}
+<aside class="sb-side" aria-label="網站目錄">
+  <a class="brand" href="#top">
+    {% if logo_url %}<img src="{{ logo_url }}" alt="" width="40" height="40">{% else %}<span class="brand-mark" aria-hidden="true">{{ company_name[:1] }}</span>{% endif %}
+    <span>{{ full_name }}</span>
+  </a>
+  <nav aria-label="段落" class="sb-nav">
+    {% for key, label in nav %}<a href="#{{ key }}">{{ icon(key) }}<span>{{ label }}</span></a>{% endfor %}
+  </nav>
+  <div class="sb-foot">
+    {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+    <a href="/login" class="btn btn-outline">會員登入</a>
+    {% if line_url %}<a href="{{ line_url }}" class="btn btn-line" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
+  </div>
+</aside>
+
+<main id="main" class="sb-main">
+{% for key in sections %}
+
+{% if key == 'hero' %}
+<section id="top" class="card sb-hero{% if not c.hero.image_url %} no-img{% endif %}" aria-labelledby="hero-title">
+  <div class="sb-hero-text">
+    {% if c.hero.eyebrow %}<span class="eyebrow">{{ c.hero.eyebrow }}</span>{% endif %}
+    <h1 id="hero-title">{{ c.hero.tagline or full_name }}</h1>
+    {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
+    <div class="actions">
+      {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+      {% if 'schedule' in sections %}<a class="btn btn-outline btn-lg" href="#schedule">看本週課表</a>{% endif %}
+    </div>
+  </div>
+  {% if c.hero.image_url %}<img class="sb-hero-img" src="{{ c.hero.image_url }}" alt="" width="800" height="800" fetchpriority="high">{% endif %}
+</section>
+{% set show_next = next_class and 'schedule' in sections %}
+{% set show_plan = plans and 'pricing' in sections %}
+{% set show_coach = coaches and 'coaches' in sections %}
+{% if show_next or show_plan or show_coach %}
+<div class="sb-stats">
+  {% if show_next %}
+  <a class="card stat stat-accent" href="#schedule">
+    <span class="small">下一堂團體課</span>
+    <span class="num stat-num">{{ next_class.when }} {{ next_class.time }}</span>
+    <span class="small">{{ next_class.name }}・{{ next_class.coach }}</span>
+  </a>
+  {% endif %}
+  {% if show_plan %}
+  <a class="card stat" href="#pricing">
+    <span class="small muted">方案起價</span>
+    <span class="stat-num"><span class="small">NT$</span> <span class="num">{{ cheapest_plan.price }}</span></span>
+    <span class="small muted">共 {{ plans|length }} 種方案</span>
+  </a>
+  {% endif %}
+  {% if show_coach %}
+  <a class="card stat" href="#coaches">
+    <span class="small muted">教練團隊</span>
+    <span class="stat-num"><span class="num">{{ coaches|length }}</span> <span class="small">位教練</span></span>
+    <span class="small muted">{{ coaches[0].name }}{% if coaches|length > 1 %} 等{% endif %}</span>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% elif key == 'about' %}
+<section id="about" class="card" aria-labelledby="about-title">
+  {{ card_head('about', 'ABOUT', c.about.title) }}
+  {% if c.about.text %}<p class="prose">{{ c.about.text }}</p>{% endif %}
+  {% if c.about.features %}
+  <ul class="sb-features">
+    {% for f in c.about.features %}
+    <li><span class="tick" aria-hidden="true">✓</span><div><strong>{{ f.title }}</strong>{% if f.text %}<span class="small muted">{{ f.text }}</span>{% endif %}</div></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% elif key == 'schedule' %}
+<section id="schedule" class="card" aria-labelledby="schedule-title">
+  {{ card_head('schedule', 'SCHEDULE', c.schedule.title, schedule_days[0].date ~ '（' ~ schedule_days[0].label[1:] ~ '）～ ' ~ schedule_days[-1].date ~ '（' ~ schedule_days[-1].label[1:] ~ '）') }}
+  <div class="sb-week">
+    {% for d in schedule_days %}
+    <div class="day{% if not d.classes %} day-empty{% endif %}{% if d.is_today %} day-today{% endif %}">
+      <h3 class="day-name">{{ d.label }}<span class="num">{{ d.date }}</span></h3>
+      {% for k in d.classes %}
+      <div class="slot">
+        <span class="num">{{ k.time }}</span>
+        <span class="slot-name">{{ k.name }}</span>
+        <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分</span>
+        {% if k.seats %}<span class="small seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
+      </div>
+      {% else %}
+      <p class="small muted">—</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="small muted">會員<a href="/login">登入</a>後可直接預約</p>
+</section>
+
+{% elif key == 'coaches' %}
+<section id="coaches" class="card" aria-labelledby="coaches-title">
+  {{ card_head('coaches', 'COACHES', c.coaches.title) }}
+  <div class="sb-coaches">
+    {% for co in coaches %}
+    <article class="sb-coach">
+      {% if co.photo_url %}<img src="{{ co.photo_url }}" alt="{{ co.name }}" loading="lazy" width="96" height="96">{% else %}<span class="coach-photo-empty" aria-hidden="true">{{ co.name[:1] }}</span>{% endif %}
+      <div>
+        <h3>{{ co.name }}</h3>
+        {% if co.specialty %}<p class="specialty">{{ co.specialty }}</p>{% endif %}
+        {% if co.bio %}<p class="small muted">{{ co.bio }}</p>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'pricing' %}
+<section id="pricing" class="card" aria-labelledby="pricing-title">
+  {{ card_head('pricing', 'PRICING', c.pricing.title, c.pricing.note or None) }}
+  <div class="sb-plans">
+    {% for p in plans %}
+    {% set featured = loop.index == 2 and plans|length >= 3 %}
+    <div class="sb-plan{% if featured %} featured{% endif %}">
+      {% if featured %}<span class="badge">推薦</span>{% endif %}
+      {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+      <h3>{{ p.name }}</h3>
+      <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
+      {% if p.description %}<p class="small muted">{{ p.description }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'gallery' %}
+<section id="gallery" class="card" aria-labelledby="gallery-title">
+  {{ card_head('gallery', 'SPACE', c.gallery.title) }}
+  <div class="sb-gallery">
+    {% for img in c.gallery.images %}
+    <figure{% if loop.first %} class="first"{% endif %}>
+      <img src="{{ img.url }}" alt="{{ img.caption }}" loading="lazy">
+      {% if img.caption %}<figcaption>{{ img.caption }}</figcaption>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'faq' %}
+<section id="faq" class="card" aria-labelledby="faq-title">
+  {{ card_head('faq', 'FAQ', c.faq.title) }}
+  <div class="faq">
+    {% for item in c.faq.items %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ item.q }}</summary>
+      <p>{{ item.a }}</p>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+
+{% elif key == 'trial' %}
+<section id="trial" class="card trial" aria-labelledby="trial-title">
+  {{ card_head('trial', 'FREE TRIAL', c.trial.title) }}
+  {% include 'site/_trial_form.html' %}
+</section>
+
+{% elif key == 'contact' %}
+<section id="contact" class="card" aria-labelledby="contact-title">
+  {{ card_head('contact', 'CONTACT', c.contact.title) }}
+  <div class="sb-contact">
+    <div>{% include 'site/_contact_info.html' %}</div>
+    {% if c.contact.address %}
+    <iframe class="map" title="{{ full_name }} 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q={{ c.contact.address | urlencode }}&output=embed"></iframe>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% endfor %}
+</main>
+{% endblock %}
