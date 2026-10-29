@@ -14,6 +14,7 @@ import { formatServerTime } from '../../../lib/datetime';
 import { listProducts } from '../../../api/products';
 import { listCourses } from '../../../api/courses';
 import WeekCalendar from './components/WeekCalendar';
+import { useBranches } from '../../../lib/useBranches';
 import EditBookingModal from './components/EditBookingModal';
 
 /**
@@ -25,6 +26,7 @@ import EditBookingModal from './components/EditBookingModal';
  * 簽到：開課前 30 分鐘到下課之間，可為自己的已確認預約簽到。
  */
 export default function MyBookings() {
+  const branchList = useBranches();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isCoach } = useAuthStore();
@@ -81,6 +83,11 @@ export default function MyBookings() {
       key: 'name',
       render: (_, record) =>
         (record.course_id && courseNameById.get(record.course_id)) ?? productNameById.get(record.product_id) ?? '—',
+    },
+    {
+      title: '分店',
+      dataIndex: 'branch_id',
+      render: (id: number) => branchList.nameOf(id),
     },
     {
       title: '狀態',

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { Card, Typography, Form, Input, Select, InputNumber, Switch, Button, Space, message } from 'antd';
+import { Card, Typography, Form, Input, Select, InputNumber, Switch, Button, Space, Radio, Checkbox, message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { listProducts, createProduct, updateProduct, PRODUCT_CATEGORIES, type ProductPayload } from '../../api/products';
 import { listActiveCourses } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
+import { useBranches } from '../../lib/useBranches';
 
 interface FormValues {
   name: string;
@@ -15,6 +16,9 @@ interface FormValues {
   stock?: number;
   price: number;
   is_active: boolean;
+  /** 「課程」的適用分店：全分店通用，或限定幾間（R35） */
+  branch_scope: '全分店' | '指定分店';
+  branch_ids?: number[];
 }
 
 /**
@@ -32,6 +36,8 @@ export default function ProductForm() {
   const [form] = Form.useForm<FormValues>();
   const category = Form.useWatch('category', form);
   const courseId = Form.useWatch('course_id', form);
+  const branchScope = Form.useWatch('branch_scope', form);
+  const branchList = useBranches();
 
   const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
   const { data: courses } = useQuery({ queryKey: ['courses', 'active'], queryFn: listActiveCourses });
@@ -57,6 +63,8 @@ export default function ProductForm() {
         stock: editingProduct.stock ?? undefined,
         price: editingProduct.price,
         is_active: editingProduct.is_active,
+        branch_scope: editingProduct.branch_ids.length ? '指定分店' : '全分店',
+        branch_ids: editingProduct.branch_ids,
       });
     }
   }, [editingProduct, form]);
@@ -71,6 +79,7 @@ export default function ProductForm() {
         course_id: values.category === '團體課程' ? values.course_id : null,
         session_hours: values.category === '課程' ? values.session_hours : null,
         stock: values.category === '用品' ? values.stock : null,
+        branch_ids: values.category === '課程' && values.branch_scope === '指定分店' ? (values.branch_ids ?? []) : [],
       };
       return productId != null ? updateProduct(productId, payload) : createProduct(payload);
     },
@@ -94,7 +103,7 @@ export default function ProductForm() {
         form={form}
         layout="vertical"
         style={{ maxWidth: 480 }}
-        initialValues={{ is_active: true, price: 0 }}
+        initialValues={{ is_active: true, price: 0, branch_scope: '全分店' }}
         onFinish={(values) => saveMutation.mutate(values)}
       >
         <Form.Item name="name" label="商品名稱" rules={[{ required: true, message: '請輸入商品名稱' }]}>
@@ -132,9 +141,32 @@ export default function ProductForm() {
         )}
 
         {category === '課程' && (
-          <Form.Item name="session_hours" label="堂數（小時）" rules={[{ required: true, message: '請輸入堂數' }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
+          <>
+            <Form.Item name="session_hours" label="堂數（小時）" rules={[{ required: true, message: '請輸入堂數' }]}>
+              <InputNumber min={1} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item name="branch_scope" label="適用分店" extra="會員只能用這個方案預約適用分店的私人課">
+              <Radio.Group
+                options={[
+                  { value: '全分店', label: '全分店通用' },
+                  { value: '指定分店', label: '只限指定分店' },
+                ]}
+              />
+            </Form.Item>
+            {branchScope === '指定分店' && (
+              <Form.Item
+                name="branch_ids"
+                label="指定分店"
+                rules={[{ required: true, type: 'array', min: 1, message: '請至少選擇一間分店' }]}
+              >
+                <Checkbox.Group
+                  options={branchList.branches
+                    .filter((b) => b.is_active || (editingProduct?.branch_ids ?? []).includes(b.id))
+                    .map((b) => ({ value: b.id, label: b.name }))}
+                />
+              </Form.Item>
+            )}
+          </>
         )}
 
         {category === '用品' && (

@@ -8,6 +8,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from app.models.branch import Branch
 from app.models.coach import Coach
 from app.models.course import Course, CourseSession, CourseStatus
 from app.models.reservation import Reservation, ReservationStatus
@@ -21,6 +22,7 @@ class GroupSession:
     session: CourseSession
     course: Course
     coach: Coach
+    branch: Branch
     booked_count: int
 
     @property
@@ -28,12 +30,15 @@ class GroupSession:
         return (self.course.id, self.session.session_date, self.session.start_minute // 60)
 
 
-def group_sessions(db: Session, start: date, end: date) -> tuple[list[GroupSession], list[Reservation]]:
-    """期間內的團體課堂（依日期、時間排序）與期間內計入名額的團體課預約。"""
-    rows = (
-        db.query(CourseSession, Course, Coach)
+def group_sessions(
+    db: Session, start: date, end: date, branch_id: int | None = None
+) -> tuple[list[GroupSession], list[Reservation]]:
+    """期間內的團體課堂（依日期、時間排序；可只看某間分店）與期間內計入名額的團體課預約。"""
+    query = (
+        db.query(CourseSession, Course, Coach, Branch)
         .join(Course, CourseSession.course_id == Course.id)
         .join(Coach, Course.coach_id == Coach.id)
+        .join(Branch, Course.branch_id == Branch.id)
         .filter(
             Course.status == CourseStatus.on,
             Course.is_archived.is_(False),
@@ -41,9 +46,10 @@ def group_sessions(db: Session, start: date, end: date) -> tuple[list[GroupSessi
             CourseSession.session_date >= start,
             CourseSession.session_date <= end,
         )
-        .order_by(CourseSession.session_date, CourseSession.start_minute, Course.id)
-        .all()
     )
+    if branch_id is not None:
+        query = query.filter(Course.branch_id == branch_id)
+    rows = query.order_by(CourseSession.session_date, CourseSession.start_minute, Course.id).all()
     reservations = (
         db.query(Reservation)
         .filter(
@@ -59,7 +65,9 @@ def group_sessions(db: Session, start: date, end: date) -> tuple[list[GroupSessi
         key = (r.course_id, r.booking_date, r.start_hour)
         booked[key] = booked.get(key, 0) + r.people_count
     sessions = []
-    for session, course, coach in rows:
+    for session, course, coach, branch in rows:
         key = (course.id, session.session_date, session.start_minute // 60)
-        sessions.append(GroupSession(session=session, course=course, coach=coach, booked_count=booked.get(key, 0)))
+        sessions.append(
+            GroupSession(session=session, course=course, coach=coach, branch=branch, booked_count=booked.get(key, 0))
+        )
     return sessions, reservations

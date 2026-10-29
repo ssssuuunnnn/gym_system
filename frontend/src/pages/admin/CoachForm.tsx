@@ -15,6 +15,7 @@ import {
   type CoachType,
 } from '../../api/coaches';
 import { listMembers } from '../../api/users';
+import { useBranches } from '../../lib/useBranches';
 import { formatServerTime } from '../../lib/datetime';
 
 // 電話格式：數字、+、-、括號、空白，至少 8 碼（與教練資料設計稿一致）
@@ -64,6 +65,10 @@ export default function CoachForm() {
   const [specialty, setSpecialty] = useState('');
   const [sessionRate, setSessionRate] = useState<number | null>(0);
   const [coachTypes, setCoachTypes] = useState<CoachType[]>(['私人教練']);
+  // 授課分店（至少一間）；新增時預設排序最前面的分店
+  const branchList = useBranches();
+  const [branchIds, setBranchIds] = useState<number[] | null>(null);
+  const effectiveBranchIds = branchIds ?? (isEdit ? [] : branchList.defaultId != null ? [branchList.defaultId] : []);
   const [query, setQuery] = useState('');
   const [pickedId, setPickedId] = useState<number | null>(null);
 
@@ -87,6 +92,7 @@ export default function CoachForm() {
       setSpecialty(editingCoach.specialty ?? '');
       setSessionRate(editingCoach.session_rate ?? 0);
       setCoachTypes(editingCoach.coach_types);
+      setBranchIds(editingCoach.branch_ids);
       setPickedId(editingCoach.user_id);
       setExistingPhotoUrl(editingCoach.photo_url ?? null);
       setPhotoFile(null);
@@ -135,6 +141,7 @@ export default function CoachForm() {
         specialty !== (editingCoach.specialty ?? '') ||
         sessionRate !== (editingCoach.session_rate ?? 0) ||
         coachTypes.join() !== editingCoach.coach_types.join() ||
+        [...effectiveBranchIds].sort().join() !== [...editingCoach.branch_ids].sort().join() ||
         photoFile != null ||
         existingPhotoUrl !== (editingCoach.photo_url ?? null)
       : true;
@@ -146,6 +153,7 @@ export default function CoachForm() {
     !bankCodeBad &&
     !bankAccountBad &&
     coachTypes.length > 0 &&
+    effectiveBranchIds.length > 0 &&
     (!isPrivate || sessionRate !== null);
   const ready = isEdit ? baseValid && dirty : baseValid && picked != null;
 
@@ -199,6 +207,7 @@ export default function CoachForm() {
           photo_url: photoUrl ?? null,
           session_rate: sessionRate ?? 0,
           coach_types: coachTypes,
+          branch_ids: effectiveBranchIds,
         };
         return updateCoach(coachId, payload);
       }
@@ -215,6 +224,7 @@ export default function CoachForm() {
         photo_url: photoUrl ?? null,
         session_rate: sessionRate ?? 0,
         coach_types: coachTypes,
+        branch_ids: effectiveBranchIds,
       };
       return createCoach(payload);
     },
@@ -392,6 +402,21 @@ export default function CoachForm() {
                   ? '場租教練不屬於公司，來租借場地，系統不計鐘點'
                   : '私人課依下方每堂鐘點費、團體課依各課程設定的每堂教練費計算',
               coachTypes.length === 0,
+            )}
+          </div>
+
+          <div style={row}>
+            <div style={labelCol}>{required}授課分店</div>
+            <Checkbox.Group
+              value={effectiveBranchIds}
+              onChange={(v) => setBranchIds(v as number[])}
+              options={branchList.branches
+                .filter((b) => b.is_active || effectiveBranchIds.includes(b.id))
+                .map((b) => ({ value: b.id, label: b.name }))}
+            />
+            {hint(
+              effectiveBranchIds.length === 0 ? '請至少選擇一間分店' : '會員預約私人課時，只會在這些分店看到這位教練',
+              effectiveBranchIds.length === 0,
             )}
           </div>
 

@@ -54,7 +54,7 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 700 }}>{info.title}</span>
             <span style={{ fontSize: 13, color: token.colorTextSecondary }}>
-              {[info.coachName && `${info.coachName}`, info.isGroup ? '團體課' : '私人課'].filter(Boolean).join(' · ')}
+              {[info.coachName, info.isGroup ? '團體課' : '私人課', info.branchName].filter(Boolean).join(' · ')}
             </span>
           </div>
           {r.status === '待確認' && (

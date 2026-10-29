@@ -15,6 +15,8 @@ export type BookIntent =
       /** YYYY-MM-DD */
       date: string;
       startMinute: number;
+      /** 課程的分店（回來時先切到這間；舊資料沒有） */
+      branchId?: number | null;
       savedAt: number;
     }
   | {
@@ -23,6 +25,7 @@ export type BookIntent =
       coachName: string | null;
       date: string;
       hour: number;
+      branchId?: number | null;
       savedAt: number;
     };
 

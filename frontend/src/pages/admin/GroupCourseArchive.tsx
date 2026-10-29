@@ -23,6 +23,7 @@ import { type Dayjs } from 'dayjs';
 import { deleteCourse, listArchivedCourses, restoreCourse, type Course } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { sharedCourseColumns } from '../../components/courseColumns';
+import { useBranches } from '../../lib/useBranches';
 import { formatServerTime } from '../../lib/datetime';
 
 /**
@@ -30,6 +31,7 @@ import { formatServerTime } from '../../lib/datetime';
  * 課程於「編輯團體課程」按「封存」後移入此頁，可還原（回列表並維持下架）或永久刪除。
  */
 export default function GroupCourseArchive() {
+  const branchList = useBranches();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -114,7 +116,7 @@ export default function GroupCourseArchive() {
   };
 
   const columns: ColumnsType<Course> = [
-    ...sharedCourseColumns({ coachNameById }),
+    ...sharedCourseColumns({ coachNameById, branchName: branchList.nameOf }),
     {
       title: '封存時間',
       dataIndex: 'archived_at',

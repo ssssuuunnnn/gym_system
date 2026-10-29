@@ -26,6 +26,7 @@ from app.models.reservation import Reservation, ReservationSource, ReservationSt
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.services import line_oa as oa
+from app.services.branches import label_for
 from app.services.line import RETRY_DELAYS, LineApiError, _gym_name, build_card, month_start_utc
 
 logger = logging.getLogger(__name__)
@@ -92,15 +93,24 @@ def schedule(background_tasks: BackgroundTasks, message_id: int | None) -> None:
         background_tasks.add_task(dispatch_tenant, tenant.id, [message_id])
 
 
+def _with_branch(db: Session, reservation: Reservation, rows: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """有兩間以上分店時，在「項目」後面加上分店（ADR 0007）。"""
+    branch = label_for(db, reservation.branch_id)
+    return rows[:1] + [("分店", branch)] + rows[1:] if branch else rows
+
+
 def notify_booking_result(db: Session, reservation: Reservation) -> int | None:
     """審核結果，或櫃台直接幫會員建立（已確認）的預約。"""
     member = db.get(User, reservation.member_id)
     rows = [("項目", item_name(db, reservation)), ("時間", time_label(reservation)), ("人數", f"{reservation.people_count} 人")]
+    rows = _with_branch(db, reservation, rows)
     if reservation.status == ReservationStatus.confirmed:
         title = "櫃台已為你預約" if reservation.source == ReservationSource.admin_created else "預約成功"
         return enqueue(db, LineMemberEvent.booking_confirmed, member, title, rows, "查看我的預約", "bookings")
     if reservation.status == ReservationStatus.rejected:
-        rows = rows[:2] + [("說明", "這個時段無法安排，扣抵的堂數已退回" if reservation.purchase_id else "這個時段無法安排")]
+        rows = [r for r in rows if r[0] != "人數"] + [
+            ("說明", "這個時段無法安排，扣抵的堂數已退回" if reservation.purchase_id else "這個時段無法安排")
+        ]
         return enqueue(db, LineMemberEvent.booking_rejected, member, "預約未成立", rows, "重新預約", "book")
     return None
 
@@ -108,7 +118,7 @@ def notify_booking_result(db: Session, reservation: Reservation) -> int | None:
 def notify_booking_cancelled(db: Session, reservation: Reservation, refunded: bool) -> int | None:
     """櫃台幫會員取消預約。"""
     member = db.get(User, reservation.member_id)
-    rows = [("項目", item_name(db, reservation)), ("時間", time_label(reservation))]
+    rows = _with_branch(db, reservation, [("項目", item_name(db, reservation)), ("時間", time_label(reservation))])
     if reservation.purchase_id:
         rows.append(("堂數", "已退回" if refunded else "不退回（開課前取消期限內）"))
     return enqueue(db, LineMemberEvent.booking_cancelled, member, "預約已取消", rows, "查看我的預約", "bookings")
@@ -157,7 +167,8 @@ def enqueue_reminders(db: Session, channel: LineOaChannel) -> list[int]:
     ids = []
     for member_id, items in by_member.items():
         rows = [("日期", f"明天 {date_label(tomorrow)}")] + [
-            (f"{r.start_hour:02d}:00", item_name(db, r)) for r in items
+            (f"{r.start_hour:02d}:00", item_name(db, r) + (f"・{b}" if (b := label_for(db, r.branch_id)) else ""))
+            for r in items
         ]
         message_id = enqueue(
             db,

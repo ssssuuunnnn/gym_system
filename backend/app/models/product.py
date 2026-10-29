@@ -31,3 +31,17 @@ class Product(TenantMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     course: Mapped["Course | None"] = relationship("Course")
+    branch_rows: Mapped[list["ProductBranch"]] = relationship(
+        "ProductBranch", cascade="all, delete-orphan", order_by="ProductBranch.branch_id"
+    )
+
+    @property
+    def branch_ids(self) -> list[int]:
+        """限定使用的分店；空＝全分店通用（R35）"""
+        return [r.branch_id for r in self.branch_rows]
+
+    @branch_ids.setter
+    def branch_ids(self, ids: list[int]) -> None:
+        from app.models.branch import ProductBranch, sync_branch_rows
+
+        sync_branch_rows(self.branch_rows, ids, lambda b: ProductBranch(branch_id=b))

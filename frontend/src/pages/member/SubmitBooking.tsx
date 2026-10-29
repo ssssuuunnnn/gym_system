@@ -11,11 +11,13 @@ import { listPurchases } from '../../api/purchases';
 import { listTimeSlots } from '../../api/timeSlots';
 import { buildOverrideMap, resolveAvailability } from '../../lib/availability';
 import { useAuthStore, decodeUserId } from '../../store/auth';
+import { useBranches } from '../../lib/useBranches';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => 10 + i); // 10:00–21:00
 
 interface FormValues {
   product_id: number;
+  branch_id?: number;
   coach_id?: number;
   course_id?: number;
   purchase_id?: number;
@@ -41,7 +43,13 @@ export default function SubmitBooking() {
   const { data: coaches, isLoading: coachesLoading } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const { data: courses, isLoading: coursesLoading } = useQuery({ queryKey: ['courses'], queryFn: listCourses });
   const { data: purchases } = useQuery({ queryKey: ['my-purchases'], queryFn: () => listPurchases() });
-  const { data: slots } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+  const branchList = useBranches();
+  const branchId = Form.useWatch('branch_id', form) ?? branchList.defaultId;
+  const { data: slots } = useQuery({
+    queryKey: ['time-slots', branchId],
+    queryFn: () => listTimeSlots(branchId),
+    enabled: branchId != null,
+  });
 
   const overridesByKey = buildOverrideMap(slots);
   const bookingDate = Form.useWatch('booking_date', form);
@@ -66,6 +74,7 @@ export default function SubmitBooking() {
           member_id: selfId ?? 0,
           product_id: values.product_id,
           coach_id: values.coach_id ?? null,
+          branch_id: values.branch_id ?? branchId,
           course_id: values.course_id ?? null,
           purchase_id: values.purchase_id ?? null,
           booking_date: values.booking_date.format('YYYY-MM-DD'),
@@ -107,6 +116,13 @@ export default function SubmitBooking() {
             placeholder="選擇商品"
             options={availableProducts.map((p) => ({ value: p.id, label: `${p.name}（${p.category}）` }))}
             onChange={() => form.setFieldValue('purchase_id', undefined)}
+          />
+        </Form.Item>
+
+        <Form.Item name="branch_id" label="分店（團體課以課程的分店為準）">
+          <Select
+            placeholder="選擇分店"
+            options={branchList.active.map((b) => ({ value: b.id, label: b.name }))}
           />
         </Form.Item>
 

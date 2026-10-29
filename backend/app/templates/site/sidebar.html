@@ -111,7 +111,7 @@
       <div class="slot">
         <span class="num">{{ k.time }}</span>
         <span class="slot-name">{{ k.name }}</span>
-        <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分</span>
+        <span class="small muted">{{ k.coach }}{% if k.branch %}・{{ k.branch }}{% endif %}・{{ k.minutes }} 分</span>
         {% if k.seats %}<span class="small seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
       </div>
       {% else %}

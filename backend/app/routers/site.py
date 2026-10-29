@@ -35,6 +35,7 @@ from app.models.website import Website
 from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, DEFAULT_THEME, SITE_THEMES, SiteContent
 from app.services import line as line_service
 from app.services.schedule import group_sessions
+from app.services import branches as branch_service
 
 router = APIRouter(tags=["site"], include_in_schema=False)
 
@@ -138,6 +139,7 @@ class FormState:
 def _schedule_days(db: Session, show_seats: bool) -> list[dict]:
     today = clock.now_local().date()
     sessions, _ = group_sessions(db, today, today + timedelta(days=6))
+    multi_branch = branch_service.has_multiple(db)  # 有兩間以上分店才在課表寫分店名稱
     days = []
     for offset in range(7):
         day = today + timedelta(days=offset)
@@ -152,6 +154,7 @@ def _schedule_days(db: Session, show_seats: bool) -> list[dict]:
                     "time": f"{minute // 60:02d}:{minute % 60:02d}",
                     "name": gs.course.name,
                     "coach": gs.coach.alias or gs.coach.name,
+                    "branch": gs.branch.name if multi_branch else None,
                     "minutes": gs.session.duration_minutes,
                     "seats": ("已額滿" if left == 0 else f"剩 {left} 位") if show_seats else None,
                     "full": left == 0,

@@ -305,6 +305,30 @@
 - **實作**：`routers/member_segments.py`、`services/line_oa.HttpOaClient.create_audience`
 - **測試**：`test_create_audience_uploads_sendable_only`、`test_audience_requires_enabled_channel`、`test_admin_only_and_tenant_isolation`
 
+
+## 分店
+
+### R34. 公休與上課地點以分店為單位
+
+- **確認日期**：2026-10-29
+- **規則**：公休時段各分店獨立設定，A 店關閉不影響 B 店。課程屬於一間分店，課程的教練必須在該分店授課；已有預約的課程不能換分店。團體課預約一律記在課程的分店；私人課由會員選分店（未選＝預設分店），指定的教練必須在該分店授課。停用的分店不能新增課程、預約與公休設定。
+- **實作**：`routers/reservations.py` `_resolve_branch`、`_check_slot_open`；`routers/courses.py` `_check_coach_branch`；`routers/time_slots.py`
+- **測試**：`test_closed_slots_are_per_branch`、`test_group_booking_follows_course_branch`、`test_private_booking_checks_coach_and_plan_branch`、`test_course_coach_must_teach_at_branch`
+
+### R35. 方案預設全分店通用，「課程」可限定分店
+
+- **確認日期**：2026-10-29
+- **規則**：方案（商品）預設任何分店都能使用。「課程」分類可以設定只限某幾間分店，之後用這個方案預約其他分店會被拒絕。團體課程方案跟著所綁課程的分店，用品不分店。
+- **實作**：`routers/products.py` `_normalize_product_fields`、`routers/reservations.py` `_resolve_branch`；前台 `pages/member/Book` 自動選方案時略過不適用的方案
+- **測試**：`test_private_booking_checks_coach_and_plan_branch`、`test_product_branch_scope_only_for_single_course`
+
+### R36. 分店停用而不刪除，至少保留一間
+
+- **確認日期**：2026-10-29
+- **規則**：分店不能刪除只能停用；最後一間啟用中的分店不能停用；還有上架課程的分店要先下架課程。教練至少要在一間分店授課；移除某分店時，若該教練在那間還有上架課程則不能移除。所有管理員都能管理所有分店（店長權限為第二期）。
+- **實作**：`routers/branches.py`、`routers/coaches.py`
+- **測試**：`test_default_branch_and_management`、`test_cannot_deactivate_last_or_with_live_courses`、`test_coach_branches`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -331,3 +355,4 @@
 - 形象網站：多種版型、自訂網域、收到體驗課詢問時的 Email 通知
 - LINE 通知：超過平台方案額度的費用分攤
 - 線上付款（信用卡、LINE Pay）
+- 分店店長權限（管理員只管理部分分店）

@@ -20,6 +20,7 @@ import { formatServerTime } from '../../../lib/datetime';
 import { CreateAudienceModal } from './components/CreateAudienceModal';
 import { SegmentFilterCard } from './components/SegmentFilterCard';
 import { defaultFilters, describeFilters, downloadCsv } from './lib';
+import { useBranches } from '../../../lib/useBranches';
 
 const REACH_COLOR: Record<LineReach, string> = { 可發送: 'success', '未綁定 LINE': 'default', 未同意優惠訊息: 'warning' };
 type ReachFilter = LineReach | '全部';
@@ -42,6 +43,7 @@ export default function MemberSegments() {
     const map = new Map(coaches.map((c) => [c.id, c.name]));
     return (id: number) => map.get(id);
   }, [coaches]);
+  const branchList = useBranches();
   const { data: lineOa } = useQuery({ queryKey: ['line-oa'], queryFn: getLineOa });
   const lineEnabled = lineOa?.enabled === true;
   const { data: quota } = useQuery({ queryKey: ['line-oa-quota'], queryFn: getLineOaQuota, enabled: lineEnabled && modalOpen });
@@ -63,7 +65,7 @@ export default function MemberSegments() {
 
   const members = result?.members ?? [];
   const rows = reach === '全部' ? members : members.filter((m) => m.reach === reach);
-  const summary = describeFilters(applied, coachName);
+  const summary = describeFilters(applied, coachName, branchList.nameOf);
 
   const columns: ColumnsType<SegmentMember> = [
     {
@@ -88,7 +90,7 @@ export default function MemberSegments() {
   const audienceColumns: ColumnsType<LineAudience> = [
     { title: '受眾名稱', dataIndex: 'name' },
     { title: '人數', dataIndex: 'member_count', align: 'right', render: (v: number) => `${v} 人` },
-    { title: '條件', key: 'filters', render: (_, a) => <Typography.Text type="secondary">{describeFilters(a.filters, coachName)}</Typography.Text> },
+    { title: '條件', key: 'filters', render: (_, a) => <Typography.Text type="secondary">{describeFilters(a.filters, coachName, branchList.nameOf)}</Typography.Text> },
     { title: '建立', key: 'created', render: (_, a) => `${formatServerTime(a.created_at)}・${a.created_by_name ?? ''}` },
   ];
 
@@ -128,6 +130,7 @@ export default function MemberSegments() {
           setReach('全部');
         }}
         coachOptions={coaches.map((c) => ({ value: c.id, label: c.name }))}
+        branchOptions={branchList.branches.map((b) => ({ value: b.id, label: b.name }))}
         loading={isFetching}
       />
 

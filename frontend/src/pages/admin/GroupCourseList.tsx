@@ -27,6 +27,7 @@ import {
 } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { sharedCourseColumns } from '../../components/courseColumns';
+import { useBranches } from '../../lib/useBranches';
 import { formatServerTime } from '../../lib/datetime';
 
 const STATUS_TAG_COLOR: Record<CourseStatus, string> = {
@@ -55,6 +56,8 @@ export default function GroupCourseList() {
 
   const [q, setQ] = useState('');
   const [coachFilter, setCoachFilter] = useState<number | 'all'>('all');
+  const branchList = useBranches();
+  const [branchFilter, setBranchFilter] = useState<number | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<CourseStatus | 'all'>('all');
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
 
@@ -85,6 +88,7 @@ export default function GroupCourseList() {
         if (!hit) return false;
       }
       if (coachFilter !== 'all' && c.coach_id !== coachFilter) return false;
+      if (branchFilter !== 'all' && c.branch_id !== branchFilter) return false;
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       if (from && to) {
         if (!c.start_date || !c.end_date) return false;
@@ -92,17 +96,18 @@ export default function GroupCourseList() {
       }
       return true;
     });
-  }, [all, q, coachFilter, statusFilter, range]);
+  }, [all, q, coachFilter, branchFilter, statusFilter, range]);
 
   const resetFilters = () => {
     setQ('');
     setCoachFilter('all');
+    setBranchFilter('all');
     setStatusFilter('all');
     setRange(null);
   };
 
   const columns: ColumnsType<Course> = [
-    ...sharedCourseColumns({ coachNameById }),
+    ...sharedCourseColumns({ coachNameById, branchName: branchList.nameOf }),
     {
       title: '狀態',
       dataIndex: 'status',
@@ -202,6 +207,16 @@ export default function GroupCourseList() {
             options={[
               { value: 'all', label: '全部教練' },
               ...(coaches ?? []).map((c) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+          <Select
+            value={branchFilter}
+            onChange={setBranchFilter}
+            style={{ width: 140 }}
+            aria-label="分店"
+            options={[
+              { value: 'all', label: '全部分店' },
+              ...branchList.branches.map((b) => ({ value: b.id, label: b.name })),
             ]}
           />
           <Select

@@ -21,6 +21,8 @@ export interface Coach {
   session_rate: number | null;
   /** 教練類型（可複選；場租教練不與其他類型並存） */
   coach_types: CoachType[];
+  /** 授課分店（至少一間） */
+  branch_ids: number[];
   created_at: string;
 }
 
@@ -36,6 +38,7 @@ export interface CoachPayload {
   photo_url?: string | null;
   session_rate?: number;
   coach_types?: CoachType[];
+  branch_ids?: number[];
 }
 
 /** 教練本人的教練資料（含類型） */

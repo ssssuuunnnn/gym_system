@@ -10,6 +10,8 @@ export interface SegmentFilters {
   end: string;
   kind: SegmentKind;
   coach_id: number | null;
+  /** 只看在某間分店上課的紀錄 */
+  branch_id?: number | null;
   /** 期間內至少出席幾次 */
   min_attended: number;
   /** 剩餘堂數（已付款方案加總）不超過；null＝不限 */

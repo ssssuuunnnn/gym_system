@@ -9,12 +9,15 @@ class TimeSlotUpdate(BaseModel):
     slot_date: date
     start_hour: int
     is_open: bool
+    # 分店（ADR 0007）；省略＝預設分店
+    branch_id: int | None = None
 
 
 class TimeSlotOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    branch_id: int
     slot_date: date
     start_hour: int
     is_open: bool

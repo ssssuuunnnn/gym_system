@@ -49,6 +49,29 @@ def _fill_tenant_id(session: Session, flush_context, instances) -> None:
             obj.tenant_id = tenant_id
 
 
+@event.listens_for(Session, "before_flush")
+def _fill_branch_id(session: Session, flush_context, instances) -> None:
+    """
+    課程、預約、公休時段新增時沒指定分店 → 用預設分店；新教練沒選授課分店 → 預設分店
+    （ADR 0007；單一分店與既有呼叫端不用改）。
+    """
+    from app.models.branch import CoachBranch  # 避免循環匯入
+    from app.models.coach import Coach
+    from app.models.course import Course
+    from app.models.reservation import Reservation
+    from app.models.time_slot import TimeSlot
+    from app.services.branches import default_branch
+
+    branch = None
+    for obj in list(session.new):
+        if isinstance(obj, (Course, Reservation, TimeSlot)) and obj.branch_id is None and obj.branch is None:
+            branch = branch or default_branch(session)
+            obj.branch = branch
+        elif isinstance(obj, Coach) and not obj.branch_rows:
+            branch = branch or default_branch(session)
+            obj.branch_rows.append(CoachBranch(branch=branch, tenant_id=obj.tenant_id or session.info.get("tenant_id")))
+
+
 def tenant_session(tenant_id: int | None) -> Session:
     """建立綁定指定租戶的 Session（CLI、背景工作用；API 請用 deps.get_db）。"""
     db = SessionLocal()

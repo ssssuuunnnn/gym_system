@@ -17,6 +17,8 @@ import { clearBookIntent, loadBookIntent, saveBookIntent } from '../../../lib/bo
 import { decodeUserId, useAuthStore } from '../../../store/auth';
 import FrontPageHeader from '../../../components/member/FrontPageHeader';
 import FrontCard from '../../../components/member/FrontCard';
+import { BranchPicker } from '../../../components/BranchPicker';
+import { useBranches } from '../../../lib/useBranches';
 import { DateStrip } from './components/DateStrip';
 import { SessionCard } from './components/SessionCard';
 import { ConfirmSheet } from './components/ConfirmSheet';
@@ -32,6 +34,18 @@ const PRIVATE_HOURS = Array.from({ length: 12 }, (_, i) => 10 + i);
 type Pending =
   | { kind: 'group'; session: ScheduleSession; start: Dayjs; end: Dayjs }
   | { kind: 'private'; hour: number; start: Dayjs; end: Dayjs };
+
+/** 這台裝置上次選的分店 */
+const BRANCH_KEY = 'bookBranchId';
+
+function loadBranch(): number | null {
+  try {
+    const v = Number(localStorage.getItem(BRANCH_KEY));
+    return Number.isInteger(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 function errorDetail(error: unknown, fallback: string) {
   const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
@@ -71,11 +85,35 @@ export default function Book() {
   const [privatePlanId, setPrivatePlanId] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
-  const schedule = useQuery({ queryKey: ['schedule', startKey, endKey], queryFn: () => listSchedule(startKey, endKey) });
+  // 分店（ADR 0007）：記住這台裝置上次選的；不存在或已停用就用第一間
+  const branchList = useBranches();
+  const [pickedBranch, setPickedBranch] = useState<number | null>(loadBranch);
+  const branchId = branchList.active.some((b) => b.id === pickedBranch) ? pickedBranch : branchList.defaultId;
+  const branchName = branchList.nameOf(branchId);
+  const pickBranch = (id: number | null) => {
+    if (id == null) return;
+    setPickedBranch(id);
+    setPending(null);
+    try {
+      localStorage.setItem(BRANCH_KEY, String(id));
+    } catch {
+      // 無痕模式等無法寫入時只是不記住
+    }
+  };
+
+  const schedule = useQuery({
+    queryKey: ['schedule', startKey, endKey, branchId],
+    queryFn: () => listSchedule(startKey, endKey, branchId),
+    enabled: branchId != null,
+  });
   const { data: purchases = [] } = useQuery({ queryKey: ['my-purchases'], queryFn: () => listPurchases() });
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: listProducts });
   const { data: coaches = [] } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
-  const { data: slots } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+  const { data: slots } = useQuery({
+    queryKey: ['time-slots', branchId],
+    queryFn: () => listTimeSlots(branchId),
+    enabled: branchId != null,
+  });
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
 
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -96,10 +134,24 @@ export default function Book() {
   const groupPlanFor = (s: ScheduleSession) => usable(purchases, fitsGroup(s))[0];
 
   // ── 私人課 ──
-  const fitsPrivate = (p: Purchase) => productById.get(p.product_id)?.category === '課程';
+  // 「課程」類方案，而且能在這間分店使用（沒限定分店＝全分店通用，R35）
+  const fitsPrivate = (p: Purchase) => {
+    const product = productById.get(p.product_id);
+    return (
+      product?.category === '課程' &&
+      (branchId == null || product.branch_ids.length === 0 || product.branch_ids.includes(branchId))
+    );
+  };
   const privatePlans = usable(purchases, fitsPrivate);
   const privatePlan = privatePlans.find((p) => p.id === privatePlanId) ?? privatePlans[0];
-  const privateCoaches = coaches.filter((c) => c.coach_types.includes('私人教練'));
+  const privateCoaches = coaches.filter(
+    (c) => c.coach_types.includes('私人教練') && (branchId == null || c.branch_ids.includes(branchId)),
+  );
+  // 換分店後，原本選的教練不在這間授課就清掉
+  useEffect(() => {
+    if (coachId != null && coaches.length && !privateCoaches.some((c) => c.id === coachId)) setCoachId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, coaches.length]);
   const overrides = buildOverrideMap(slots);
   const hours = PRIVATE_HOURS.map((hour) => ({
     hour,
@@ -119,6 +171,7 @@ export default function Book() {
           purchase_id: plan.id,
           course_id: p.kind === 'group' ? p.session.course_id : null,
           coach_id: p.kind === 'group' ? null : coachId,
+          branch_id: p.kind === 'group' ? p.session.branch_id : branchId,
           booking_date: p.start.format('YYYY-MM-DD'),
           start_hour: p.start.hour(),
           people_count: 1,
@@ -153,6 +206,7 @@ export default function Book() {
         courseName: pending.session.course_name,
         date: pending.session.session_date,
         startMinute: pending.session.start_minute,
+        branchId: pending.session.branch_id,
       });
     } else {
       saveBookIntent({
@@ -161,6 +215,7 @@ export default function Book() {
         coachName: pendingCoach ? pendingCoach.alias || pendingCoach.name : null,
         date: pending.start.format('YYYY-MM-DD'),
         hour: pending.hour,
+        branchId,
       });
     }
     navigate('/member/purchase?from=book');
@@ -169,10 +224,15 @@ export default function Book() {
   // 回到記下的那堂課：方案已可用時自動打開確認面板；課已過或不在課表上就忘掉
   const resumed = useRef(false);
   useEffect(() => {
-    if (resumed.current || schedule.isLoading || !products.length) return;
+    if (resumed.current || schedule.isLoading || !products.length || branchId == null) return;
     const intent = loadBookIntent();
     if (!intent) {
       resumed.current = true;
+      return;
+    }
+    // 先切到那堂課的分店，課表重新載入後再接著處理
+    if (intent.branchId != null && intent.branchId !== branchId && branchList.active.some((b) => b.id === intent.branchId)) {
+      setPickedBranch(intent.branchId);
       return;
     }
     const day = dayjs(intent.date);
@@ -201,11 +261,16 @@ export default function Book() {
     }
     resumed.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schedule.isLoading, schedule.data, products.length, purchases]);
+  }, [schedule.isLoading, schedule.data, products.length, purchases, branchId]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <FrontPageHeader title="預約課程" />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 14, color: token.colorTextSecondary, flex: 'none' }}>分店</span>
+        <BranchPicker branches={branchList.active} value={branchId} onChange={pickBranch} />
+      </div>
 
       <Segmented<Tab> block size="large" value={tab} onChange={setTab} options={['團體課', '私人課']} />
 
@@ -254,7 +319,12 @@ export default function Book() {
       <ConfirmSheet
         open={pending !== null}
         title={pending?.kind === 'group' ? pending.session.course_name : '私人課'}
-        subtitle={pending?.kind === 'group' ? pending.session.coach_name : pendingCoach ? pendingCoach.alias || pendingCoach.name : ''}
+        subtitle={[
+          pending?.kind === 'group' ? pending.session.coach_name : pendingCoach ? pendingCoach.alias || pendingCoach.name : '',
+          pending?.kind === 'group' ? pending.session.branch_name : branchName,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         start={pending?.start ?? null}
         end={pending?.end ?? null}
         coverSrc={pending?.kind === 'group' ? pending.session.cover_image_url : null}

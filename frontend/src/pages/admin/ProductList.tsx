@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listProducts, type Product } from '../../api/products';
+import { useBranches } from '../../lib/useBranches';
 import { listActiveCourses } from '../../api/courses';
 
 /**
@@ -10,6 +11,7 @@ import { listActiveCourses } from '../../api/courses';
  * 分類為「課程」顯示綁定課程與課堂數；「用品」顯示庫存。
  */
 export default function ProductList() {
+  const branchList = useBranches();
   const navigate = useNavigate();
 
   const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
@@ -35,6 +37,12 @@ export default function ProductList() {
       title: '庫存',
       dataIndex: 'stock',
       render: (stock: number | null, record) => (record.category === '用品' ? stock ?? 0 : '—'),
+    },
+    {
+      title: '適用分店',
+      dataIndex: 'branch_ids',
+      render: (ids: number[], p) =>
+        p.category !== '課程' ? '—' : ids.length ? ids.map((id) => branchList.nameOf(id)).join('、') : '全分店',
     },
     {
       title: '價格',

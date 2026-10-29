@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatServerTime } from '../../lib/datetime';
 import { listCoaches, deleteCoach, type Coach } from '../../api/coaches';
+import { useBranches } from '../../lib/useBranches';
 import { listMembers } from '../../api/users';
 
 /**
@@ -11,6 +12,7 @@ import { listMembers } from '../../api/users';
  * 列表額外查詢會員清單以顯示綁定帳號的使用者名稱（後端 CoachOut 僅回傳 user_id）。
  */
 export default function CoachList() {
+  const branchList = useBranches();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -44,6 +46,11 @@ export default function CoachList() {
           ))}
         </Space>
       ),
+    },
+    {
+      title: '授課分店',
+      dataIndex: 'branch_ids',
+      render: (ids: number[]) => ids.map((id) => branchList.nameOf(id)).join('、') || '—',
     },
     { title: '電話', dataIndex: 'phone' },
     {

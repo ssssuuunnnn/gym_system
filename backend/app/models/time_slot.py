@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, SmallInteger, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 from app.models.tenant import TenantMixin
@@ -14,9 +14,13 @@ class TimeSlot(TenantMixin, Base):
     """
 
     __tablename__ = "time_slots"
-    __table_args__ = (UniqueConstraint("tenant_id", "slot_date", "start_hour", name="uq_time_slots_tenant_date_hour"),)
+    # 公休各分店獨立（ADR 0007、R34）
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "branch_id", "slot_date", "start_hour", name="uq_time_slots_branch_date_hour"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False, index=True)
     slot_date: Mapped[date] = mapped_column(Date, nullable=False, comment="綁定日期")
     start_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False, comment="10-21，每格60分鐘")
     is_open: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -24,3 +28,5 @@ class TimeSlot(TenantMixin, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+    branch: Mapped["Branch"] = relationship("Branch")

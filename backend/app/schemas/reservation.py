@@ -14,6 +14,8 @@ class ReservationCreate(BaseModel):
     member_id: int
     coach_id: int | None = None
     course_id: int | None = None
+    # 分店（ADR 0007）：團體課一律跟著課程；私人課省略＝預設分店
+    branch_id: int | None = None
     product_id: int
     purchase_id: int | None = None
     booking_date: date
@@ -44,6 +46,7 @@ class ReservationOut(BaseModel):
     member_id: int
     coach_id: int | None
     course_id: int | None
+    branch_id: int
     product_id: int
     purchase_id: int | None
     booking_date: date

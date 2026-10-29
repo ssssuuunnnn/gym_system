@@ -19,6 +19,7 @@ from app.models.reservation import (
     ReservationSource,
     ReservationStatus,
 )
+from app.models.branch import Branch
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
 from app.schemas.reservation import (
@@ -33,18 +34,42 @@ from app.schemas.reservation import (
     ReservationUpdate,
 )
 from app.services import booking_rules, hours
+from app.services import branches as branch_service
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
-def _check_slot_open(db: Session, slot_date, start_hour: int) -> None:
+def _check_slot_open(db: Session, branch_id: int, slot_date, start_hour: int) -> None:
+    """公休各分店獨立（R34）：只看這間分店的設定。"""
     slot = (
         db.query(TimeSlot)
-        .filter(TimeSlot.slot_date == slot_date, TimeSlot.start_hour == start_hour)
+        .filter(TimeSlot.branch_id == branch_id, TimeSlot.slot_date == slot_date, TimeSlot.start_hour == start_hour)
         .first()
     )
     # 尚未建立紀錄視為預設開放；已建立且 is_open=False 則不可預約（管理員建立預約亦受此限制）。
     if slot is not None and not slot.is_open:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="該時段已被管理員關閉，無法預約")
+
+
+def _resolve_branch(db: Session, payload: ReservationCreate, product: Product) -> Branch:
+    """
+    預約的分店（R34–R35）：團體課跟著課程；私人課用會員選的分店（省略＝預設分店）。
+    指定的教練要在這間分店授課；限定分店的方案只能在那些分店使用。
+    """
+    course_id = payload.course_id or product.course_id
+    course = db.get(Course, course_id) if course_id else None
+    if course is not None:
+        branch = course.branch
+    else:
+        branch = branch_service.active_branch(db, payload.branch_id)
+        if payload.coach_id is not None:
+            coach = db.get(Coach, payload.coach_id)
+            if coach is None:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="找不到教練")
+            if branch.id not in coach.branch_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"這位教練不在「{branch.name}」授課")
+    if product.branch_ids and branch.id not in product.branch_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"這個方案不能在「{branch.name}」使用")
+    return branch
 
 
 def _check_capacity(
@@ -83,6 +108,7 @@ def _check_capacity(
 @router.get("", response_model=list[ReservationOut])
 def list_reservations(
     member_id: int | None = None,
+    branch_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -95,6 +121,8 @@ def list_reservations(
         query = query.filter(Reservation.member_id == current_user.id)
     elif member_id is not None:
         query = query.filter(Reservation.member_id == member_id)
+    if branch_id is not None:
+        query = query.filter(Reservation.branch_id == branch_id)
     return query.order_by(Reservation.booking_date, Reservation.start_hour).all()
 
 
@@ -115,7 +143,8 @@ def create_reservation(
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到商品")
 
-    _check_slot_open(db, payload.booking_date, payload.start_hour)
+    branch = _resolve_branch(db, payload, product)
+    _check_slot_open(db, branch.id, payload.booking_date, payload.start_hour)
 
     if as_admin:
         require_admin(current_user)
@@ -132,6 +161,7 @@ def create_reservation(
     if not as_admin:
         # 非管理員送出申請一律歸屬自己，忽略／覆寫傳入的 member_id，避免冒名建立他人預約。
         payload_data["member_id"] = current_user.id
+    payload_data["branch_id"] = branch.id
 
     reservation = Reservation(
         **payload_data,
@@ -179,7 +209,7 @@ def update_reservation(
 
     new_booking_date = payload.booking_date if payload.booking_date is not None else reservation.booking_date
     new_start_hour = payload.start_hour if payload.start_hour is not None else reservation.start_hour
-    _check_slot_open(db, new_booking_date, new_start_hour)
+    _check_slot_open(db, reservation.branch_id, new_booking_date, new_start_hour)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
