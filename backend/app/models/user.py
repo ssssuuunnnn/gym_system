@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Enum, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -14,6 +14,14 @@ UNUSABLE_PASSWORD = "!"
 class UserRole(str, enum.Enum):
     admin = "admin"
     member = "member"
+
+
+class StaffLevel(str, enum.Enum):
+    """後台帳號的身分（ADR 0008）：只對 role=admin 的帳號有意義。"""
+
+    owner = "主要管理者"  # 全部功能＋後台帳號與權限管理；每家一位，可移交
+    manager = "管理者"  # 全部功能，不能管理後台帳號
+    staff = "一般使用者"  # 只能用被勾選的功能（permissions）
 
 
 class User(TenantMixin, Base):
@@ -51,6 +59,12 @@ class User(TenantMixin, Base):
     line_linked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # 會員自己可關閉從健身房官方帳號收到的通知（預約結果、上課提醒、收款）
     line_notify: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # 後台帳號（role=admin）的身分與功能權限（ADR 0008）；舊資料為 None 時視為管理者
+    staff_level: Mapped[StaffLevel | None] = mapped_column(Enum(StaffLevel), nullable=True)
+    # 一般使用者可用的功能代碼（services/staff.PERMISSIONS）；主要管理者、管理者不看這欄
+    permissions: Mapped[list] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    # 停用的後台帳號不能登入（員工離職時用，保留操作紀錄）
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     # 同意接收優惠與活動訊息（行銷）的時間；NULL＝未同意。和上面的服務通知分開，預設不同意，會員可隨時取消（R31）
     marketing_consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { PermissionCode, StaffLevel } from './staff';
 
 export interface Member {
   id: number;
@@ -21,6 +22,9 @@ export interface Member {
   /** 同意接收優惠與活動訊息（行銷，和服務通知分開） */
   marketing_consent: boolean;
   marketing_consent_at: string | null;
+  is_active: boolean;
+  /** 後台帳號的身分與可用功能；會員帳號為 null */
+  staff: { level: StaffLevel; permissions: PermissionCode[] } | null;
 }
 
 export async function listMembers() {

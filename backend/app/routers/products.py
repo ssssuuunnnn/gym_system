@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_perm
 from app.models.course import Course, CourseStatus
 from app.models.product import Product, ProductCategory
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
@@ -10,6 +10,9 @@ from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.services import branches as branch_service
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「products」功能
+require_access = require_perm("products")
 
 
 def _normalize_product_fields(db: Session, data: dict, previous_course_id: int | None = None) -> None:
@@ -59,7 +62,7 @@ def list_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
 
 
-@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
+@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_access)])
 def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     """對應「建立／編輯商品」：商品名稱、分類（團體課程／課程／用品）、價格、上架狀態。"""
     data = payload.model_dump()
@@ -71,7 +74,7 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     return product
 
 
-@router.put("/{product_id}", response_model=ProductOut, dependencies=[Depends(require_admin)])
+@router.put("/{product_id}", response_model=ProductOut, dependencies=[Depends(require_access)])
 def update_product(product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:

@@ -4,11 +4,14 @@ from sqlalchemy.orm import Session
 
 from app.core.media import save_tenant_media
 from app.deps import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_perm
 from app.models.system_settings import SystemSettings
 from app.schemas.system_settings import SystemSettingsLogoOut, SystemSettingsOut, SystemSettingsUpdate
 
 router = APIRouter(prefix="/system-settings", tags=["system-settings"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「settings」功能
+require_access = require_perm("settings")
 
 # 公司 LOGO：僅接受 jpg、png，單檔 2MB 以內（與教練照片上傳一致；不開放 svg，避免內嵌腳本的儲存型 XSS 風險）
 LOGO_CONTENT_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
@@ -35,7 +38,7 @@ def get_system_settings(db: Session = Depends(get_db)):
     return _get_or_create_settings(db)
 
 
-@router.put("", response_model=SystemSettingsOut, dependencies=[Depends(require_admin)])
+@router.put("", response_model=SystemSettingsOut, dependencies=[Depends(require_access)])
 def update_system_settings(payload: SystemSettingsUpdate, db: Session = Depends(get_db)):
     settings_row = _get_or_create_settings(db)
     data = payload.model_dump(exclude_unset=True)
@@ -51,7 +54,7 @@ def update_system_settings(payload: SystemSettingsUpdate, db: Session = Depends(
 @router.post(
     "/upload-logo",
     response_model=SystemSettingsLogoOut,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_access)],
 )
 async def upload_logo(file: UploadFile = File(...)):
     """對應「系統設定」公司 LOGO 上傳：存檔後回傳 /media 相對網址，需另呼叫 PUT 寫入 logo_url。"""

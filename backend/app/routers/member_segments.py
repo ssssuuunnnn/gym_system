@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.deps import get_db, require_admin
+from app.deps import get_db, require_perm
 from app.models.line_audience import LineAudience
 from app.models.user import User
 from app.schemas.member_segment import AudienceCreate, AudienceOut, SegmentFilters, SegmentResult
@@ -16,8 +16,11 @@ from app.services.line import LineApiError
 
 router = APIRouter(prefix="/member-segments", tags=["member-segments"])
 
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「segments」功能
+require_access = require_perm("segments")
 
-@router.post("/preview", response_model=SegmentResult, dependencies=[Depends(require_admin)])
+
+@router.post("/preview", response_model=SegmentResult, dependencies=[Depends(require_access)])
 def preview(filters: SegmentFilters, db: Session = Depends(get_db)):
     """符合條件的會員與人數（可發送／未綁定 LINE／未同意優惠訊息）。"""
     return segments.summarize(segments.find_members(db, filters))
@@ -25,7 +28,7 @@ def preview(filters: SegmentFilters, db: Session = Depends(get_db)):
 
 @router.post("/audiences", response_model=AudienceOut, status_code=status.HTTP_201_CREATED)
 def create_audience(
-    payload: AudienceCreate, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+    payload: AudienceCreate, current_user: User = Depends(require_access), db: Session = Depends(get_db)
 ):
     """
     把名單裡「可發送」的會員上傳成 LINE 受眾。名單在伺服器重新篩一次，不信任前端傳來的會員。
@@ -59,6 +62,6 @@ def create_audience(
     return audience
 
 
-@router.get("/audiences", response_model=list[AudienceOut], dependencies=[Depends(require_admin)])
+@router.get("/audiences", response_model=list[AudienceOut], dependencies=[Depends(require_access)])
 def list_audiences(db: Session = Depends(get_db)):
     return db.query(LineAudience).order_by(LineAudience.id.desc()).limit(50).all()

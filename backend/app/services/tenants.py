@@ -131,10 +131,14 @@ def create_tenant_admin(
     )
     if exists:
         raise TenantError(f"這家健身房已經有「{username}」這個帳號")
+    from app.services.staff import initial_level  # 避免循環匯入
+
     user = User(
         username=username,
         password_hash=hash_password(password),
         role=UserRole.admin,
+        # 這家的第一個管理員是主要管理者，之後平台加的是管理者（ADR 0008）
+        staff_level=initial_level(db),
         must_change_password=must_change_password,
     )
     db.add(user)

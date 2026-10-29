@@ -4,14 +4,18 @@ from sqlalchemy.orm import Session
 
 from app.core.media import save_tenant_media
 from app.deps import get_db
-from app.deps import get_current_user, require_admin, require_coach
+from app.deps import get_current_user, require_perm, require_coach
 from app.models.coach import Coach
 from app.models.course import Course, CourseStatus
 from app.models.user import User, UserRole
 from app.schemas.coach import CoachCreate, CoachOut, CoachPhotoOut, CoachUpdate
+from app.services.staff import has_perm
 from app.services import branches as branch_service
 
 router = APIRouter(prefix="/coaches", tags=["coaches"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「coaches」功能
+require_access = require_perm("coaches")
 
 # 教練照片：僅接受 jpg、png，單檔 2MB 以內（與「新增教練」設計稿一致）
 PHOTO_CONTENT_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
@@ -30,7 +34,8 @@ def list_coaches(current_user: User = Depends(get_current_user), db: Session = D
     非管理員看不到電話、Line、匯款帳號與鐘點費。
     """
     coaches = db.query(Coach).all()
-    if current_user.role == UserRole.admin:
+    # 電話、匯款帳號、鐘點費只給有「教練管理」或「教練鐘點」權限的後台帳號（ADR 0008）
+    if has_perm(current_user, "coaches", "payouts"):
         return coaches
     return [CoachOut.model_validate(c).model_copy(update=_ADMIN_ONLY_FIELDS) for c in coaches]
 
@@ -44,7 +49,7 @@ def my_coach_profile(coach: Coach = Depends(require_coach)):
 @router.post(
     "/upload-photo",
     response_model=CoachPhotoOut,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_access)],
 )
 async def upload_photo(file: UploadFile = File(...)):
     """對應「新增教練」教練照片上傳：存檔後回傳 /media 相對網址供寫入 photo_url。"""
@@ -59,7 +64,7 @@ async def upload_photo(file: UploadFile = File(...)):
     return CoachPhotoOut(url=save_tenant_media("coaches", data, ext))
 
 
-@router.post("", response_model=CoachOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
+@router.post("", response_model=CoachOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_access)])
 def create_coach(payload: CoachCreate, db: Session = Depends(get_db)):
     """對應「建立／編輯教練資料」：綁定會員帳號、名稱、電話等。一帳號僅能綁定一筆教練資料。"""
     member = db.get(User, payload.user_id)
@@ -83,7 +88,7 @@ def create_coach(payload: CoachCreate, db: Session = Depends(get_db)):
     return coach
 
 
-@router.put("/{coach_id}", response_model=CoachOut, dependencies=[Depends(require_admin)])
+@router.put("/{coach_id}", response_model=CoachOut, dependencies=[Depends(require_access)])
 def update_coach(coach_id: int, payload: CoachUpdate, db: Session = Depends(get_db)):
     coach = db.get(Coach, coach_id)
     if not coach:
@@ -119,7 +124,7 @@ def update_coach(coach_id: int, payload: CoachUpdate, db: Session = Depends(get_
     return coach
 
 
-@router.delete("/{coach_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
+@router.delete("/{coach_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_access)])
 def delete_coach(coach_id: int, db: Session = Depends(get_db)):
     coach = db.get(Coach, coach_id)
     if not coach:

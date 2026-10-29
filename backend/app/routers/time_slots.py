@@ -4,13 +4,16 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.deps import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_perm
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.schemas.time_slot import TimeSlotOut, TimeSlotUpdate
 from app.services import branches as branch_service
 
 router = APIRouter(prefix="/time-slots", tags=["time-slots"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「availability」功能
+require_access = require_perm("availability")
 
 
 @router.get("", response_model=list[TimeSlotOut])
@@ -29,8 +32,8 @@ def list_time_slots(
     return query.all()
 
 
-@router.put("", response_model=TimeSlotOut, dependencies=[Depends(require_admin)])
-def upsert_time_slot(payload: TimeSlotUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+@router.put("", response_model=TimeSlotOut, dependencies=[Depends(require_access)])
+def upsert_time_slot(payload: TimeSlotUpdate, admin: User = Depends(require_access), db: Session = Depends(get_db)):
     """對應「時段開放設定」：逐格點擊切換某間分店的開放／關閉。僅管理員可操作。"""
     branch = branch_service.active_branch(db, payload.branch_id)
     slot = (

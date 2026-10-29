@@ -27,6 +27,8 @@ def issue_token(user: User, db: Session) -> Token:
     """登入成功：更新最後登入時間並發 JWT（呼叫端 commit）。"""
     if user.is_blacklisted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="帳號已被列入黑名單")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="帳號已停用，請洽主要管理者")
     is_coach = get_coach_profile(user, db) is not None
     user.last_login_at = datetime.utcnow()
     token = create_access_token(user_id=user.id, tenant_id=user.tenant_id, role=user.role.value, is_coach=is_coach)
