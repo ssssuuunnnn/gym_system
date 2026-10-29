@@ -15,6 +15,8 @@ export interface Product {
   stock: number | null;
   price: number;
   is_active: boolean;
+  /** 限定使用的分店（只有「課程」可設）；空＝全分店通用 */
+  branch_ids: number[];
   created_at: string;
 }
 
@@ -36,6 +38,8 @@ export interface ProductPayload {
   session_hours?: number | null;
   /** 分類為「用品」時必填 */
   stock?: number | null;
+  /** 限定使用的分店；空＝全分店通用 */
+  branch_ids?: number[];
 }
 
 export async function createProduct(payload: ProductPayload) {

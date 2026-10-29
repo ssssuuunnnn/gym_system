@@ -294,15 +294,21 @@ def notify_payment(db: Session, purchase, product) -> int | None:
 
 
 def notify_booking(db: Session, reservation, item_name: str) -> int | None:
+    from app.services.branches import label_for
+
+    rows = [
+        ("項目", item_name),
+        ("時間", f"{reservation.booking_date.month}/{reservation.booking_date.day} {reservation.start_hour:02d}:00"),
+        ("人數", f"{reservation.people_count} 人"),
+    ]
+    branch = label_for(db, reservation.branch_id)
+    if branch:
+        rows.insert(1, ("分店", branch))
     return enqueue(
         db,
         LineEvent.booking,
         "新的預約，等待審核",
-        [
-            ("項目", item_name),
-            ("時間", f"{reservation.booking_date.month}/{reservation.booking_date.day} {reservation.start_hour:02d}:00"),
-            ("人數", f"{reservation.people_count} 人"),
-        ],
+        rows,
         "到預約審核",
         "/admin/reservations",
     )

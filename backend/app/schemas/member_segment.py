@@ -17,6 +17,8 @@ class SegmentFilters(BaseModel):
     end: date
     kind: SegmentKind = "全部"
     coach_id: int | None = None
+    # 只看在某間分店上課的紀錄（ADR 0007）
+    branch_id: int | None = None
     # 期間內至少出席幾次
     min_attended: int = Field(default=1, ge=1, le=999)
     # 剩餘堂數（已付款方案加總）不超過；None＝不限

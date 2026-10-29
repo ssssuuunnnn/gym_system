@@ -70,7 +70,7 @@
           <li>
             <span class="num tt-time">{{ k.time }}</span>
             <span class="tt-name">{{ k.name }}</span>
-            <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分鐘{% if k.seats %}・<span class="seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}</span>
+            <span class="small muted">{{ k.coach }}{% if k.branch %}・{{ k.branch }}{% endif %}・{{ k.minutes }} 分鐘{% if k.seats %}・<span class="seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}</span>
           </li>
           {% else %}
           <li class="muted small">本日無團體課</li>

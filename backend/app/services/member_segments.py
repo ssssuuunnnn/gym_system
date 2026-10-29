@@ -38,6 +38,8 @@ def find_members(db: Session, f: SegmentFilters) -> list[tuple[User, SegmentMemb
         period = period.filter(Reservation.course_id.isnot(None))
     elif f.kind == "私人課":
         period = period.filter(Reservation.course_id.is_(None))
+    if f.branch_id is not None:
+        period = period.filter(Reservation.branch_id == f.branch_id)
     if f.coach_id is not None:
         period = period.filter(or_(Reservation.coach_id == f.coach_id, Course.coach_id == f.coach_id))
     counts = dict(

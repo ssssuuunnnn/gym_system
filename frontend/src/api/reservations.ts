@@ -9,6 +9,8 @@ export interface Reservation {
   member_id: number;
   coach_id: number | null;
   course_id: number | null;
+  /** 預約的分店：團體課跟著課程，私人課由會員選 */
+  branch_id: number;
   product_id: number;
   purchase_id: number | null;
   booking_date: string;
@@ -40,6 +42,8 @@ export interface ReservationCreatePayload {
   member_id: number;
   coach_id?: number | null;
   course_id?: number | null;
+  /** 私人課的分店（團體課後端以課程為準）；省略＝預設分店 */
+  branch_id?: number | null;
   product_id: number;
   purchase_id?: number | null;
   booking_date: string;

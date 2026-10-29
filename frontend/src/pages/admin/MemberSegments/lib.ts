@@ -10,6 +10,7 @@ export function defaultFilters(): SegmentFilters {
     end: dayjs().format(DATE),
     kind: '全部',
     coach_id: null,
+    branch_id: null,
     min_attended: 1,
     max_remaining_hours: null,
     inactive_days: null,
@@ -39,8 +40,13 @@ export const PRESETS: { key: string; label: string; hint: string; filters: () =>
 ];
 
 /** 把篩選條件寫成一行人看得懂的文字（受眾紀錄用） */
-export function describeFilters(f: SegmentFilters, coachName?: (id: number) => string | undefined): string {
+export function describeFilters(
+  f: SegmentFilters,
+  coachName?: (id: number) => string | undefined,
+  branchName?: (id: number) => string,
+): string {
   const parts = [`${f.start} ～ ${f.end}`];
+  if (f.branch_id != null) parts.push(branchName?.(f.branch_id) ?? `分店 #${f.branch_id}`);
   if (f.kind !== '全部') parts.push(f.kind);
   if (f.coach_id != null) parts.push(coachName?.(f.coach_id) ?? `教練 #${f.coach_id}`);
   parts.push(`出席 ≥ ${f.min_attended} 次`);

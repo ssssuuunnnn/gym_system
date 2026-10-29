@@ -44,6 +44,8 @@ class Course(TenantMixin, Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     code: Mapped[str | None] = mapped_column(String(20), nullable=True, comment="課程編號 GC-YYYY-NNN（租戶內唯一）")
     coach_id: Mapped[int] = mapped_column(ForeignKey("coaches.id"), nullable=False)
+    # 上課分店（ADR 0007）；新增時未指定則用預設分店（db/session 的 before_flush）
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False, index=True)
     # 「主要時段」——存最小的上課星期，供列表摘要與相容用途；草稿可無排程故允許 NULL
     day_of_week: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     start_hour: Mapped[int | None] = mapped_column(SmallInteger, nullable=True, comment="上課時間（整點）")
@@ -86,6 +88,7 @@ class Course(TenantMixin, Base):
     updated_by_name: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="最後編輯者帳號")
 
     coach: Mapped["Coach"] = relationship("Coach")
+    branch: Mapped["Branch"] = relationship("Branch")
     weekday_rows: Mapped[list["CourseWeekday"]] = relationship(
         "CourseWeekday",
         back_populates="course",

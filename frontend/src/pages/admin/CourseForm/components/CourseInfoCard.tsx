@@ -5,6 +5,8 @@ import { FieldRow } from './FieldRow';
 
 export interface CourseInfoValue {
   name: string;
+  /** 上課分店 */
+  branchId: number | null;
   coachId: number | null;
   minCapacity: number | null;
   maxCapacity: number | null;
@@ -18,6 +20,9 @@ export interface CourseInfoCardProps {
   value: CourseInfoValue;
   onChange: (patch: Partial<CourseInfoValue>) => void;
   coachOptions: { value: number; label: string }[];
+  branchOptions: { value: number; label: string }[];
+  /** 課程時段鎖定時（上架且有未來課堂）分店也不能改 */
+  branchLocked?: boolean;
   /** 已上傳／既有封面預覽網址（含尚未儲存的本機預覽） */
   coverPreview: string | null;
   coverHint: string;
@@ -28,7 +33,8 @@ export interface CourseInfoCardProps {
 const COVER_ACCEPT = 'image/png,image/jpeg';
 
 export function CourseInfoCard(props: CourseInfoCardProps) {
-  const { value, onChange, coachOptions, coverPreview, coverHint, onPickCover, onRemoveCover } = props;
+  const { value, onChange, coachOptions, branchOptions, branchLocked, coverPreview, coverHint, onPickCover, onRemoveCover } =
+    props;
   const { token } = theme.useToken();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -44,12 +50,24 @@ export function CourseInfoCard(props: CourseInfoCardProps) {
           />
         </FieldRow>
 
+        <FieldRow label="上課分店" required>
+          <Select
+            placeholder="請選擇分店"
+            value={value.branchId ?? undefined}
+            onChange={(v) => onChange({ branchId: v })}
+            options={branchOptions}
+            disabled={branchLocked}
+            style={{ width: 320 }}
+          />
+        </FieldRow>
+
         <FieldRow label="教練名稱" required>
           <Select
             placeholder="請選擇教練"
             value={value.coachId ?? undefined}
             onChange={(v) => onChange({ coachId: v })}
             options={coachOptions}
+            notFoundContent="這間分店沒有團體課程教練"
             style={{ width: 320 }}
             showSearch
             optionFilterProp="label"

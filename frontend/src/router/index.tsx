@@ -29,6 +29,7 @@ import SystemSettings from '../pages/admin/SystemSettings';
 import Website from '../pages/admin/Website';
 import Inquiries from '../pages/admin/Inquiries';
 import MemberSegments from '../pages/admin/MemberSegments';
+import Branches from '../pages/admin/Branches';
 
 import MemberLayout from '../components/member/MemberLayout';
 import MemberHome from '../pages/member/Home';
@@ -88,6 +89,7 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'members', element: <MemberList /> },
           { path: 'members/:id', element: <MemberDetail /> },
           { path: 'member-segments', element: <MemberSegments /> },
+          { path: 'branches', element: <Branches /> },
           // { path: 'slot-settings', element: <SlotSettings /> },
           { path: 'website', element: <Website /> },
           { path: 'inquiries', element: <Inquiries /> },

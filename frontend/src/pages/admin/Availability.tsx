@@ -15,6 +15,8 @@ import { listProducts } from '../../api/products';
 import { isoWeekday, buildOverrideMap, resolveAvailability } from '../../lib/availability';
 import { weekdayShort } from '../../lib/weekday';
 import { usePageActionBar } from '../../store/pageActionBar';
+import { BranchPicker } from '../../components/BranchPicker';
+import { useBranches } from '../../lib/useBranches';
 
 /**
  * 公休與時段設定：對應「公休設定」。「快速設定」是批次寫入的便利工具，按「套用」會把
@@ -85,13 +87,21 @@ export default function Availability() {
   const [quickSetRows, setQuickSetRows] = useState<QuickSetRow[]>([]);
   const [draftOverrides, setDraftOverrides] = useState<Map<string, DraftOverride>>(new Map());
   const nextTempId = useRef(-1);
+  // 公休各分店獨立（R34）：一次編輯一間分店
+  const branchList = useBranches();
+  const [pickedBranch, setPickedBranch] = useState<number | null>(null);
+  const branchId = pickedBranch ?? branchList.defaultId;
 
   const goWeek = (next: Dayjs) => {
     setWeekAnchor(next);
     setMiniAnchor(next);
   };
 
-  const { data: slots, isLoading: slotsLoading } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+  const { data: slots, isLoading: slotsLoading } = useQuery({
+    queryKey: ['time-slots', branchId],
+    queryFn: () => listTimeSlots(branchId),
+    enabled: branchId != null,
+  });
   const { data: reservations } = useQuery({ queryKey: ['reservations'], queryFn: () => listReservations() });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: listProducts });
@@ -107,7 +117,7 @@ export default function Availability() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await Promise.all(Array.from(draftOverrides.values()).map((o) => upsertTimeSlot(o)));
+      await Promise.all(Array.from(draftOverrides.values()).map((o) => upsertTimeSlot({ ...o, branch_id: branchId })));
     },
     onSuccess: () => {
       message.success('已儲存');
@@ -213,6 +223,7 @@ export default function Availability() {
         (r) =>
           r.booking_date === dateKey &&
           r.start_hour === hour &&
+          r.branch_id === branchId &&
           r.course_id === null &&
           (r.status === '待確認' || r.status === '已確認'),
       )
@@ -280,8 +291,22 @@ export default function Availability() {
         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
           逐格點擊可切換某「日期＋時段」的開放／關閉，僅套用於該日期；勾選日期欄頭的「公休」可整日切換。
           上方「快速設定」可批次套用到多個日期，套用後仍可在下方時段格個別調整，以最後一次點擊為準。
-          過去日期不可設定。關閉後會員與管理員皆無法在該時段建立預約。
+          過去日期不可設定。關閉後會員與管理員皆無法在該時段建立預約。每間分店的公休各自設定。
         </Typography.Paragraph>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <label htmlFor="availability-branch" style={{ fontWeight: 500 }}>
+          分店
+        </label>
+        <BranchPicker
+          id="availability-branch"
+          branches={branchList.active}
+          value={branchId}
+          onChange={(v) => v != null && setPickedBranch(v)}
+          disabled={dirty}
+        />
+        {dirty && <Typography.Text type="secondary">有未儲存的變更，請先按「確定」或「取消」再切換分店</Typography.Text>}
       </div>
 
       <Card title="快速設定" loading={slotsLoading}>

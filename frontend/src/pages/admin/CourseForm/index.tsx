@@ -16,6 +16,7 @@ import {
 import { listCoaches } from '../../../api/coaches';
 import { listTimeSlots } from '../../../api/timeSlots';
 import { buildOverrideMap } from '../../../lib/availability';
+import { useBranches } from '../../../lib/useBranches';
 import { usePageActionBar } from '../../../store/pageActionBar';
 import { CourseInfoCard, type CourseInfoValue } from './components/CourseInfoCard';
 import { CourseStatusCard } from './components/CourseStatusCard';
@@ -55,17 +56,43 @@ export default function CourseForm() {
     enabled: courseId != null,
   });
   const { data: coaches } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
-  // 團體課程只能指定「團體課程教練」；編輯時保留目前綁定的教練（即使類型後來改了）
+  const branchList = useBranches();
+
+  const [info, setInfo] = useState<CourseInfoValue>({
+    name: '',
+    branchId: null,
+    coachId: null,
+    minCapacity: null,
+    maxCapacity: null,
+    description: '',
+    durationMinutes: 60,
+    coachFee: 0,
+  });
+  // 新增時預設排序最前面的分店
+  const branchId = info.branchId ?? (mode === 'edit' ? null : branchList.defaultId);
+  const branchOptions = branchList.branches
+    .filter((b) => b.is_active || b.id === detail?.branch_id)
+    .map((b) => ({ value: b.id, label: b.name }));
+
+  // 團體課程只能指定「團體課程教練」、且要在這間分店授課；編輯時保留目前綁定的教練（即使類型後來改了）
   const coachOptions = useMemo(
     () =>
       (coaches ?? [])
-        .filter((c) => c.coach_types.includes('團體課程教練') || (mode === 'edit' && c.id === detail?.coach_id))
+        .filter(
+          (c) =>
+            (c.coach_types.includes('團體課程教練') && (branchId == null || c.branch_ids.includes(branchId))) ||
+            (mode === 'edit' && c.id === detail?.coach_id),
+        )
         .map((c) => ({ value: c.id, label: c.name })),
-    [coaches, mode, detail?.coach_id],
+    [coaches, mode, detail?.coach_id, branchId],
   );
 
-  // time_slots 是時段可用性的唯一真相來源：公休時段不可開課。
-  const { data: slots } = useQuery({ queryKey: ['time-slots'], queryFn: listTimeSlots });
+  // time_slots 是時段可用性的唯一真相來源：公休時段不可開課（公休各分店獨立）。
+  const { data: slots } = useQuery({
+    queryKey: ['time-slots', branchId],
+    queryFn: () => listTimeSlots(branchId),
+    enabled: branchId != null,
+  });
   const closedMap = useMemo(() => buildOverrideMap(slots), [slots]);
   const isSlotClosed = useCallback(
     (dateKey: string, minute: number) =>
@@ -81,15 +108,6 @@ export default function CourseForm() {
       (s) => !s.is_cancelled && s.session_date >= dayjs().format('YYYY-MM-DD'),
     );
 
-  const [info, setInfo] = useState<CourseInfoValue>({
-    name: '',
-    coachId: null,
-    minCapacity: null,
-    maxCapacity: null,
-    description: '',
-    durationMinutes: 60,
-    coachFee: 0,
-  });
   const [status, setStatus] = useState<CourseStatus>('上架');
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -107,6 +125,7 @@ export default function CourseForm() {
     const dup = mode === 'duplicate';
     setInfo({
       name: dup ? `${detail.name}（複製）` : detail.name,
+      branchId: detail.branch_id,
       coachId: detail.coach_id,
       minCapacity: detail.min_capacity,
       maxCapacity: detail.max_capacity,
@@ -144,7 +163,16 @@ export default function CourseForm() {
   const closedCount = sessions.filter((s) => s.closedSlot).length;
   const summary = scheduleSummary(spec, activeCount, closedCount);
 
-  const patchInfo = (patch: Partial<CourseInfoValue>) => setInfo((p) => ({ ...p, ...patch }));
+  const patchInfo = (patch: Partial<CourseInfoValue>) =>
+    setInfo((p) => {
+      const next = { ...p, ...patch };
+      // 換分店時，原本的教練不在新分店授課就清掉
+      if (patch.branchId != null && next.coachId != null) {
+        const coach = (coaches ?? []).find((c) => c.id === next.coachId);
+        if (coach && !coach.branch_ids.includes(patch.branchId)) next.coachId = null;
+      }
+      return next;
+    });
   const patchSpec = (patch: Partial<ScheduleSpec>) => setSpec((s) => ({ ...s, ...patch }));
 
   const toggleCancel = (dateKey: string) =>
@@ -185,6 +213,7 @@ export default function CourseForm() {
       if (coverFile) cover = await uploadCourseCover(coverFile);
       const payload: CoursePayload = {
         name: info.name.trim(),
+        branch_id: branchId as number,
         coach_id: info.coachId as number,
         duration_minutes: info.durationMinutes,
         min_capacity: info.minCapacity as number,
@@ -229,6 +258,7 @@ export default function CourseForm() {
 
   const submit = () => {
     if (!info.name.trim()) return message.error('請輸入課程名稱');
+    if (branchId == null) return message.error('請選擇上課分店');
     if (info.coachId == null) return message.error('請選擇教練');
     if (info.coachFee == null) return message.error('請填寫每堂教練費（不支薪請填 0）');
     if (info.minCapacity == null || info.maxCapacity == null) return message.error('請填寫開班人數');
@@ -311,9 +341,11 @@ export default function CourseForm() {
       </div>
 
       <CourseInfoCard
-        value={info}
+        value={{ ...info, branchId }}
         onChange={patchInfo}
         coachOptions={coachOptions}
+        branchOptions={branchOptions}
+        branchLocked={scheduleLocked}
         coverPreview={coverPreview ?? coverUrl}
         coverHint={coverFile ? `${coverFile.name}・儲存後套用` : ''}
         onPickCover={pickCover}

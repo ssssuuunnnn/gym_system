@@ -51,7 +51,7 @@
         <div class="class-card">
           <span class="num time">{{ k.time }}</span>
           <span class="class-name">{{ k.name }}</span>
-          <span class="small muted">{{ k.coach }}・{{ k.minutes }} 分鐘</span>
+          <span class="small muted">{{ k.coach }}{% if k.branch %}・{{ k.branch }}{% endif %}・{{ k.minutes }} 分鐘</span>
           {% if k.seats %}<span class="small seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
         </div>
         {% else %}

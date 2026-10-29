@@ -15,5 +15,10 @@ export function formatPrice(value: number): string {
 /** 這個方案能不能用來預約想預約的那堂課（規則同預約頁 R15） */
 export function fitsIntent(product: Product, intent: BookIntent | null): boolean {
   if (!intent) return false;
-  return intent.kind === 'group' ? product.course_id === intent.courseId : product.category === '課程';
+  if (intent.kind === 'group') return product.course_id === intent.courseId;
+  // 私人課：「課程」類方案，而且能在那間分店使用（沒限定分店＝全分店通用）
+  return (
+    product.category === '課程' &&
+    (intent.branchId == null || product.branch_ids.length === 0 || product.branch_ids.includes(intent.branchId))
+  );
 }

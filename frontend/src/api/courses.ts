@@ -25,6 +25,8 @@ export interface Course {
   name: string;
   code: string | null;
   coach_id: number;
+  /** 上課分店 */
+  branch_id: number;
   /** 最小的上課星期（1–7），列表摘要用 */
   day_of_week: number | null;
   start_hour: number | null;
@@ -73,6 +75,7 @@ export interface CoachCourseSession {
 export interface CoursePayload {
   name: string;
   coach_id: number;
+  branch_id: number;
   duration_minutes: number;
   min_capacity: number;
   max_capacity: number;
@@ -164,6 +167,8 @@ export interface ScheduleSession {
   coach_id: number;
   /** 授課名稱（沒有則為姓名） */
   coach_name: string;
+  branch_id: number;
+  branch_name: string;
   session_date: string;
   start_minute: number;
   duration_minutes: number;
@@ -176,7 +181,9 @@ export interface ScheduleSession {
 }
 
 /** 期間內的團體課表（start、end 為 YYYY-MM-DD，含頭尾，最多 31 天） */
-export async function listSchedule(start: string, end: string) {
-  const { data } = await apiClient.get<ScheduleSession[]>('/courses/schedule', { params: { start, end } });
+export async function listSchedule(start: string, end: string, branchId?: number | null) {
+  const { data } = await apiClient.get<ScheduleSession[]>('/courses/schedule', {
+    params: { start, end, ...(branchId != null ? { branch_id: branchId } : {}) },
+  });
   return data;
 }

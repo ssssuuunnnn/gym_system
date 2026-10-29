@@ -53,6 +53,20 @@ class Coach(TenantMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="coach_profile", foreign_keys=[user_id])
+    branch_rows: Mapped[list["CoachBranch"]] = relationship(
+        "CoachBranch", cascade="all, delete-orphan", order_by="CoachBranch.branch_id"
+    )
+
+    @property
+    def branch_ids(self) -> list[int]:
+        """授課分店（見 ADR 0007）"""
+        return [r.branch_id for r in self.branch_rows]
+
+    @branch_ids.setter
+    def branch_ids(self, ids: list[int]) -> None:
+        from app.models.branch import CoachBranch, sync_branch_rows
+
+        sync_branch_rows(self.branch_rows, ids, lambda b: CoachBranch(branch_id=b))
 
     @property
     def coach_types(self) -> list[CoachType]:

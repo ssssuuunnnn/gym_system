@@ -3,6 +3,7 @@ import { listCourses } from '../api/courses';
 import { listProducts } from '../api/products';
 import { listCoaches } from '../api/coaches';
 import type { Reservation } from '../api/reservations';
+import { useBranches } from './useBranches';
 import { DEFAULT_DURATION_MINUTES } from './booking';
 
 export interface ReservationInfo {
@@ -12,6 +13,8 @@ export interface ReservationInfo {
   coachName: string | null;
   durationMinutes: number;
   isGroup: boolean;
+  /** 預約的分店 */
+  branchName: string;
 }
 
 /**
@@ -22,6 +25,7 @@ export function useBookingLookups() {
   const courses = useQuery({ queryKey: ['courses'], queryFn: listCourses });
   const products = useQuery({ queryKey: ['products'], queryFn: listProducts });
   const coaches = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
+  const branches = useBranches();
 
   const courseById = new Map((courses.data ?? []).map((c) => [c.id, c]));
   const productById = new Map((products.data ?? []).map((p) => [p.id, p]));
@@ -36,6 +40,7 @@ export function useBookingLookups() {
       coachName: coach ? coach.alias || coach.name : null,
       durationMinutes: course?.duration_minutes ?? DEFAULT_DURATION_MINUTES,
       isGroup: r.course_id != null,
+      branchName: branches.nameOf(r.branch_id),
     };
   };
 

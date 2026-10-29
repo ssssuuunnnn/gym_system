@@ -12,9 +12,11 @@ import { CourseCoverThumb } from './CourseCoverThumb';
 
 export interface SharedCourseColumnDeps {
   coachNameById: Map<number, string>;
+  /** 分店名稱（lib/useBranches 的 nameOf） */
+  branchName: (id: number) => string;
 }
 
-export function sharedCourseColumns({ coachNameById }: SharedCourseColumnDeps): ColumnsType<Course> {
+export function sharedCourseColumns({ coachNameById, branchName }: SharedCourseColumnDeps): ColumnsType<Course> {
   return [
     {
       title: '封面',
@@ -40,6 +42,12 @@ export function sharedCourseColumns({ coachNameById }: SharedCourseColumnDeps): 
       dataIndex: 'coach_id',
       width: 96,
       render: (coachId: number) => coachNameById.get(coachId) ?? `#${coachId}`,
+    },
+    {
+      title: '分店',
+      dataIndex: 'branch_id',
+      width: 96,
+      render: (id: number) => branchName(id),
     },
     {
       title: '開班人數',

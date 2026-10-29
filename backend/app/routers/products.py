@@ -7,6 +7,8 @@ from app.models.course import Course, CourseStatus
 from app.models.product import Product, ProductCategory
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 
+from app.services import branches as branch_service
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -17,8 +19,12 @@ def _normalize_product_fields(db: Session, data: dict, previous_course_id: int |
       （綁定不變時不強制上架，避免課程事後下架就無法再編輯該商品。）
     - 課程（單次課程）：session_hours 必填且 >= 1（管理員自填）；course_id、stock 清為 None。
     - 用品：stock 必填且 >= 0；session_hours 固定 0；course_id 清為 None。
+    - 限定分店（branch_ids）只有「課程」可設：團體課程跟著課程的分店、用品不需要（R35）。
     """
     category = data.get("category")
+    if "branch_ids" in data:
+        ids = data.get("branch_ids") or []
+        data["branch_ids"] = branch_service.check_branch_ids(db, ids) if category == ProductCategory.single_course else []
     if category == ProductCategory.course:
         course_id = data.get("course_id")
         if course_id is None:
@@ -78,12 +84,14 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
         "course_id": updates.get("course_id", product.course_id),
         "session_hours": updates.get("session_hours", product.session_hours),
         "stock": updates.get("stock", product.stock),
+        "branch_ids": updates["branch_ids"] if updates.get("branch_ids") is not None else product.branch_ids,
     }
     _normalize_product_fields(db, merged, previous_course_id=product.course_id)
     updates["category"] = merged["category"]
     updates["course_id"] = merged["course_id"]
     updates["session_hours"] = merged["session_hours"]
     updates["stock"] = merged["stock"]
+    updates["branch_ids"] = merged["branch_ids"]
 
     for field, value in updates.items():
         setattr(product, field, value)

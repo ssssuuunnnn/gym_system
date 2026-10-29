@@ -12,6 +12,7 @@ export interface ClassUnit {
   end: Dayjs;
   title: string;
   isGroup: boolean;
+  branchName: string;
   reservations: CoachingReservation[];
 }
 
@@ -38,7 +39,9 @@ export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: C
   const attended = unit.reservations.filter((r) => r.attendance === '已出席').length;
   const noShow = unit.reservations.filter((r) => r.attendance === '未到').length;
   const pending = unit.reservations.length - attended - noShow;
-  const subtitle = unit.isGroup ? `團體課 · ${unit.reservations.length} 位學員` : `${unit.reservations[0]?.member_username ?? ''} · 私人課`;
+  const subtitle = `${
+    unit.isGroup ? `團體課 · ${unit.reservations.length} 位學員` : `${unit.reservations[0]?.member_username ?? ''} · 私人課`
+  } · ${unit.branchName}`;
 
   const summary = !open ? (
     <span style={{ fontSize: 12, color: token.colorTextSecondary, flex: 'none' }}>{opensAt.format('HH:mm')} 開放簽到</span>

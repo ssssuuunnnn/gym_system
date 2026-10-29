@@ -16,6 +16,8 @@ class ProductCreate(BaseModel):
     session_hours: int | None = None
     # 分類為「用品」時必填：庫存量
     stock: int | None = None
+    # 限定使用的分店（只有「課程」分類可設）；空＝全分店通用（R35）
+    branch_ids: list[int] = []
 
 
 class ProductUpdate(BaseModel):
@@ -26,6 +28,7 @@ class ProductUpdate(BaseModel):
     course_id: int | None = None
     session_hours: int | None = None
     stock: int | None = None
+    branch_ids: list[int] | None = None
 
 
 class ProductOut(BaseModel):
@@ -39,4 +42,5 @@ class ProductOut(BaseModel):
     stock: int | None
     price: float
     is_active: bool
+    branch_ids: list[int] = []
     created_at: datetime

@@ -37,6 +37,8 @@ class Reservation(TenantMixin, Base):
     member_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, comment="預約歸屬會員")
     coach_id: Mapped[int | None] = mapped_column(ForeignKey("coaches.id"), nullable=True)
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    # 預約的分店（ADR 0007）：團體課跟著課程；私人課由會員選。未指定則用預設分店
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False, index=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
     purchase_id: Mapped[int | None] = mapped_column(ForeignKey("purchases.id"), nullable=True)
 
@@ -66,6 +68,7 @@ class Reservation(TenantMixin, Base):
 
     member: Mapped["User"] = relationship("User", foreign_keys=[member_id])
     coach: Mapped["Coach | None"] = relationship("Coach", foreign_keys=[coach_id])
+    branch: Mapped["Branch"] = relationship("Branch")
     course: Mapped["Course | None"] = relationship("Course", foreign_keys=[course_id])
     product: Mapped["Product"] = relationship("Product")
     purchase: Mapped["Purchase | None"] = relationship("Purchase", foreign_keys=[purchase_id])

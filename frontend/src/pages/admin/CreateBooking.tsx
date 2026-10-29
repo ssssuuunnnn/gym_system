@@ -9,12 +9,14 @@ import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
 import { listPurchases } from '../../api/purchases';
+import { useBranches } from '../../lib/useBranches';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => 10 + i); // 10:00–21:00
 
 interface FormValues {
   member_id: number;
   product_id: number;
+  branch_id?: number;
   coach_id?: number;
   course_id?: number;
   purchase_id?: number;
@@ -34,6 +36,7 @@ export default function CreateBooking() {
   const [form] = Form.useForm<FormValues>();
   const memberId = Form.useWatch('member_id', form);
   const productId = Form.useWatch('product_id', form);
+  const branchList = useBranches();
 
   const { data: members, isLoading: membersLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
   const { data: products, isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
@@ -56,6 +59,7 @@ export default function CreateBooking() {
           member_id: values.member_id,
           product_id: values.product_id,
           coach_id: values.coach_id ?? null,
+          branch_id: values.branch_id ?? branchList.defaultId,
           course_id: values.course_id ?? null,
           purchase_id: values.purchase_id ?? null,
           booking_date: values.booking_date.format('YYYY-MM-DD'),
@@ -108,6 +112,13 @@ export default function CreateBooking() {
             placeholder="選擇商品"
             options={(products ?? []).map((p) => ({ value: p.id, label: `${p.name}（${p.category}）` }))}
             onChange={() => form.setFieldValue('purchase_id', undefined)}
+          />
+        </Form.Item>
+
+        <Form.Item name="branch_id" label="分店（團體課以課程的分店為準）">
+          <Select
+            placeholder="選擇分店"
+            options={branchList.active.map((b) => ({ value: b.id, label: b.name }))}
           />
         </Form.Item>
 

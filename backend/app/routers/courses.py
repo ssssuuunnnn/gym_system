@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.media import save_tenant_media
 from app.deps import get_db
 from app.services.schedule import group_sessions
+from app.services import branches as branch_service
 from app.deps import get_current_user, require_admin
+from app.models.branch import Branch
 from app.models.coach import Coach
 from app.models.course import (
     Course,
@@ -81,6 +83,13 @@ def _check_group_coach(db: Session, coach_id: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="團體課程只能指定團體課程教練")
 
 
+def _check_coach_branch(db: Session, coach_id: int, branch: Branch) -> None:
+    """課程的教練要在課程的分店授課（R34）。"""
+    coach = db.get(Coach, coach_id)
+    if coach is not None and branch.id not in coach.branch_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"這位教練不在「{branch.name}」授課")
+
+
 def _generate_code(db: Session) -> str:
     """課程編號 GC-YYYY-NNN；取當年既有編號的最大流水號 + 1（對永久刪除造成的斷號免疫）。"""
     year = datetime.utcnow().year
@@ -135,6 +144,7 @@ def list_courses(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     archived: bool | None = Query(default=None, description="None=全部、true=僅封存、false=僅未封存"),
+    branch_id: int | None = Query(default=None, description="只看某間分店"),
 ):
     """
     對應「團體課程管理列表」（管理員）；其他登入會員可讀取用於「我的預約列表」等畫面顯示課程名稱，
@@ -143,6 +153,8 @@ def list_courses(
     query = db.query(Course).options(selectinload(Course.weekday_rows))
     if archived is not None:
         query = query.filter(Course.is_archived.is_(archived))
+    if branch_id is not None:
+        query = query.filter(Course.branch_id == branch_id)
     counts = _enrolled_counts(db)
     is_admin = current_user.role == UserRole.admin
     return [_to_out(c, counts.get(c.id, 0), is_admin) for c in query.all()]
@@ -156,6 +168,7 @@ SCHEDULE_MAX_DAYS = 31
 def list_schedule(
     start: date = Query(..., description="起日（含）"),
     end: date = Query(..., description="迄日（含）"),
+    branch_id: int | None = Query(default=None, description="只看某間分店"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -168,7 +181,7 @@ def list_schedule(
     if (end - start).days >= SCHEDULE_MAX_DAYS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"一次最多查詢 {SCHEDULE_MAX_DAYS} 天")
 
-    sessions, reservations = group_sessions(db, start, end)
+    sessions, reservations = group_sessions(db, start, end, branch_id)
     mine: dict[tuple, Reservation] = {
         (r.course_id, r.booking_date, r.start_hour): r for r in reservations if r.member_id == current_user.id
     }
@@ -182,6 +195,8 @@ def list_schedule(
                 cover_image_url=gs.course.cover_image_url,
                 coach_id=gs.coach.id,
                 coach_name=gs.coach.alias or gs.coach.name,
+                branch_id=gs.branch.id,
+                branch_name=gs.branch.name,
                 session_date=gs.session.session_date,
                 start_minute=gs.session.start_minute,
                 duration_minutes=gs.session.duration_minutes,
@@ -273,9 +288,12 @@ def create_course(
 ):
     """對應「新增團體課程」：課程資訊、排程規格、逐堂課堂、狀態。"""
     _check_group_coach(db, payload.coach_id)
+    branch = branch_service.active_branch(db, payload.branch_id)
+    _check_coach_branch(db, payload.coach_id, branch)
     course = Course(
         name=payload.name,
         coach_id=payload.coach_id,
+        branch=branch,
         duration_minutes=payload.duration_minutes,
         min_capacity=payload.min_capacity,
         max_capacity=payload.max_capacity,
@@ -316,6 +334,17 @@ def update_course(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到課程")
     if payload.coach_id is not None and payload.coach_id != course.coach_id:
         _check_group_coach(db, payload.coach_id)
+    branch = course.branch
+    branch_changed = payload.branch_id is not None and payload.branch_id != course.branch_id
+    if branch_changed:
+        # 已有預約的課程不能換分店（預約記錄了上課地點）
+        if db.query(Reservation.id).filter(Reservation.course_id == course.id).first():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="已有預約的課程不能更換分店")
+        branch = branch_service.active_branch(db, payload.branch_id)
+        course.branch = branch
+    coach_changed = payload.coach_id is not None and payload.coach_id != course.coach_id
+    if coach_changed or branch_changed:
+        _check_coach_branch(db, payload.coach_id if coach_changed else course.coach_id, branch)
 
     for field in (
         "name",

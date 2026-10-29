@@ -26,6 +26,8 @@ class CoachBase(BaseModel):
     photo_url: str | None = None
     session_rate: float = Field(default=0, ge=0)
     coach_types: list[CoachType] = Field(default_factory=lambda: [CoachType.private])
+    # 授課分店（ADR 0007）；省略或空＝預設分店
+    branch_ids: list[int] = Field(default_factory=list)
 
     @field_validator("coach_types")
     @classmethod
@@ -49,6 +51,8 @@ class CoachUpdate(BaseModel):
     # 省略＝不變更；不接受 null（欄位不可為空）
     session_rate: float = Field(default=None, ge=0)  # type: ignore[assignment]
     coach_types: list[CoachType] = Field(default=None)  # type: ignore[assignment]
+    # 授課分店；省略＝不變更，給了就至少一間
+    branch_ids: list[int] = Field(default=None, min_length=1)  # type: ignore[assignment]
 
     @field_validator("coach_types")
     @classmethod
@@ -76,6 +80,7 @@ class CoachOut(BaseModel):
     photo_url: str | None
     session_rate: float | None
     coach_types: list[CoachType]
+    branch_ids: list[int] = Field(default_factory=list)
     created_at: datetime
 
 

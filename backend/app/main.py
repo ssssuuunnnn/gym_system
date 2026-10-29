@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.services import line as line_service
 from app.routers import (
     auth,
+    branches,
     coach_payouts,
     coaches,
     courses,
@@ -73,6 +74,7 @@ app.include_router(line_webhook.router, prefix=settings.API_V1_PREFIX)
 app.include_router(line_oa.router, prefix=settings.API_V1_PREFIX)
 app.include_router(line_auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(member_segments.router, prefix=settings.API_V1_PREFIX)
+app.include_router(branches.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(site.router)
 

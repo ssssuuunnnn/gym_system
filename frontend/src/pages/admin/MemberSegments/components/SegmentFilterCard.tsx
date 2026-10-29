@@ -10,13 +10,14 @@ export interface SegmentFilterCardProps {
   /** 套用目前條件查詢 */
   onSearch: (value: SegmentFilters) => void;
   coachOptions: { value: number; label: string }[];
+  branchOptions: { value: number; label: string }[];
   loading?: boolean;
 }
 
 const KINDS: SegmentKind[] = ['全部', '團體課', '私人課'];
 
 /** 會員名單的篩選條件：常用名單一鍵帶入，或自己調整條件後查詢 */
-export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, loading }: SegmentFilterCardProps) {
+export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, branchOptions, loading }: SegmentFilterCardProps) {
   const set = (patch: Partial<SegmentFilters>) => onChange({ ...value, ...patch });
   const field = (label: string, htmlFor: string, control: React.ReactNode, width: number | 'auto' = 200) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width }}>
@@ -72,6 +73,19 @@ export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, loa
             'seg-kind',
             <Segmented<SegmentKind> id="seg-kind" value={value.kind} options={KINDS} onChange={(kind) => set({ kind })} />,
             'auto',
+          )}
+          {field(
+            '分店',
+            'seg-branch',
+            <Select
+              id="seg-branch"
+              allowClear
+              placeholder="全部分店"
+              value={value.branch_id ?? undefined}
+              options={branchOptions}
+              onChange={(v) => set({ branch_id: v ?? null })}
+            />,
+            160,
           )}
           {field(
             '教練',

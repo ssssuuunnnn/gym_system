@@ -54,7 +54,7 @@ export default function CoachToday() {
       if (unit) unit.reservations.push(r);
       else {
         const start = classStart(r);
-        units.set(key, { key, start, end: start.add(info.durationMinutes, 'minute'), title: info.title, isGroup: info.isGroup, reservations: [r] });
+        units.set(key, { key, start, end: start.add(info.durationMinutes, 'minute'), title: info.title, isGroup: info.isGroup, branchName: info.branchName, reservations: [r] });
       }
     }
     return [...units.values()].sort((a, b) => a.start.valueOf() - b.start.valueOf());

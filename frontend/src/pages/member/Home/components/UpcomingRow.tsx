@@ -50,6 +50,7 @@ export function UpcomingRow({ reservation: r, info }: UpcomingRowProps) {
         <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
           {start.format('HH:mm')}
           {info.coachName ? ` · ${info.coachName}` : ''}
+          {` · ${info.branchName}`}
         </span>
       </div>
       <Tag variant="filled" color={r.status === '已確認' ? 'success' : 'warning'} style={{ marginInlineEnd: 0 }}>

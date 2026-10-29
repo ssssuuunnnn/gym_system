@@ -35,6 +35,8 @@ class _CourseSchedule(BaseModel):
 class CourseCreate(_CourseSchedule):
     name: str
     coach_id: int
+    # 上課分店（ADR 0007）；省略＝預設分店
+    branch_id: int | None = None
     duration_minutes: int = Field(default=60, ge=1, le=600)
     min_capacity: int = Field(default=1, ge=1, le=100)
     max_capacity: int = Field(ge=1, le=100)
@@ -48,6 +50,7 @@ class CourseCreate(_CourseSchedule):
 class CourseUpdate(BaseModel):
     name: str | None = None
     coach_id: int | None = None
+    branch_id: int | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=600)
     min_capacity: int | None = Field(default=None, ge=1, le=100)
     max_capacity: int | None = Field(default=None, ge=1, le=100)
@@ -79,6 +82,7 @@ class CourseOut(BaseModel):
     name: str
     code: str | None
     coach_id: int
+    branch_id: int
     day_of_week: int | None
     start_hour: int | None
     duration_minutes: int
@@ -119,6 +123,8 @@ class ScheduleSessionOut(BaseModel):
     cover_image_url: str | None
     coach_id: int
     coach_name: str
+    branch_id: int
+    branch_name: str
     session_date: date
     start_minute: int
     duration_minutes: int

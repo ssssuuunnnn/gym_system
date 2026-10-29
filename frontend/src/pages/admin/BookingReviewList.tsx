@@ -19,6 +19,8 @@ import { hasStarted, isLateCancel, staffCheckInOpen } from '../../lib/booking';
 import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
+import { useBranches } from '../../lib/useBranches';
+import { BranchPicker } from '../../components/BranchPicker';
 import { listCourses } from '../../api/courses';
 
 /**
@@ -41,6 +43,9 @@ export default function BookingReviewList() {
   const deadlineHours = settings?.cancel_deadline_hours;
   const [lateCancelTarget, setLateCancelTarget] = useState<Reservation | null>(null);
   const [lateRefund, setLateRefund] = useState(false);
+  const branchList = useBranches();
+  const [branchFilter, setBranchFilter] = useState<number | null>(null);
+  const rows = (reservations ?? []).filter((r) => branchFilter == null || r.branch_id === branchFilter);
 
   const usernameByMemberId = new Map((members ?? []).map((m) => [m.id, m.username]));
   const productNameById = new Map((products ?? []).map((p) => [p.id, p.name]));
@@ -94,6 +99,11 @@ export default function BookingReviewList() {
       title: '預約日期',
       key: 'time',
       render: (_, record) => `${dayjs(record.booking_date).format('YYYY-MM-DD')} ${record.start_hour}:00`,
+    },
+    {
+      title: '分店',
+      dataIndex: 'branch_id',
+      render: (id: number) => branchList.nameOf(id),
     },
     {
       title: '會員',
@@ -203,10 +213,12 @@ export default function BookingReviewList() {
 
   return (
     <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           預約審核列表
         </Typography.Title>
+        <div style={{ flex: 1 }} />
+        <BranchPicker branches={branchList.branches} value={branchFilter} onChange={setBranchFilter} allowAll />
         <Button type="primary" onClick={() => navigate('/admin/reservations/create')}>
           管理員建立預約
         </Button>
@@ -214,7 +226,7 @@ export default function BookingReviewList() {
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={reservations}
+        dataSource={rows}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         scroll={{ x: 'max-content' }}

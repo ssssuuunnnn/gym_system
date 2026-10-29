@@ -6,8 +6,10 @@ from app.core.media import save_tenant_media
 from app.deps import get_db
 from app.deps import get_current_user, require_admin, require_coach
 from app.models.coach import Coach
+from app.models.course import Course, CourseStatus
 from app.models.user import User, UserRole
 from app.schemas.coach import CoachCreate, CoachOut, CoachPhotoOut, CoachUpdate
+from app.services import branches as branch_service
 
 router = APIRouter(prefix="/coaches", tags=["coaches"])
 
@@ -70,8 +72,11 @@ def create_coach(payload: CoachCreate, db: Session = Depends(get_db)):
 
     data = payload.model_dump()
     coach_types = data.pop("coach_types")
+    branch_ids = branch_service.check_branch_ids(db, data.pop("branch_ids"))
     coach = Coach(**data)
     coach.coach_types = coach_types
+    # 沒選分店：寫入時由 db/session 的 before_flush 補上預設分店（可能是這次才建立的「總店」）
+    coach.branch_ids = branch_ids
     db.add(coach)
     db.commit()
     db.refresh(coach)
@@ -83,7 +88,31 @@ def update_coach(coach_id: int, payload: CoachUpdate, db: Session = Depends(get_
     coach = db.get(Coach, coach_id)
     if not coach:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到教練資料")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "branch_ids" in data:
+        branch_ids = branch_service.check_branch_ids(db, data.pop("branch_ids") or [])
+        if not branch_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="請至少選擇一間授課分店")
+        # 拿掉的分店還有這位教練的上架課程時不能拿掉（課程的教練必須在該分店授課）
+        removed = set(coach.branch_ids) - set(branch_ids)
+        if removed:
+            live = (
+                db.query(Course.name)
+                .filter(
+                    Course.coach_id == coach.id,
+                    Course.branch_id.in_(removed),
+                    Course.status == CourseStatus.on,
+                    Course.is_archived.is_(False),
+                )
+                .first()
+            )
+            if live:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"「{live.name}」還在那間分店上架，請先換教練或下架後再移除分店",
+                )
+        coach.branch_ids = branch_ids
+    for field, value in data.items():
         setattr(coach, field, value)
     db.commit()
     db.refresh(coach)
