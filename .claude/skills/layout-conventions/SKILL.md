@@ -26,6 +26,7 @@ These are standing rules for this shell, not a record of a past change. Apply th
 
 - The left sidebar/menu must be collapsible via an explicit toggle control the user clicks — not only auto-collapsing at a viewport breakpoint. (The current implementation only does the latter via `Sider`'s `breakpoint`/`collapsedWidth`; that alone does not satisfy this convention.)
 - Collapsed state shows icon-only nav items (no text labels); a toggle control lives at the bottom of the sidebar to expand/collapse it, matching the prototype's placement and icon-swap (fold/unfold icon depending on state).
+- Navigation can be grouped: `BackOfficeShell` `menuItems` may nest one level (`children` = a collapsible group, popping out when the sider is collapsed). The gym admin sidebar adds 釘選 / 最近使用 groups and remembers user-toggled groups in browser storage; menu structure and grouping live in `components/adminMenu.tsx`, never hard-coded in the shell.
 - Sidebar width switches between an expanded and a collapsed width — see the design guideline for the exact pixel values (do not hardcode them independently in multiple places; source from tokens/guideline).
 
 ## Tokens: don't duplicate values, reference the guideline
