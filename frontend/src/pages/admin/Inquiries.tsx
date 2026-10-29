@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   App,
   Button,
@@ -18,7 +18,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   addInquiryNote,
   convertInquiry,
@@ -56,6 +56,16 @@ export default function Inquiries() {
   const [convertForm] = Form.useForm<ConvertValues>();
 
   const { data: inquiries = [], isLoading } = useQuery({ queryKey: ['inquiries'], queryFn: () => listInquiries() });
+  // 從鈴鐺通知點進來（?highlight=<id>）：直接打開那一筆
+  const [params] = useSearchParams();
+  const highlightId = Number(params.get('highlight')) || null;
+  const highlightLoaded = inquiries.some((i) => i.id === highlightId);
+  useEffect(() => {
+    if (highlightId && highlightLoaded) {
+      setFilter('全部');
+      setOpenId(highlightId);
+    }
+  }, [highlightId, highlightLoaded]);
   const counts = useMemo(() => {
     const m = new Map<InquiryStatus, number>();
     inquiries.forEach((i) => m.set(i.status, (m.get(i.status) ?? 0) + 1));

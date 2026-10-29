@@ -353,6 +353,30 @@
 - **實作**：`deps.get_current_user`、`services/members.issue_token`、`routers/users._member`、`staff_audit_logs`
 - **測試**：`test_owner_is_protected_and_disable_blocks_login`、`test_member_endpoints_cannot_touch_staff_accounts`、`test_tenant_isolation`
 
+
+## 後台鈴鐺通知
+
+### R40. 會員做了需要後台處理的事才通知，只通知有權限的帳號
+
+- **確認日期**：2026-10-29
+- **規則**：四種事件：會員送出預約（待確認）、會員自己取消預約（含晚取消）、會員下單待付款、網站體驗詢問。後台人員自己建立或取消的不通知。收件人是事件發生當下有對應功能（預約審核／購買紀錄／詢問名單）且未停用的後台帳號；之後權限被拿掉，舊通知也看不到。
+- **實作**：`services/staff_notifications.py`（`KIND_PERM`）、各事件的 router
+- **測試**：`test_member_booking_notifies_staff_with_permission`、`test_member_cancel_notifies_but_staff_cancel_does_not`、`test_order_and_inquiry`、`test_paging_permission_filter_and_purge`
+
+### R41. 通知內容只放姓名與摘要；已讀未讀各人分開
+
+- **確認日期**：2026-10-29
+- **規則**：通知顯示姓名、時間、課程或方案、分店（多於一間時）、金額，不放電話、Email、備註。每位收件人有自己的一份，已讀、全部已讀只影響自己。點通知會標成已讀並換到對應頁面（標出那一筆）。有新通知時右上角跳 toast，6 秒後消失、沒有聲音；剛打開後台不跳舊通知，多個分頁只跳一次。
+- **實作**：`routers/staff_notifications.py`、`components/notifications/`
+- **測試**：`test_read_unread_and_read_all`、`test_order_and_inquiry`
+
+### R42. 通知保留 90 天
+
+- **確認日期**：2026-10-29
+- **規則**：超過 90 天的通知自動刪除。
+- **實作**：`services/staff_notifications.purge_expired`（打開通知列表時執行）
+- **測試**：`test_paging_permission_filter_and_purge`
+
 ---
 
 ## 堂數帳務的共通原則

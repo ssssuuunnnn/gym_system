@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services import line as line_service
 from app.services import line_member
+from app.services import staff_notifications
 from app.deps import get_coach_profile, get_current_user, require_perm, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
@@ -130,6 +131,16 @@ def list_reservations(
     return query.order_by(Reservation.booking_date, Reservation.start_hour).all()
 
 
+def _item_name(db: Session, reservation: Reservation) -> str:
+    """通知上顯示的課程／方案名稱：團體課用課程名稱，其餘用商品名稱。"""
+    if reservation.course_id:
+        course = db.get(Course, reservation.course_id)
+        if course:
+            return course.name
+    product = db.get(Product, reservation.product_id) if reservation.product_id else None
+    return product.name if product else "預約"
+
+
 @router.post("", response_model=ReservationOut, status_code=status.HTTP_201_CREATED)
 def create_reservation(
     payload: ReservationCreate,
@@ -180,7 +191,10 @@ def create_reservation(
         # LINE 通知店家：有預約等待審核（docs/adr/0004-line-notifications.md）
         db.flush()
         course = db.get(Course, reservation.course_id) if reservation.course_id else None
-        notification_id = line_service.notify_booking(db, reservation, course.name if course else product.name)
+        item_name = course.name if course else product.name
+        notification_id = line_service.notify_booking(db, reservation, item_name)
+        # 後台鈴鐺通知（ADR 0009）
+        staff_notifications.notify_booking_submitted(db, reservation, item_name)
     member_message_id = None
     if as_admin and reservation.member_id != current_user.id:
         # 櫃台幫會員預約：從健身房官方帳號通知會員（ADR 0005 第二階段）
@@ -319,6 +333,9 @@ def cancel_reservation(
     if is_admin and reservation.member_id != current_user.id:
         # 櫃台取消：通知會員（會員自己取消的不發）
         member_message_id = line_member.notify_booking_cancelled(db, reservation, refunded=refund)
+    if reservation.member_id == current_user.id:
+        # 會員自己取消：後台鈴鐺通知（ADR 0009）
+        staff_notifications.notify_booking_cancelled(db, reservation, _item_name(db, reservation))
     db.commit()
     line_member.schedule(background_tasks, member_message_id)
     db.refresh(reservation)
