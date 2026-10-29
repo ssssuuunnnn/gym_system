@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useHighlightRow } from '../../lib/useHighlightRow';
 import {
   Card,
   Typography,
@@ -65,6 +66,12 @@ export default function PurchaseList() {
   const countByStatus = (status: StatusFilter) =>
     status === '全部' ? (purchases ?? []).length : (purchases ?? []).filter((p) => p.payment_status === status).length;
   const rows = statusFilter === '全部' ? purchases : (purchases ?? []).filter((p) => p.payment_status === statusFilter);
+  // 從鈴鐺通知點進來：跳到那一筆並加底色；那一筆不在目前的付款狀態篩選裡就切到它的狀態
+  const highlight = useHighlightRow(rows, 10);
+  const target = (purchases ?? []).find((p) => p.id === highlight.highlightId);
+  useEffect(() => {
+    if (target) setStatusFilter(target.payment_status);
+  }, [target?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['purchases'] });
@@ -182,7 +189,8 @@ export default function PurchaseList() {
         dataSource={rows}
         loading={isLoading}
         scroll={{ x: 'max-content' }}
-        pagination={{ pageSize: 10 }}
+        pagination={highlight.pagination}
+        onRow={(p) => ({ style: highlight.rowStyle(p) })}
       />
 
       <Modal

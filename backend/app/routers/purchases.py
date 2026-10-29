@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services import line as line_service
 from app.services import line_member
+from app.services import staff_notifications
 from app.deps import get_current_user, require_perm
 from app.models.hour_ledger import HourLedger
 from app.models.product import Product, ProductCategory
@@ -164,6 +165,8 @@ def create_self_purchase(
     )
     # LINE 通知店家：有人下單、等待確認收款（docs/adr/0004-line-notifications.md）
     notification_id = line_service.notify_payment(db, purchase, product)
+    # 後台鈴鐺通知（ADR 0009）
+    staff_notifications.notify_order_unpaid(db, purchase, product)
     db.commit()
     line_service.schedule(background_tasks, notification_id)
     return purchase

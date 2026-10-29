@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useHighlightRow } from '../../lib/useHighlightRow';
 import { Card, Typography, Table, Button, Space, Popconfirm, Modal, Radio, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +47,8 @@ export default function BookingReviewList() {
   const branchList = useBranches();
   const [branchFilter, setBranchFilter] = useState<number | null>(null);
   const rows = (reservations ?? []).filter((r) => branchFilter == null || r.branch_id === branchFilter);
+  // 從鈴鐺通知點進來：跳到那一筆並加底色（?highlight=<id>）
+  const highlight = useHighlightRow(rows, 10);
 
   const usernameByMemberId = new Map((members ?? []).map((m) => [m.id, m.username]));
   const productNameById = new Map((products ?? []).map((p) => [p.id, p.name]));
@@ -228,7 +231,8 @@ export default function BookingReviewList() {
         columns={columns}
         dataSource={rows}
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={highlight.pagination}
+        onRow={(r) => ({ style: highlight.rowStyle(r) })}
         scroll={{ x: 'max-content' }}
       />
 
