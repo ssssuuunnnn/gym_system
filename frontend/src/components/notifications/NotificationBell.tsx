@@ -9,7 +9,7 @@ import { NotificationPanel } from './NotificationPanel';
 import { useOpenNotification } from './useOpenNotification';
 
 /** 多久問一次有沒有新通知 */
-const POLL_MS = 20_000;
+const POLL_MS = 120_000;
 /** toast 停留秒數 */
 const TOAST_SECONDS = 6;
 /** 一次最多跳幾則 toast，其餘合成一則「還有 N 則新通知」 */
