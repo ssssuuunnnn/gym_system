@@ -19,6 +19,7 @@ from app.core.security import hash_password
 from app.db.session import SessionLocal, tenant_session
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
+from app.services.staff import initial_level
 
 
 def seed_admin(subdomain: str, username: str, password: str) -> None:
@@ -33,7 +34,8 @@ def seed_admin(subdomain: str, username: str, password: str) -> None:
         user = db.query(User).filter(User.username == username).first()
 
         if user is None:
-            user = User(username=username, password_hash=hash_password(password), role=UserRole.admin)
+            user = User(username=username, password_hash=hash_password(password), role=UserRole.admin,
+                        staff_level=initial_level(db))
             db.add(user)
             db.commit()
             print(f"[seed_admin] {subdomain}：已建立 admin 帳號 {username}")
@@ -41,6 +43,7 @@ def seed_admin(subdomain: str, username: str, password: str) -> None:
 
         if user.role != UserRole.admin:
             user.role = UserRole.admin
+            user.staff_level = initial_level(db)
             db.commit()
             print(f"[seed_admin] {subdomain}：已將既有帳號升級為 admin {username}")
             return

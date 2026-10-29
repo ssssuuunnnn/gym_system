@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.tenant_context import current_tenant
-from app.deps import get_db, require_admin
+from app.deps import get_db, require_perm
 from app.models.line import LineBindCode, LineRecipient
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -27,6 +27,9 @@ from app.services import line as line_service
 
 router = APIRouter(prefix="/line", tags=["line"])
 
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「settings」功能
+require_access = require_perm("settings")
+
 
 def _recipient(db: Session, recipient_id: int) -> LineRecipient:
     recipient = db.get(LineRecipient, recipient_id)
@@ -36,7 +39,7 @@ def _recipient(db: Session, recipient_id: int) -> LineRecipient:
 
 
 @router.get("/settings", response_model=LineSettingsOut)
-def get_settings(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+def get_settings(_: User = Depends(require_access), db: Session = Depends(get_db)):
     cap = db.query(Tenant.line_monthly_cap).filter(Tenant.id == current_tenant.get().id).scalar()
     recipients = (
         db.query(LineRecipient).filter(LineRecipient.is_active.is_(True)).order_by(LineRecipient.created_at).all()
@@ -52,7 +55,7 @@ def get_settings(_: User = Depends(require_admin), db: Session = Depends(get_db)
 
 
 @router.post("/bind-codes", response_model=LineBindCodeOut, status_code=status.HTTP_201_CREATED)
-def create_bind_code(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_bind_code(admin: User = Depends(require_access), db: Session = Depends(get_db)):
     """產生 6 位數綁定碼（10 分鐘內有效、只能用一次）；明碼只在這次回傳，資料庫只存雜湊。"""
     # 避免這家同時有兩組相同的有效綁定碼
     while True:
@@ -80,7 +83,7 @@ def create_bind_code(admin: User = Depends(require_admin), db: Session = Depends
 
 
 @router.get("/bind-codes/{code_id}", response_model=LineBindStatusOut)
-def bind_status(code_id: int, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+def bind_status(code_id: int, _: User = Depends(require_access), db: Session = Depends(get_db)):
     """綁定對話框每隔幾秒查詢一次。"""
     row = db.get(LineBindCode, code_id)
     if row is None:
@@ -99,7 +102,7 @@ def bind_status(code_id: int, _: User = Depends(require_admin), db: Session = De
 
 @router.patch("/recipients/{recipient_id}", response_model=LineRecipientOut)
 def update_recipient(
-    recipient_id: int, payload: LineRecipientUpdate, _: User = Depends(require_admin), db: Session = Depends(get_db)
+    recipient_id: int, payload: LineRecipientUpdate, _: User = Depends(require_access), db: Session = Depends(get_db)
 ):
     recipient = _recipient(db, recipient_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
@@ -111,7 +114,7 @@ def update_recipient(
 
 
 @router.delete("/recipients/{recipient_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_recipient(recipient_id: int, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+def remove_recipient(recipient_id: int, _: User = Depends(require_access), db: Session = Depends(get_db)):
     """停止通知此人（保留紀錄）。對方之後可以用新的綁定碼重新綁定。"""
     recipient = _recipient(db, recipient_id)
     recipient.is_active = False
@@ -124,7 +127,7 @@ def remove_recipient(recipient_id: int, _: User = Depends(require_admin), db: Se
 def send_test(
     recipient_id: int,
     background_tasks: BackgroundTasks,
-    _: User = Depends(require_admin),
+    _: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     _recipient(db, recipient_id)

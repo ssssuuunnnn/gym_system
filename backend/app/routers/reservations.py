@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services import line as line_service
 from app.services import line_member
-from app.deps import get_coach_profile, get_current_user, require_admin, require_coach
+from app.deps import get_coach_profile, get_current_user, require_perm, require_coach
 from app.models.coach import Coach
 from app.models.course import Course
 from app.models.product import Product
@@ -34,9 +34,13 @@ from app.schemas.reservation import (
     ReservationUpdate,
 )
 from app.services import booking_rules, hours
+from app.services.staff import has_perm
 from app.services import branches as branch_service
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「reservations」功能
+require_access = require_perm("reservations")
 
 def _check_slot_open(db: Session, branch_id: int, slot_date, start_hour: int) -> None:
     """公休各分店獨立（R34）：只看這間分店的設定。"""
@@ -147,7 +151,7 @@ def create_reservation(
     _check_slot_open(db, branch.id, payload.booking_date, payload.start_hour)
 
     if as_admin:
-        require_admin(current_user)
+        require_access(current_user)
         source = ReservationSource.admin_created
         initial_status = ReservationStatus.confirmed
         _check_capacity(
@@ -201,7 +205,7 @@ def update_reservation(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
 
-    if current_user.role != UserRole.admin and reservation.member_id != current_user.id:
+    if not has_perm(current_user, "reservations") and reservation.member_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅能編輯自己的預約")
 
     if reservation.status != ReservationStatus.pending:
@@ -220,12 +224,12 @@ def update_reservation(
     return reservation
 
 
-@router.post("/{reservation_id}/review", response_model=ReservationOut, dependencies=[Depends(require_admin)])
+@router.post("/{reservation_id}/review", response_model=ReservationOut, dependencies=[Depends(require_access)])
 def review_reservation(
     reservation_id: int,
     payload: ReservationReview,
     background_tasks: BackgroundTasks,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     """
@@ -284,7 +288,7 @@ def cancel_reservation(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
 
-    is_admin = current_user.role == UserRole.admin
+    is_admin = has_perm(current_user, "reservations")
     if not is_admin and reservation.member_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅能取消自己的預約")
 
@@ -374,7 +378,7 @@ def mark_attendance(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到預約")
 
-    is_staff = current_user.role == UserRole.admin or _is_coach_of(db, current_user, reservation)
+    is_staff = has_perm(current_user, "reservations") or _is_coach_of(db, current_user, reservation)
     is_self = reservation.member_id == current_user.id
     if not is_staff and not is_self:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="無權為此預約簽到")

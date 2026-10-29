@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import hash_password
-from app.deps import get_db, require_admin
+from app.deps import get_db, require_perm
 from app.models.inquiry import Inquiry, InquiryNote, InquiryStatus
 from app.models.user import User, UserRole
 from app.schemas.inquiry import (
@@ -20,7 +20,11 @@ from app.schemas.inquiry import (
     InquirySummary,
 )
 
-router = APIRouter(prefix="/inquiries", tags=["inquiries"], dependencies=[Depends(require_admin)])
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「inquiries」功能
+require_access = require_perm("inquiries")
+
+router = APIRouter(prefix="/inquiries", tags=["inquiries"], dependencies=[Depends(require_access)])
+
 
 # 個資告知事項：未成為會員者最長保存 6 個月（schemas/website.py default_privacy_notice）
 RETENTION_DAYS = 183
@@ -81,7 +85,7 @@ def update_status(inquiry_id: int, payload: InquiryStatusUpdate, db: Session = D
 def add_note(
     inquiry_id: int,
     payload: InquiryNoteCreate,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     inquiry = _get(db, inquiry_id)
@@ -99,7 +103,7 @@ def add_note(
 def convert_to_member(
     inquiry_id: int,
     payload: InquiryConvert,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     """建立會員帳號並標記為「已成為會員」；密碼只回到後台畫面一次，由管理員交給對方。"""

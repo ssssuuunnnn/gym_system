@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, Form, Input, Button, Typography, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { login as loginApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 
@@ -11,12 +12,15 @@ import { useAuthStore } from '../../store/auth';
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       const data = await loginApi(values.username, values.password);
+      // 換帳號登入時不要沿用上一個帳號的資料（權限、名單等）
+      queryClient.clear();
       login({
         token: data.access_token,
         role: data.role,

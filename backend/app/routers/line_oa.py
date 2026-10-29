@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core import crypto
 from app.core.tenant_context import TenantInfo
-from app.deps import get_db, get_tenant, require_admin
+from app.deps import get_db, get_tenant, require_perm
 from app.models.line_oa import LineOaChannel
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -35,6 +35,9 @@ from app.services.line import LineApiError
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/line-oa", tags=["line-oa"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「settings」功能
+require_access = require_perm("settings")
 
 
 def _gym_name(db: Session, tenant: TenantInfo) -> str:
@@ -85,7 +88,7 @@ def _require_channel(db: Session) -> LineOaChannel:
     return channel
 
 
-@router.get("", response_model=LineOaOut, dependencies=[Depends(require_admin)])
+@router.get("", response_model=LineOaOut, dependencies=[Depends(require_access)])
 def get_settings(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)):
     return _to_out(db, tenant, oa.get_channel(db))
 
@@ -94,7 +97,7 @@ def get_settings(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends
 def save_settings(
     payload: LineOaUpdate,
     tenant: TenantInfo = Depends(get_tenant),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     """儲存後一律停用，要再按「檢查連線」才會啟用。"""
@@ -126,7 +129,7 @@ def save_settings(
     return _to_out(db, tenant, channel)
 
 
-@router.post("/verify", response_model=LineOaVerifyOut, dependencies=[Depends(require_admin)])
+@router.post("/verify", response_model=LineOaVerifyOut, dependencies=[Depends(require_access)])
 def verify(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)):
     """檢查連線：官方帳號、LIFF、Webhook、底部選單。必要項目都通過才啟用。"""
     channel = _require_channel(db)
@@ -136,7 +139,7 @@ def verify(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_d
     return LineOaVerifyOut(enabled=channel.is_enabled, checks=checks, settings=_to_out(db, tenant, channel))
 
 
-@router.post("/disable", response_model=LineOaOut, dependencies=[Depends(require_admin)])
+@router.post("/disable", response_model=LineOaOut, dependencies=[Depends(require_access)])
 def disable(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)):
     """停用：會員無法在 LINE 裡登入，Webhook 不再回覆；已綁定的會員保留，重新啟用後照常使用。"""
     channel = _require_channel(db)
@@ -146,7 +149,7 @@ def disable(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_
     return _to_out(db, tenant, channel)
 
 
-@router.patch("/notifications", response_model=LineOaOut, dependencies=[Depends(require_admin)])
+@router.patch("/notifications", response_model=LineOaOut, dependencies=[Depends(require_access)])
 def update_notifications(
     payload: LineOaNotifyUpdate, tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)
 ):
@@ -161,7 +164,7 @@ def update_notifications(
     return _to_out(db, tenant, channel)
 
 
-@router.get("/quota", response_model=LineOaQuota, dependencies=[Depends(require_admin)])
+@router.get("/quota", response_model=LineOaQuota, dependencies=[Depends(require_perm("settings", "segments"))])
 def quota(db: Session = Depends(get_db)):
     """向 LINE 查詢官方帳號本月的訊息額度與已用量（含其他工具發的訊息）。"""
     channel = _require_channel(db)
@@ -177,7 +180,7 @@ def quota(db: Session = Depends(get_db)):
     return LineOaQuota(limited=limited, limit=q.get("value") if limited else None, used=used)
 
 
-@router.get("/messages", response_model=list[LineMemberMessageOut], dependencies=[Depends(require_admin)])
+@router.get("/messages", response_model=list[LineMemberMessageOut], dependencies=[Depends(require_access)])
 def list_messages(limit: int = 30, db: Session = Depends(get_db)):
     """最近的會員通知紀錄（不含訊息內容）。"""
     rows = (

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.user import UserRole
+from app.models.user import StaffLevel, UserRole
 
 
 class UserRegister(BaseModel):
@@ -17,6 +17,13 @@ class UserLogin(BaseModel):
 
     username: str
     password: str
+
+
+class StaffInfo(BaseModel):
+    """後台帳號的身分與可用功能（ADR 0008）；會員帳號為 None。"""
+
+    level: StaffLevel
+    permissions: list[str]
 
 
 class Token(BaseModel):
@@ -46,13 +53,20 @@ class UserOut(BaseModel):
     line_display_name: str | None = None
     line_linked_at: datetime | None = None
     line_notify: bool = True
+    is_active: bool = True
+    # 後台帳號的身分與可用功能（ADR 0008）
+    staff: StaffInfo | None = None
     # 同意接收優惠與活動訊息（R31）
     marketing_consent: bool = False
     marketing_consent_at: datetime | None = None
 
 
 def user_out(user, is_coach: bool) -> UserOut:
-    return UserOut.model_validate(user).model_copy(update={"is_coach": is_coach})
+    from app.services.staff import effective_permissions, level_of
+
+    level = level_of(user)
+    staff = StaffInfo(level=level, permissions=effective_permissions(user)) if level else None
+    return UserOut.model_validate(user).model_copy(update={"is_coach": is_coach, "staff": staff})
 
 
 class UserUpdate(BaseModel):

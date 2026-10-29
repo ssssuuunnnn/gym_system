@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user, get_db, require_admin
+from app.deps import get_current_user, get_db, require_perm
 from app.models.branch import Branch
 from app.models.course import Course, CourseStatus
 from app.models.user import User, UserRole
@@ -15,6 +15,9 @@ from app.schemas.branch import BranchCreate, BranchOut, BranchUpdate
 from app.services import branches as branch_service
 
 router = APIRouter(prefix="/branches", tags=["branches"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「branches」功能
+require_access = require_perm("branches")
 
 
 def _clean(value: str | None) -> str | None:
@@ -42,7 +45,7 @@ def _commit_unique(db: Session) -> None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="已經有同名的分店")
 
 
-@router.post("", response_model=BranchOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
+@router.post("", response_model=BranchOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_access)])
 def create_branch(payload: BranchCreate, db: Session = Depends(get_db)):
     branch_service.default_branch(db)  # 確保既有的「總店」先建立，新分店不會變成第一間
     branch = Branch(
@@ -55,7 +58,7 @@ def create_branch(payload: BranchCreate, db: Session = Depends(get_db)):
     return branch
 
 
-@router.put("/{branch_id}", response_model=BranchOut, dependencies=[Depends(require_admin)])
+@router.put("/{branch_id}", response_model=BranchOut, dependencies=[Depends(require_access)])
 def update_branch(branch_id: int, payload: BranchUpdate, db: Session = Depends(get_db)):
     branch = db.get(Branch, branch_id)
     if branch is None:

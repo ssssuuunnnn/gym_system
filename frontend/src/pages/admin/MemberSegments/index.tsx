@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { listCoaches } from '../../../api/coaches';
 import { apiErrorMessage } from '../../../api/errors';
-import { getLineOa, getLineOaQuota } from '../../../api/lineOa';
+import { getLineOaPublic, getLineOaQuota } from '../../../api/lineOa';
 import {
   createAudience,
   listAudiences,
@@ -44,7 +44,7 @@ export default function MemberSegments() {
     return (id: number) => map.get(id);
   }, [coaches]);
   const branchList = useBranches();
-  const { data: lineOa } = useQuery({ queryKey: ['line-oa'], queryFn: getLineOa });
+  const { data: lineOa } = useQuery({ queryKey: ['line-oa-public'], queryFn: getLineOaPublic });
   const lineEnabled = lineOa?.enabled === true;
   const { data: quota } = useQuery({ queryKey: ['line-oa-quota'], queryFn: getLineOaQuota, enabled: lineEnabled && modalOpen });
   const { data: result, isFetching } = useQuery({

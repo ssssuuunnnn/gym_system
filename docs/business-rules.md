@@ -329,6 +329,30 @@
 - **實作**：`routers/branches.py`、`routers/coaches.py`
 - **測試**：`test_default_branch_and_management`、`test_cannot_deactivate_last_or_with_live_courses`、`test_coach_branches`
 
+
+## 後台帳號與權限
+
+### R37. 只有主要管理者能管理後台帳號
+
+- **確認日期**：2026-10-29
+- **規則**：每家健身房有一位主要管理者，擁有全部功能，並且是唯一能新增後台帳號、設定功能權限、升級為管理者／降回一般使用者、停用、重設密碼的人。管理者擁有全部功能但不能管理後台帳號。主要管理者不能被停用或降級，要換人只能移交（要輸入自己的密碼），移交後自己變成管理者。
+- **實作**：`routers/staff.py`、`deps.require_owner`
+- **測試**：`test_owner_creates_staff_with_permissions`、`test_manager_has_everything_but_accounts`、`test_owner_is_protected_and_disable_blocks_login`、`test_transfer_owner`、`test_earliest_admin_becomes_owner_when_missing`
+
+### R38. 一般使用者只能用勾選的功能，後端每支 API 都檢查
+
+- **確認日期**：2026-10-29
+- **規則**：功能＝後台側欄的選單（14 項）。含敏感資料的功能（教練管理、教練鐘點、會員管理、系統設定）由主要管理者自行決定是否開放。內建「櫃台、店長、會計」範本只是幫忙勾選。權限修改立即生效。教練的電話、匯款帳號、鐘點費與課程的每堂教練費，只有相關功能的帳號看得到。
+- **實作**：`services/staff.py`、`deps.require_perm`、各 router 的 `require_access`
+- **測試**：`test_staff_only_reaches_granted_features`、`test_meta_lists_menu_permissions_and_templates`、`test_audit_log_records_permission_changes`
+
+### R39. 停用的帳號立刻失效；會員 API 不能動後台帳號
+
+- **確認日期**：2026-10-29
+- **規則**：停用的後台帳號不能登入，已登入的也立刻被拒絕；資料與操作紀錄保留。會員管理的 API 只處理會員帳號，不能用來重設管理者密碼或列入黑名單。後台帳號的所有變更都留操作紀錄（不含密碼）。
+- **實作**：`deps.get_current_user`、`services/members.issue_token`、`routers/users._member`、`staff_audit_logs`
+- **測試**：`test_owner_is_protected_and_disable_blocks_login`、`test_member_endpoints_cannot_touch_staff_accounts`、`test_tenant_isolation`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -356,3 +380,4 @@
 - LINE 通知：超過平台方案額度的費用分攤
 - 線上付款（信用卡、LINE Pay）
 - 分店店長權限（管理員只管理部分分店）
+- 更細的權限（只能看／可以改）、自訂角色範本

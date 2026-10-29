@@ -105,6 +105,8 @@ def get_current_user(
         raise credentials_error
     if user.is_blacklisted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="帳號已被列入黑名單")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="帳號已停用")
     return user
 
 
@@ -112,6 +114,35 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """僅 admin（該健身房的管理員）可用的路由依賴。"""
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="僅管理員可執行此操作")
+    return current_user
+
+
+def require_perm(*codes: str):
+    """
+    後台功能權限（ADR 0008）：有其中任何一項功能才可呼叫。主要管理者、管理者擁有全部功能。
+    也可直接呼叫 require_perm("x")(current_user) 在函式內檢查。
+    """
+    from app.services.staff import LABEL, has_perm
+
+    def dependency(current_user: User = Depends(require_admin)) -> User:
+        if not has_perm(current_user, *codes):
+            names = "、".join(LABEL[c] for c in codes)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"沒有「{names}」的權限")
+        return current_user
+
+    return dependency
+
+
+def require_owner(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> User:
+    """只有主要管理者可以管理後台帳號與權限（R37）。這家沒有主要管理者時，最早建立的管理員自動成為主要管理者。"""
+    from app.models.user import StaffLevel
+    from app.services.staff import ensure_owner
+
+    if current_user.staff_level != StaffLevel.owner:
+        owner = ensure_owner(db)
+        db.commit()
+        if owner is None or owner.id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只有主要管理者可以管理後台帳號")
     return current_user
 
 

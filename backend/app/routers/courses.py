@@ -8,7 +8,7 @@ from app.core.media import save_tenant_media
 from app.deps import get_db
 from app.services.schedule import group_sessions
 from app.services import branches as branch_service
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_perm
 from app.models.branch import Branch
 from app.models.coach import Coach
 from app.models.course import (
@@ -20,6 +20,7 @@ from app.models.course import (
 )
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User, UserRole
+from app.services.staff import has_perm
 from app.schemas.course import (
     CoachCourseSessionOut,
     CourseCoverOut,
@@ -32,6 +33,9 @@ from app.schemas.course import (
 )
 
 router = APIRouter(prefix="/courses", tags=["courses"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「courses」功能
+require_access = require_perm("courses")
 
 # 計入「已報名人數」的預約狀態（待確認 + 已確認）
 _ENROLLED_STATUSES = [ReservationStatus.pending, ReservationStatus.confirmed]
@@ -156,7 +160,7 @@ def list_courses(
     if branch_id is not None:
         query = query.filter(Course.branch_id == branch_id)
     counts = _enrolled_counts(db)
-    is_admin = current_user.role == UserRole.admin
+    is_admin = has_perm(current_user, "courses", "payouts")  # 每堂教練費只給這兩個功能
     return [_to_out(c, counts.get(c.id, 0), is_admin) for c in query.all()]
 
 
@@ -277,14 +281,14 @@ def get_course(course_id: int, current_user: User = Depends(get_current_user), d
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到課程")
     counts = _enrolled_counts(db)
-    return _to_detail(course, counts.get(course.id, 0), current_user.role == UserRole.admin)
+    return _to_detail(course, counts.get(course.id, 0), has_perm(current_user, "courses", "payouts"))
 
 
 @router.post("", response_model=CourseDetailOut, status_code=status.HTTP_201_CREATED)
 def create_course(
     payload: CourseCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     """對應「新增團體課程」：課程資訊、排程規格、逐堂課堂、狀態。"""
     _check_group_coach(db, payload.coach_id)
@@ -322,7 +326,7 @@ def update_course(
     course_id: int,
     payload: CourseUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     course = (
         db.query(Course)
@@ -379,7 +383,7 @@ def update_course_status(
     course_id: int,
     payload: CourseStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     """對應列表頁的「上架／下架」即時切換。"""
     course = db.query(Course).options(selectinload(Course.weekday_rows)).filter(Course.id == course_id).first()
@@ -397,7 +401,7 @@ def update_course_status(
 def archive_course(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     """對應「編輯團體課程」底部的「封存」：移出課程列表，改由封存課程頁管理。"""
     course = db.query(Course).options(selectinload(Course.weekday_rows)).filter(Course.id == course_id).first()
@@ -416,7 +420,7 @@ def archive_course(
 def restore_course(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     """對應「封存課程」頁的「還原」：回到課程列表並維持下架狀態。"""
     course = db.query(Course).options(selectinload(Course.weekday_rows)).filter(Course.id == course_id).first()
@@ -437,7 +441,7 @@ def restore_course(
 def delete_course(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_access),
 ):
     """對應「封存課程」頁的「永久刪除」：僅允許已封存且無預約參照的課程。"""
     course = db.get(Course, course_id)
@@ -457,7 +461,7 @@ def delete_course(
 @router.post(
     "/upload-cover",
     response_model=CourseCoverOut,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_access)],
 )
 async def upload_cover(file: UploadFile = File(...)):
     """對應「新增／編輯團體課程」課程封面上傳：存檔後回傳 /media 相對網址供寫入 cover_image_url。"""

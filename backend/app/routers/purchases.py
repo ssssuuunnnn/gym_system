@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services import line as line_service
 from app.services import line_member
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_perm
 from app.models.hour_ledger import HourLedger
 from app.models.product import Product, ProductCategory
 from app.models.purchase import PaymentMethod, PaymentStatus, Purchase
@@ -19,9 +19,13 @@ from app.schemas.purchase import (
     PurchaseOut,
     PurchaseSelfCreate,
 )
+from app.services.staff import has_perm
 from app.services import hours
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
+
+# 後台功能權限（ADR 0008）：這個檔案的管理用 API 都屬於「purchases」功能
+require_access = require_perm("purchases")
 
 
 def _build_purchase(
@@ -111,7 +115,7 @@ def list_purchases(
 
 
 @router.post("", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
-def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_access), db: Session = Depends(get_db)):
     """
     對應「購買紀錄登錄」：選擇會員、選擇商品、數量、購買日期、金額、付款方式。
     管理員登錄即代表已收款，建立為「已付款」並立即入帳堂數。
@@ -170,7 +174,7 @@ def confirm_payment(
     purchase_id: int,
     payload: PaymentConfirm,
     background_tasks: BackgroundTasks,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     """管理員確認會員訂單已收款：狀態改為「已付款」，並入帳購買的堂數。僅「待付款」可確認。"""
@@ -202,7 +206,7 @@ def cancel_purchase(
     用品訂單歸還下單時保留的庫存。已付款的訂單不可在此取消（退款流程尚未定義）。
     """
     purchase = _get_locked_purchase(db, purchase_id)
-    if current_user.role != UserRole.admin and purchase.user_id != current_user.id:
+    if not has_perm(current_user, "purchases") and purchase.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到購買紀錄")
     if purchase.payment_status != PaymentStatus.unpaid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="僅待付款的訂單可取消")
@@ -237,7 +241,7 @@ def list_purchase_ledger(
 def adjust_purchase_hours(
     purchase_id: int,
     payload: HourAdjustCreate,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_perm("purchases", "members")),
     db: Session = Depends(get_db),
 ):
     """管理員手動調整剩餘堂數（正數補、負數扣），必須填寫原因，調整後不可小於 0。"""
