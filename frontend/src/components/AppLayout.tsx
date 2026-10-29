@@ -9,6 +9,7 @@ import BackOfficeShell, { type BackOfficeMenuItem } from './BackOfficeShell';
 import { ADMIN_MENU, ADMIN_MENU_GROUPS, allows, menuEntryFor, type AdminMenuEntry } from './adminMenu';
 import { usePermissions } from '../lib/permissions';
 import { RECENT_MENU_LIMIT, useAdminMenuPrefs } from '../lib/useAdminMenuPrefs';
+import { NotificationBell } from './notifications/NotificationBell';
 
 const DEFAULT_BRAND_NAME = '健身工作室管理系統';
 
@@ -90,6 +91,7 @@ export default function AppLayout() {
       brandName={settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME}
       brandLogoUrl={settings?.logo_url}
       userLabel={`${username}（${level ?? '管理員'}）`}
+      headerExtra={<NotificationBell />}
       onLogout={() => {
         logout();
         queryClient.clear();

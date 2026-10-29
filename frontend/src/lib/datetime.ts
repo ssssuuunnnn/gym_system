@@ -11,3 +11,16 @@ export function formatServerTime(value: string | null | undefined, format = 'YYY
   if (!value) return '—';
   return dayjs.utc(value).local().format(format);
 }
+
+/** 後端時間戳記顯示成「剛剛／N 分鐘前／N 小時前／N 天前」，超過一週顯示日期（通知用） */
+export function relativeServerTime(value: string, now = dayjs()): string {
+  const t = dayjs.utc(value).local();
+  const minutes = now.diff(t, 'minute');
+  if (minutes < 1) return '剛剛';
+  if (minutes < 60) return `${minutes} 分鐘前`;
+  const hours = now.diff(t, 'hour');
+  if (hours < 24) return `${hours} 小時前`;
+  const days = now.diff(t, 'day');
+  if (days < 7) return `${days} 天前`;
+  return t.format(t.year() === now.year() ? 'M/D HH:mm' : 'YYYY/M/D');
+}

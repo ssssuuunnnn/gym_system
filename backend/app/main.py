@@ -26,6 +26,7 @@ from app.routers import (
     reservations,
     site,
     staff,
+    staff_notifications,
     system_settings,
     time_slots,
     users,
@@ -77,6 +78,7 @@ app.include_router(line_auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(member_segments.router, prefix=settings.API_V1_PREFIX)
 app.include_router(branches.router, prefix=settings.API_V1_PREFIX)
 app.include_router(staff.router, prefix=settings.API_V1_PREFIX)
+app.include_router(staff_notifications.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(site.router)
 
