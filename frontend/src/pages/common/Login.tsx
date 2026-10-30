@@ -4,12 +4,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { login as loginApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
+import { useShopTitle } from '../../lib/usePageTitle';
 
 /**
  * 登入頁：管理員與教練（會員）共用登入入口。
  * 登入後依角色導向：管理員 → 預約審核列表；教練/學員 → 教練儀表板。
  */
 export default function Login() {
+  useShopTitle();
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const queryClient = useQueryClient();

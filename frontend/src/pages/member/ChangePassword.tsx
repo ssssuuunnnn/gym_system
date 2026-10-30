@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { changePassword } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
+import { useShopTitle } from '../../lib/usePageTitle';
 
 /**
  * 會員修改密碼頁：管理員在「會員詳情」重設密碼並勾選「須自行修改密碼」後，
  * 會員登入即被導向此頁，完成修改前無法使用其他功能。
  */
 export default function ChangePassword() {
+  useShopTitle('修改密碼');
   const navigate = useNavigate();
   const { role, isCoach, clearMustChangePassword, logout } = useAuthStore();
   const [loading, setLoading] = useState(false);

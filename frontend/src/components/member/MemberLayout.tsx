@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/auth';
 import { getMyCoachProfile, isPayableCoach } from '../../api/coaches';
 import { FRONT_MAX_WIDTH, FRONT_THEMES, TAB_BAR_HEIGHT, type FrontMode } from './memberTheme';
 import { useTerms, type Terms } from '../../lib/terms';
+import { useShopTitle } from '../../lib/usePageTitle';
 
 interface TabItem {
   to: string;
@@ -57,6 +58,8 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
   const { mustChangePassword, isCoach } = useAuthStore();
   const location = useLocation();
   const { t } = useTerms();
+  // 分頁標題：會員端就是店名；教練端加上「教練專區」（美體：美容師專區）
+  useShopTitle(mode === 'coach' ? `${t.staff}專區` : undefined);
 
   // 教練類型不在 JWT 內（管理員可隨時調整），登入後另外讀取，決定是否顯示「我的鐘點」
   const { data: coachProfile } = useQuery({

@@ -125,6 +125,8 @@ export function useTerms() {
     businessType,
     isBeauty: businessType === '美體',
     groupClassesEnabled: data?.group_classes_enabled ?? true,
+    /** 店家名稱；還沒讀到時為 undefined */
+    shopName: data?.name,
     loaded: data !== undefined,
   };
 }
