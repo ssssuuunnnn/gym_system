@@ -28,7 +28,7 @@
     <div class="ed-hero-text">
       {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
       <div class="actions">
-        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約{{ t.trial }}</a>{% endif %}
         {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
       </div>
     </div>
@@ -112,7 +112,7 @@
           <span class="menu-price"><span class="small">NT$</span> <span class="num">{{ p.price }}</span></span>
         </div>
         {% if p.kind or p.description %}
-        <p class="small muted">{% if p.kind %}{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}{% endif %}{% if p.kind and p.description %}　{% endif %}{{ p.description or '' }}</p>
+        <p class="small muted">{% if p.kind %}{{ p.kind }}{% if p.hours %}・{{ p.hours }} {{ t.unit }}{% endif %}{% endif %}{% if p.kind and p.description %}　{% endif %}{{ p.description or '' }}</p>
         {% endif %}
       </li>
       {% endfor %}

@@ -31,13 +31,13 @@
         {% for opt in c.trial.slots %}<option{% if form.values.slot == opt %} selected{% endif %}>{{ opt }}</option>{% endfor %}
       </select>
     </label>
-    <label>想對教練說的（選填）
+    <label>想對{{ t.staff }}說的（選填）
       <input name="message" type="text" maxlength="500" placeholder="例如：想改善肩頸、準備路跑" value="{{ form.values.message }}">
     </label>
     <label class="hp" aria-hidden="true">請勿填寫<input name="{{ honeypot }}" type="text" tabindex="-1" autocomplete="off"></label>
     <div class="consent">
       <label class="check"><input name="consent" type="checkbox" required{% if form.errors.consent %} aria-invalid="true" aria-describedby="err-consent"{% endif %}>
-        <span>我已閱讀並同意下方的個人資料蒐集告知事項，同意 {{ full_name }} 使用以上資料聯繫我安排體驗課。</span>
+        <span>我已閱讀並同意下方的個人資料蒐集告知事項，同意 {{ full_name }} 使用以上資料聯繫我安排{{ t.trial }}。</span>
       </label>
       {% if form.errors.consent %}<span class="field-error" id="err-consent">{{ form.errors.consent }}</span>{% endif %}
       {% if c.trial.privacy_notice %}

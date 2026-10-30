@@ -14,6 +14,7 @@ import {
 import { listProducts } from '../../api/products';
 import { listCourses } from '../../api/courses';
 import { classStart, hasStarted, staffCheckInOpen } from '../../lib/booking';
+import { useTerms } from '../../lib/terms';
 
 type RangeFilter = '今天' | '即將到來' | '已過去';
 const RANGE_FILTERS: RangeFilter[] = ['今天', '即將到來', '已過去'];
@@ -24,6 +25,7 @@ const RANGE_FILTERS: RangeFilter[] = ['今天', '即將到來', '已過去'];
  */
 export default function CoachAttendance() {
   const queryClient = useQueryClient();
+  const { t } = useTerms();
   const [range, setRange] = useState<RangeFilter>('今天');
 
   const { data: reservations, isLoading } = useQuery({
@@ -64,9 +66,9 @@ export default function CoachAttendance() {
       key: 'time',
       render: (_, r) => classStart(r).format('YYYY-MM-DD HH:mm'),
     },
-    { title: '學員', dataIndex: 'member_username' },
+    { title: t.customer, dataIndex: 'member_username' },
     {
-      title: '課程',
+      title: t.service,
       key: 'name',
       render: (_, r) => (r.course_id && courseNameById.get(r.course_id)) ?? productNameById.get(r.product_id) ?? '—',
     },
@@ -88,13 +90,13 @@ export default function CoachAttendance() {
                 type="primary"
                 onClick={() => attendanceMutation.mutate({ id: r.id, attendance: '已出席' })}
               >
-                簽到
+                {t.checkIn}
               </Button>
             )}
             {r.attendance !== '未到' && hasStarted(r) && (
               <Popconfirm
                 title="標記為未到？"
-                description="未到不退堂。"
+                description={`未到不退${t.unit}。`}
                 onConfirm={() => attendanceMutation.mutate({ id: r.id, attendance: '未到' })}
               >
                 <Button size="small">未到</Button>
@@ -102,7 +104,7 @@ export default function CoachAttendance() {
             )}
           </Space>
         ) : (
-          <Typography.Text type="secondary">開課前 30 分鐘開放簽到</Typography.Text>
+          <Typography.Text type="secondary">開始前 30 分鐘開放{t.checkIn}</Typography.Text>
         ),
     },
   ];
@@ -110,7 +112,7 @@ export default function CoachAttendance() {
   return (
     <Card>
       <Typography.Title level={4} style={{ marginBottom: 16 }}>
-        學員簽到
+        {t.customer}{t.checkIn}
       </Typography.Title>
       <Segmented<RangeFilter>
         style={{ marginBottom: 16 }}

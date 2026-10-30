@@ -6,6 +6,7 @@ import { formatServerTime } from '../../lib/datetime';
 import { listCoaches, deleteCoach, type Coach } from '../../api/coaches';
 import { useBranches } from '../../lib/useBranches';
 import { listMembers } from '../../api/users';
+import { coachTypeLabel, useTerms } from '../../lib/terms';
 
 /**
  * 教練資料列表：對應「教練管理」章節。教練資料以 user_id 綁定會員帳號，
@@ -14,6 +15,7 @@ import { listMembers } from '../../api/users';
 export default function CoachList() {
   const branchList = useBranches();
   const navigate = useNavigate();
+  const { t, groupClassesEnabled } = useTerms();
   const queryClient = useQueryClient();
 
   const { data: coaches, isLoading } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
@@ -24,7 +26,7 @@ export default function CoachList() {
   const deleteMutation = useMutation({
     mutationFn: deleteCoach,
     onSuccess: () => {
-      message.success('已刪除教練資料');
+      message.success(`已刪除${t.staff}資料`);
       queryClient.invalidateQueries({ queryKey: ['coaches'] });
     },
     onError: () => {
@@ -39,16 +41,16 @@ export default function CoachList() {
       dataIndex: 'coach_types',
       render: (types: Coach['coach_types']) => (
         <Space size={4} wrap>
-          {types.map((t) => (
-            <Tag key={t} color={t === '場租教練' ? 'default' : t === '團體課程教練' ? 'purple' : 'blue'}>
-              {t}
+          {types.map((type) => (
+            <Tag key={type} color={type === '場租教練' ? 'default' : type === '團體課程教練' ? 'purple' : 'blue'}>
+              {coachTypeLabel(type, t)}
             </Tag>
           ))}
         </Space>
       ),
     },
     {
-      title: '授課分店',
+      title: `${t.teach}分店`,
       dataIndex: 'branch_ids',
       render: (ids: number[]) => ids.map((id) => branchList.nameOf(id)).join('、') || '—',
     },
@@ -68,14 +70,17 @@ export default function CoachList() {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button size="small" onClick={() => navigate(`/admin/coaches/${record.id}/courses`)}>
-            授課
-          </Button>
+          {/* 這位教練的團體課程；沒開團體課程的店不顯示 */}
+          {groupClassesEnabled && (
+            <Button size="small" onClick={() => navigate(`/admin/coaches/${record.id}/courses`)}>
+              {t.teach}
+            </Button>
+          )}
           <Button size="small" onClick={() => navigate(`/admin/coaches/${record.id}/edit`)}>
             編輯
           </Button>
           <Popconfirm
-            title="確定要刪除這筆教練資料？"
+            title={`確定要刪除這筆${t.staff}資料？`}
             onConfirm={() => deleteMutation.mutate(record.id)}
           >
             <Button size="small" danger loading={deleteMutation.isPending}>
@@ -91,10 +96,10 @@ export default function CoachList() {
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          教練資料列表
+          {t.staff}資料列表
         </Typography.Title>
         <Button type="primary" onClick={() => navigate('/admin/coaches/new')}>
-          新增教練
+          新增{t.staff}
         </Button>
       </div>
       <Table

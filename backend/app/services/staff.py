@@ -35,6 +35,25 @@ PERMISSIONS: list[dict] = [
 PERMISSION_CODES = [p["code"] for p in PERMISSIONS]
 LABEL = {p["code"]: p["label"] for p in PERMISSIONS}
 
+
+def label(code: str) -> str:
+    """功能名稱依行業換用詞（ADR 0011）：教練管理→美容師管理、教練鐘點→美容師服務費。"""
+    from app.services import terms
+
+    t = terms.terms()
+    if code == "coaches":
+        return f"{t['staff']}管理"
+    if code == "payouts":
+        return t["staff_pay"]
+    if code == "courses" and t["staff"] != "教練":
+        return "團體課程管理"
+    return LABEL[code]
+
+
+def permissions() -> list[dict]:
+    """權限清單（名稱已換成這家店的用詞）。"""
+    return [{**p, "label": label(p["code"])} for p in PERMISSIONS]
+
 # 內建角色範本：只是幫忙勾選，實際存在每個帳號自己的 permissions（R38）
 TEMPLATES: list[dict] = [
     {
@@ -132,8 +151,8 @@ def audit(db: Session, actor: User, action: str, target: User | None, detail: st
 
 
 def permission_diff(before: list[str], after: list[str]) -> str:
-    added = [LABEL[c] for c in after if c not in before]
-    removed = [LABEL[c] for c in before if c not in after]
+    added = [label(c) for c in after if c not in before]
+    removed = [label(c) for c in before if c not in after]
     parts = []
     if added:
         parts.append("開啟 " + "、".join(added))

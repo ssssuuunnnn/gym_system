@@ -18,7 +18,7 @@ from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import act_as_tenant
 from app.models.platform import PlatformAuditLog
-from app.models.tenant import Tenant, TenantStatus
+from app.models.tenant import BusinessType, Tenant, TenantStatus
 from app.models.user import User, UserRole
 
 # 子網域格式：小寫英數與連字號，不可以連字號開頭或結尾，最多 63 字
@@ -82,6 +82,7 @@ def create_tenant(
     name: str,
     timezone: str = "Asia/Taipei",
     status: TenantStatus = TenantStatus.trial,
+    business_type: BusinessType = BusinessType.fitness,
     contact_name: str | None = None,
     contact_email: str | None = None,
     contact_phone: str | None = None,
@@ -95,6 +96,7 @@ def create_tenant(
         name=name.strip(),
         timezone=validate_timezone(timezone),
         status=status,
+        business_type=business_type,
         contact_name=contact_name,
         contact_email=contact_email,
         contact_phone=contact_phone,

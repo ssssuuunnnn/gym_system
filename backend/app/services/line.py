@@ -24,6 +24,7 @@ from fastapi import BackgroundTasks
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.services import terms
 from app.core import clock
 from app.core.config import settings
 from app.core.tenant_context import TenantInfo, current_tenant
@@ -224,7 +225,7 @@ def _gym_name(db: Session) -> str:
     if row:
         return row.short_name or row.company_name
     tenant = current_tenant.get()
-    return tenant.subdomain if tenant else "健身房"
+    return tenant.subdomain if tenant else terms.t("business")
 
 
 # ---------- enqueue ----------
@@ -274,7 +275,7 @@ def notify_inquiry(db: Session, inquiry) -> int | None:
     return enqueue(
         db,
         LineEvent.inquiry,
-        "新的體驗課詢問",
+        f"新的{terms.t('trial')}詢問",
         [("姓名", masked_name(inquiry.name)), ("想體驗", inquiry.interest or ""), ("方便時段", inquiry.preferred_slot or "")],
         "查看並聯絡",
         "/admin/inquiries",
@@ -397,7 +398,7 @@ def dispatch_tenant(tenant_id: int, notification_ids: list[int] | None = None) -
             return 0
         cap = tenant.line_monthly_cap
         # 背景執行緒沒有請求的租戶資訊：設定好，讓「本月」依該家時區計算
-        token = current_tenant.set(TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone))
+        token = current_tenant.set(TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone, business_type=tenant.business_type.name))
         query = db.query(LineNotification).filter(
             LineNotification.status.in_((LineNotificationStatus.pending, LineNotificationStatus.retrying))
         )

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Card, Col, Input, Row, Segmented, Space, Statistic, Table, Typography } from 'antd';
+import { Button, Card, Col, Input, Row, Segmented, Space, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ExportOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +41,7 @@ export default function TenantList() {
 
   const columns: ColumnsType<Tenant> = [
     {
-      title: '健身房',
+      title: '店家',
       key: 'name',
       render: (_, t) => (
         <div>
@@ -56,6 +56,12 @@ export default function TenantList() {
           </Typography.Link>
         </div>
       ),
+    },
+    {
+      title: '行業',
+      dataIndex: 'business_type',
+      width: 80,
+      render: (b: Tenant['business_type']) => <Tag color={b === '美體' ? 'magenta' : 'blue'}>{b}</Tag>,
     },
     { title: '狀態', dataIndex: 'status', width: 90, render: (s: TenantStatus) => <StatusTag status={s} /> },
     {

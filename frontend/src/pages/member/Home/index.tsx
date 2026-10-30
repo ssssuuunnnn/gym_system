@@ -18,6 +18,7 @@ import FrontCard from '../../../components/member/FrontCard';
 import { PlanCard } from './components/PlanCard';
 import { NextClassCard } from './components/NextClassCard';
 import { UpcomingRow } from './components/UpcomingRow';
+import { useTerms } from '../../../lib/terms';
 
 function greeting(hour: number) {
   if (hour < 11) return '早安';
@@ -37,6 +38,7 @@ function errorDetail(error: unknown, fallback: string) {
 export default function MemberHome() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t, groupClassesEnabled } = useTerms();
   const queryClient = useQueryClient();
   const { username } = useAuthStore();
   const now = dayjs();
@@ -55,15 +57,15 @@ export default function MemberHome() {
   const checkIn = useMutation({
     mutationFn: (id: number) => markAttendance(id, '已出席'),
     onSuccess: () => {
-      message.success('簽到成功，祝上課愉快');
+      message.success(`${t.checkIn}成功，祝${t.attend}愉快`);
       refresh();
     },
-    onError: (e) => message.error(errorDetail(e, '簽到失敗，請稍後再試')),
+    onError: (e) => message.error(errorDetail(e, `${t.checkIn}失敗，請稍後再試`)),
   });
   const cancel = useMutation({
     mutationFn: (id: number) => cancelReservation(id),
     onSuccess: (r) => {
-      message.success(r.late_cancel ? '已取消（期限內取消，這堂不退回）' : '已取消，堂數已退回');
+      message.success(r.late_cancel ? `已取消（期限內取消，這 1 ${t.unit}不退回）` : `已取消，${t.hours}已退回`);
       refresh();
     },
     onError: (e) => message.error(errorDetail(e, '取消失敗，請稍後再試')),
@@ -148,7 +150,7 @@ export default function MemberHome() {
                 {unpaid.length === 1
                   ? `${lookups.productById.get(unpaid[0].product_id)?.name ?? '訂單'}（NT$ ${unpaid[0].amount.toLocaleString('zh-TW')}）待付款`
                   : `${unpaid.length} 筆訂單待付款`}
-                ，向櫃台付款後堂數入帳
+                ，向櫃台付款後{t.hours}入帳
               </span>
               <RightOutlined aria-hidden="true" style={{ fontSize: 12 }} />
             </Link>
@@ -167,10 +169,10 @@ export default function MemberHome() {
           ) : (
             <FrontCard style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 24, textAlign: 'center' }}>
               <span style={{ fontSize: 16, fontWeight: 700 }}>目前沒有預約</span>
-              <span style={{ fontSize: 13, color: token.colorTextSecondary }}>看看這週有哪些課，挑一堂開始吧</span>
+              <span style={{ fontSize: 13, color: token.colorTextSecondary }}>{groupClassesEnabled ? '看看這週有哪些課，挑一堂開始吧' : `挑一個時段，${t.book}吧`}</span>
               <Link to="/member/book">
                 <Button type="primary" size="large" style={{ fontWeight: 700, minWidth: 160 }}>
-                  預約課程
+                  {t.book}
                 </Button>
               </Link>
             </FrontCard>

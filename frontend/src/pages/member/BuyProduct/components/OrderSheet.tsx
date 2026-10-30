@@ -7,7 +7,8 @@ import type { Product } from '../../../../api/products';
 import type { Purchase } from '../../../../api/purchases';
 import { CouponField, type CouponChoice } from './CouponField';
 import BottomSheet from '../../../../components/member/BottomSheet';
-import { MEMBER_CATEGORY_LABEL, formatPrice } from '../lib';
+import { memberCategoryLabel, formatPrice } from '../lib';
+import { useTerms } from '../../../../lib/terms';
 
 export interface OrderSheetProps {
   /** 要購買的方案；null 時關閉 */
@@ -31,6 +32,7 @@ export function OrderSheet(props: OrderSheetProps) {
   const { product, courseName, order, paymentInstructions, intentLabel, submitting, onSubmit, onClose, onViewOrders } = props;
   const { token } = theme.useToken();
   const [quantity, setQuantity] = useState(1);
+  const { t } = useTerms();
   // 優惠券（ADR 0010）：使用者還沒自己選之前，自動帶入最划算的一張
   const [coupon, setCoupon] = useState<CouponChoice>({ type: 'none' });
   const [couponTouched, setCouponTouched] = useState(false);
@@ -98,7 +100,7 @@ export function OrderSheet(props: OrderSheetProps) {
           <div>
             <div style={{ fontSize: 17, fontWeight: 700 }}>{product.name}</div>
             <div style={{ fontSize: 13, color: token.colorTextSecondary }}>
-              {[MEMBER_CATEGORY_LABEL[product.category], isSupply ? null : `${product.session_hours} 堂`, courseName]
+              {[memberCategoryLabel(product.category, t), isSupply ? null : `${product.session_hours} ${t.unit}`, courseName]
                 .filter(Boolean)
                 .join(' · ')}
             </div>
@@ -123,8 +125,8 @@ export function OrderSheet(props: OrderSheetProps) {
             </div>
             {!isSupply && (
               <div style={row}>
-                <dt style={{ fontSize: 14, color: token.colorTextSecondary }}>入帳堂數</dt>
-                <dd style={{ margin: 0, fontSize: 14, fontWeight: 500 }}>{product.session_hours * quantity} 堂</dd>
+                <dt style={{ fontSize: 14, color: token.colorTextSecondary }}>入帳{t.hours}</dt>
+                <dd style={{ margin: 0, fontSize: 14, fontWeight: 500 }}>{product.session_hours * quantity} {t.unit}</dd>
               </div>
             )}
             <div style={{ ...row, alignItems: 'flex-start' }}>
@@ -160,7 +162,7 @@ export function OrderSheet(props: OrderSheetProps) {
             </div>
           </dl>
           <p style={{ margin: 0, fontSize: 12, color: token.colorTextSecondary, lineHeight: 1.6 }}>
-            送出後訂單為「待付款」，工作室確認收款後{isSupply ? '即完成訂單' : '堂數才會入帳、可以預約'}。
+            送出後訂單為「待付款」，工作室確認收款後{isSupply ? '即完成訂單' : `${t.hours}才會入帳、可以預約`}。
           </p>
           <Button
             type="primary"
@@ -197,7 +199,7 @@ export function OrderSheet(props: OrderSheetProps) {
           </div>
           {intentLabel && (
             <div style={{ ...infoBox, background: token.colorPrimaryBg }}>
-              工作室確認收款後，打開「預約課程」就會直接回到
+              工作室確認收款後，打開「{t.book}」就會直接回到
               <strong> {intentLabel} </strong>
               。已綁定 LINE 的話，收款時也會收到通知。
             </div>

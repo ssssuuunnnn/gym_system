@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { listProducts, type Product } from '../../api/products';
 import { useBranches } from '../../lib/useBranches';
 import { listActiveCourses } from '../../api/courses';
+import { productCategoryLabel, useTerms } from '../../lib/terms';
 
 /**
  * 商品管理列表：對應「商品管理列表」。後端目前僅提供 list/create/update，無刪除 API。
@@ -13,6 +14,7 @@ import { listActiveCourses } from '../../api/courses';
 export default function ProductList() {
   const branchList = useBranches();
   const navigate = useNavigate();
+  const { t, groupClassesEnabled } = useTerms();
 
   const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
   const { data: courses } = useQuery({ queryKey: ['courses', 'active'], queryFn: listActiveCourses });
@@ -21,15 +23,20 @@ export default function ProductList() {
 
   const columns: ColumnsType<Product> = [
     { title: '商品名稱', dataIndex: 'name' },
-    { title: '分類', dataIndex: 'category' },
+    { title: '分類', dataIndex: 'category', render: (c: Product['category']) => productCategoryLabel(c, t) },
+    // 沒開團體課程的店不顯示這欄（ADR 0011）
+    ...(groupClassesEnabled
+      ? [
+          {
+            title: '團體課程',
+            dataIndex: 'course_id',
+            render: (courseId: number | null) =>
+              courseId != null ? courseNameById.get(courseId) ?? `#${courseId}` : '—',
+          },
+        ]
+      : []),
     {
-      title: '團體課程',
-      dataIndex: 'course_id',
-      render: (courseId: number | null) =>
-        courseId != null ? courseNameById.get(courseId) ?? `#${courseId}` : '—',
-    },
-    {
-      title: '堂數（小時）',
+      title: t.hours,
       dataIndex: 'session_hours',
       render: (hours: number, record) => (record.category === '用品' ? '—' : hours),
     },

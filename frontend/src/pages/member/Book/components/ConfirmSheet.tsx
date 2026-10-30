@@ -5,6 +5,7 @@ import BottomSheet from '../../../../components/member/BottomSheet';
 import CoverTile from '../../../../components/member/CoverTile';
 import { isoWeekday } from '../../../../lib/availability';
 import { weekdayShort } from '../../../../lib/weekday';
+import { useTerms } from '../../../../lib/terms';
 
 export interface ConfirmSheetProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
   const { open, title, subtitle, start, end, coverSrc, planLabel, planPicker, deadlineHours, submitting, onConfirm, onClose, onBuy } = props;
   const { unpaidPlanLabel, onViewPayment } = props;
   const { token } = theme.useToken();
+  const { t } = useTerms();
   const freeCancelUntil = start && deadlineHours ? start.subtract(deadlineHours, 'hour') : null;
   const row = {
     display: 'flex',
@@ -72,7 +74,7 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
               )}
               {planLabel && (
                 <Tag variant="filled" style={{ marginInlineEnd: 0, color: token.colorPrimary, background: token.colorPrimaryBg }}>
-                  扣 1 堂
+                  扣 1 {t.unit}
                 </Tag>
               )}
             </dd>
@@ -87,13 +89,13 @@ export function ConfirmSheet(props: ConfirmSheetProps) {
         </dl>
 
         <p style={{ margin: 0, fontSize: 12, color: token.colorTextSecondary, lineHeight: 1.6 }}>
-          送出後由工作室確認。{deadlineHours ? `開課前 ${deadlineHours} 小時內取消或未到，這堂不會退回。` : ''}
-          開課前 30 分鐘起可在首頁簽到。
+          送出後由工作室確認。{deadlineHours ? `開始前 ${deadlineHours} 小時內取消或未到，這 1 ${t.unit}不會退回。` : ''}
+          開始前 30 分鐘起可在首頁{t.checkIn}。
         </p>
 
         {!planLabel && unpaidPlanLabel && (
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: token.colorWarningText }}>
-            這個方案還在等工作室確認收款，確認後就能預約這堂課，我們會幫你記住這堂。
+            這個方案還在等工作室確認收款，確認後就能預約，我們會幫你記住這個時段。
           </p>
         )}
 

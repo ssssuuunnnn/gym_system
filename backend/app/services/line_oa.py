@@ -19,6 +19,7 @@ from typing import Protocol
 import httpx
 from sqlalchemy.orm import Session
 
+from app.services import terms
 from app.core import crypto
 from app.core.config import settings
 from app.core.tenant_context import TenantInfo
@@ -49,6 +50,11 @@ KEYWORDS = {
     "我的預約": ("我的預約", "bookings"),
     "購買": ("購買方案", "purchase"),
 }
+
+
+def _label(label: str, path: str) -> str:
+    """「預約課程」依行業換成「預約療程」等（ADR 0011）。"""
+    return terms.t("book") if path == "book" else label
 
 
 class OaClient(Protocol):
@@ -228,7 +234,7 @@ def rich_menu_body(liff_id: str, gym_name: str) -> dict:
             {
                 "bounds": {"x": i * cell, "y": 0, "width": cell if i < len(RICH_MENU_AREAS) - 1 else width - i * cell,
                            "height": height},
-                "action": {"type": "uri", "label": label, "uri": liff_url(liff_id, path)},
+                "action": {"type": "uri", "label": _label(label, path), "uri": liff_url(liff_id, path)},
             }
             for i, (label, path) in enumerate(RICH_MENU_AREAS)
         ],
@@ -333,7 +339,7 @@ def link_button_message(liff_id: str, text: str, label: str, path: str) -> dict:
 
 def welcome_message(liff_id: str, gym_name: str) -> dict:
     return link_button_message(
-        liff_id, f"歡迎加入「{gym_name}」！加入會員後可以在這裡預約課程、查詢預約與購買方案。", "加入會員／登入", "me"
+        liff_id, f"歡迎加入「{gym_name}」！加入會員後可以在這裡{terms.t('book')}、查詢預約與購買方案。", "加入會員／登入", "me"
     )
 
 
@@ -342,4 +348,5 @@ def keyword_reply(liff_id: str, text: str) -> dict | None:
     if not hit:
         return None
     label, path = hit
+    label = _label(label, path)
     return link_button_message(liff_id, f"點下方按鈕打開「{label}」。", label, path)

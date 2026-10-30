@@ -6,6 +6,7 @@ import { isAxiosError } from 'axios';
 import { getSettings, updateSettings, uploadSettingsLogo } from '../../../api/settings';
 import { LineNotifyCard } from './components/LineNotifyCard';
 import { LineOaCard } from './components/LineOaCard';
+import { FeaturesCard } from './components/FeaturesCard';
 
 const { Text } = Typography;
 
@@ -385,6 +386,7 @@ export default function SystemSettings() {
       </Card>
 
       {/* LINE 官方帳號與 LINE 通知：各項操作立即生效，不經過下方的「儲存變更」 */}
+      <FeaturesCard />
       <LineOaCard />
       <LineNotifyCard />
 

@@ -9,6 +9,8 @@ export interface Settings {
   cancel_deadline_hours: number;
   /** 付款方式說明（轉帳帳號等），會員下單後看到 */
   payment_instructions: string | null;
+  /** 團體課程功能（美體店預設關閉，ADR 0011） */
+  group_classes_enabled: boolean;
   updated_at: string;
 }
 
@@ -18,6 +20,7 @@ export interface SettingsPayload {
   logo_url?: string | null;
   cancel_deadline_hours?: number;
   payment_instructions?: string | null;
+  group_classes_enabled?: boolean;
 }
 
 export async function getSettings() {

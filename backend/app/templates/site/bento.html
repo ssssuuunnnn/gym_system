@@ -13,7 +13,7 @@
   <h1 id="hero-title">{{ c.hero.tagline or full_name }}</h1>
   {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
   <div class="actions">
-    {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+    {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約{{ t.trial }}</a>{% endif %}
     {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
   </div>
 </section>
@@ -114,7 +114,7 @@
 </div>
 {% for p in plans %}
 <div class="tile t-plan{% if loop.index == 2 and plans|length >= 3 %} t-plan-featured{% endif %}">
-  {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+  {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} {{ t.unit }}{% endif %}</span>{% endif %}
   <h3>{{ p.name }}</h3>
   <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
   {% if p.description %}<p class="small">{{ p.description }}</p>{% endif %}

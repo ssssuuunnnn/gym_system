@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.models.tenant import TenantStatus
+from app.models.tenant import BusinessType, TenantStatus
 
 
 def _blank_to_none(value):
@@ -61,6 +61,8 @@ class TenantCreate(TenantContact):
     subdomain: str = Field(min_length=1, max_length=63)
     timezone: str = "Asia/Taipei"
     status: TenantStatus = TenantStatus.trial
+    # 行業類型：決定前後台用詞與預設功能（ADR 0011）
+    business_type: BusinessType = BusinessType.fitness
     # 第一位管理員（健身房老闆／店長），交給對方登入後自行經營
     admin_username: str = Field(min_length=1, max_length=100)
     admin_password: str = Field(min_length=8)
@@ -72,6 +74,7 @@ class TenantUpdate(TenantContact):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     timezone: str | None = None
+    business_type: BusinessType | None = None
     line_monthly_cap: int | None = Field(default=None, ge=0, le=100000)
 
 
@@ -96,6 +99,7 @@ class TenantOut(BaseModel):
     subdomain: str
     status: TenantStatus
     timezone: str
+    business_type: BusinessType
     contact_name: str | None
     contact_email: str | None
     contact_phone: str | None

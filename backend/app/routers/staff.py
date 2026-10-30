@@ -59,7 +59,7 @@ def _codes(codes: list[str]) -> list[str]:
 @router.get("/meta", response_model=StaffMeta, dependencies=[Depends(require_admin)])
 def meta():
     """功能清單（名稱、是否含敏感資料）與內建角色範本。"""
-    return StaffMeta(permissions=staff_service.PERMISSIONS, templates=staff_service.TEMPLATES)
+    return StaffMeta(permissions=staff_service.permissions(), templates=staff_service.TEMPLATES)
 
 
 @router.get("", response_model=list[StaffOut], dependencies=[Depends(require_owner)])
@@ -91,7 +91,7 @@ def create_staff(payload: StaffCreate, owner: User = Depends(require_owner), db:
     db.flush()
     detail = level.value
     if level == StaffLevel.staff:
-        detail += "：" + ("、".join(staff_service.LABEL[c] for c in user.permissions) or "沒有任何功能")
+        detail += "：" + ("、".join(staff_service.label(c) for c in user.permissions) or "沒有任何功能")
     staff_service.audit(db, owner, "新增帳號", user, detail)
     db.commit()
     db.refresh(user)

@@ -12,6 +12,7 @@ import { useBookingLookups } from '../../../lib/useBookingLookups';
 import FrontPageHeader from '../../../components/member/FrontPageHeader';
 import FrontCard from '../../../components/member/FrontCard';
 import { ClassUnitCard, type ClassUnit } from './components/ClassUnitCard';
+import { coachTypeLabel, useTerms } from '../../../lib/terms';
 
 function errorDetail(error: unknown, fallback: string) {
   const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
@@ -25,6 +26,7 @@ function errorDetail(error: unknown, fallback: string) {
 export default function CoachToday() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t } = useTerms();
   const queryClient = useQueryClient();
   const now = dayjs();
 
@@ -93,7 +95,7 @@ export default function CoachToday() {
         extra={
           <div
             role="img"
-            aria-label={`${profile?.alias || profile?.name || ''}，${profile?.coach_types.join('、') ?? '教練'}`}
+            aria-label={`${profile?.alias || profile?.name || ''}，${profile?.coach_types.map((c) => coachTypeLabel(c, t)).join('、') ?? t.staff}`}
             style={{
               width: 44,
               height: 44,
@@ -120,16 +122,16 @@ export default function CoachToday() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-            {stat(todayUnits.length, '堂', '今日課程')}
-            {stat(todayMembers, '位', '今日學員')}
-            {stat(monthTaught, '堂', '本月已帶')}
+            {stat(todayUnits.length, t.unit, `今日${t.service}`)}
+            {stat(todayMembers, '位', `今日${t.customer}`)}
+            {stat(monthTaught, t.unit, t.unit === '堂' ? '本月已帶' : '本月服務')}
           </div>
 
           {todayUnits.length === 0 ? (
             <FrontCard style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 24, textAlign: 'center' }}>
               <span style={{ fontSize: 16, fontWeight: 700 }}>今天沒有課</span>
               <span style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                {nextUnit ? `下一堂：${nextUnit.start.format('M/D HH:mm')} ${nextUnit.title}` : '目前沒有已確認的預約'}
+                {nextUnit ? `下一${t.unit}：${nextUnit.start.format('M/D HH:mm')} ${nextUnit.title}` : '目前沒有已確認的預約'}
               </span>
             </FrontCard>
           ) : (

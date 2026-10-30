@@ -23,6 +23,7 @@ import { listCoaches } from '../../api/coaches';
 import { useBranches } from '../../lib/useBranches';
 import { BranchPicker } from '../../components/BranchPicker';
 import { listCourses } from '../../api/courses';
+import { useTerms } from '../../lib/terms';
 
 /**
  * 預約審核列表：對應「預約審核列表」。管理員可看全部預約，並對待確認項目核准／拒絕，
@@ -34,6 +35,7 @@ import { listCourses } from '../../api/courses';
 export default function BookingReviewList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTerms();
 
   const { data: reservations, isLoading } = useQuery({ queryKey: ['reservations'], queryFn: () => listReservations() });
   const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
@@ -119,12 +121,12 @@ export default function BookingReviewList() {
       render: (productId: number) => productNameById.get(productId) ?? `#${productId}`,
     },
     {
-      title: '教練',
+      title: t.staff,
       dataIndex: 'coach_id',
       render: (coachId: number | null) => (coachId ? coachNameById.get(coachId) ?? `#${coachId}` : '—'),
     },
     {
-      title: '課程',
+      title: t.service,
       dataIndex: 'course_id',
       render: (courseId: number | null) => (courseId ? courseNameById.get(courseId) ?? `#${courseId}` : '—'),
     },
@@ -179,13 +181,13 @@ export default function BookingReviewList() {
                   size="small"
                   onClick={() => attendanceMutation.mutate({ id: record.id, attendance: '已出席' })}
                 >
-                  簽到
+                  {t.checkIn}
                 </Button>
               )}
               {record.attendance !== '未到' && hasStarted(record) && (
                 <Popconfirm
                   title="標記為未到？"
-                  description="未到不退堂。"
+                  description={`未到不退${t.unit}。`}
                   onConfirm={() => attendanceMutation.mutate({ id: record.id, attendance: '未到' })}
                 >
                   <Button size="small">未到</Button>
@@ -247,14 +249,14 @@ export default function BookingReviewList() {
         onCancel={() => setLateCancelTarget(null)}
       >
         <Typography.Paragraph>
-          這筆預約已在開課前 {deadlineHours} 小時內，依規則取消後不退堂。
+          這筆預約已在開始前 {deadlineHours} 小時內，依規則取消後不退{t.unit}。
         </Typography.Paragraph>
         <Radio.Group
           value={lateRefund}
           onChange={(e) => setLateRefund(e.target.value)}
           options={[
-            { value: false, label: '依規則不退堂' },
-            { value: true, label: '仍退回 1 堂（例外處理）' },
+            { value: false, label: `依規則不退${t.unit}` },
+            { value: true, label: `仍退回 1 ${t.unit}（例外處理）` },
           ]}
         />
       </Modal>

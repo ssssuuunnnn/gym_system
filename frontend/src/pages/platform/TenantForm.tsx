@@ -2,6 +2,7 @@ import { App, Breadcrumb, type InputProps, Button, Card, Checkbox, Col, Form, In
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  BUSINESS_TYPE_OPTIONS,
   checkSubdomain,
   createTenant,
   TENANT_STATUSES,
@@ -28,6 +29,7 @@ function SubdomainInput(props: InputProps) {
 const INITIAL_VALUES: Partial<TenantCreatePayload> = {
   timezone: 'Asia/Taipei',
   status: '試用',
+  business_type: '健身',
   admin_username: 'admin',
   admin_must_change_password: true,
 };
@@ -133,6 +135,16 @@ export default function TenantForm() {
               <Col xs={24} md={12}>
                 <Form.Item name="timezone" label="時區" rules={[{ required: true }]} extra="預約、取消期限與簽到都以這個時區計算">
                   <Select showSearch options={TIMEZONE_OPTIONS} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="business_type"
+                  label="行業類型"
+                  rules={[{ required: true }]}
+                  extra="決定這家店前後台的用詞（例如教練／美容師、堂／次）；美體店預設不開團體課程"
+                >
+                  <Radio.Group options={BUSINESS_TYPE_OPTIONS} />
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>

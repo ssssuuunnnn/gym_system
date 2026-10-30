@@ -31,6 +31,7 @@ import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
 import StatusTag from '../../components/StatusTag';
 import { formatServerTime } from '../../lib/datetime';
+import { useTerms } from '../../lib/terms';
 
 type StatusFilter = PaymentStatus | '全部';
 const STATUS_FILTERS: StatusFilter[] = ['待付款', '已付款', '已取消', '全部'];
@@ -52,6 +53,7 @@ function errorDetail(error: unknown, fallback: string) {
 export default function PurchaseList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTerms();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('待付款');
   const [confirming, setConfirming] = useState<Purchase | null>(null);
   const [form] = Form.useForm<ConfirmValues>();
@@ -83,7 +85,7 @@ export default function PurchaseList() {
       confirmPayment(id, { payment_method: values.payment_method, payment_note: values.payment_note || null }),
     onSuccess: (purchase) => {
       message.success(
-        purchase.total_hours > 0 ? `已確認收款，入帳 ${purchase.total_hours} 堂` : '已確認收款',
+        purchase.total_hours > 0 ? `已確認收款，入帳 ${purchase.total_hours} ${t.unit}` : '已確認收款',
       );
       setConfirming(null);
       form.resetFields();
@@ -133,7 +135,7 @@ export default function PurchaseList() {
       ),
     },
     {
-      title: '堂數（剩餘／總計）',
+      title: `${t.hours}（剩餘／總計）`,
       key: 'hours',
       render: (_, record) => (record.total_hours > 0 ? `${record.remaining_hours} / ${record.total_hours}` : '—'),
     },
@@ -224,7 +226,7 @@ export default function PurchaseList() {
             {memberNameById.get(confirming.user_id) ?? `#${confirming.user_id}`}｜
             {productNameById.get(confirming.product_id) ?? `#${confirming.product_id}`} × {confirming.quantity}｜應收 NT${' '}
             {confirming.amount}
-            {confirming.total_hours > 0 && `｜確認後入帳 ${confirming.total_hours} 堂`}
+            {confirming.total_hours > 0 && `｜確認後入帳 ${confirming.total_hours} ${t.unit}`}
           </Typography.Paragraph>
         )}
         <Form<ConfirmValues>

@@ -13,7 +13,7 @@
       <h1>{{ c.hero.tagline or full_name }}</h1>
       {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
       <div class="actions">
-        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+        {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約{{ t.trial }}</a>{% endif %}
         {% if 'schedule' in sections %}<a class="btn btn-ghost btn-lg" href="#schedule">看本週課表</a>{% endif %}
       </div>
     </div>
@@ -60,7 +60,7 @@
       </div>
       {% endfor %}
     </div>
-    <p>會員<a href="/login">登入</a>後可直接預約{% if 'trial' in sections %}；還不是會員？<a href="#trial"><strong>先預約一堂體驗課</strong></a>{% endif %}</p>
+    <p>會員<a href="/login">登入</a>後可直接預約{% if 'trial' in sections %}；還不是會員？<a href="#trial"><strong>先預約一{{ "堂" if t.unit == "堂" else "次" }}{{ t.trial }}</strong></a>{% endif %}</p>
   </div>
 </section>
 
@@ -88,7 +88,7 @@
     <div class="plans">
       {% for p in plans %}
       <div class="plan{% if loop.index == 2 and plans|length >= 3 %} plan-featured{% endif %}">
-        {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+        {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} {{ t.unit }}{% endif %}</span>{% endif %}
         <h3>{{ p.name }}</h3>
         <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
         {% if p.description %}<p class="plan-desc">{{ p.description }}</p>{% endif %}

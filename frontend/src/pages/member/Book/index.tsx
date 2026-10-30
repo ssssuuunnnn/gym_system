@@ -23,6 +23,7 @@ import { DateStrip } from './components/DateStrip';
 import { SessionCard } from './components/SessionCard';
 import { ConfirmSheet } from './components/ConfirmSheet';
 import { PrivatePanel } from './components/PrivatePanel';
+import { useTerms } from '../../../lib/terms';
 
 type Tab = '團體課' | '私人課';
 
@@ -81,7 +82,10 @@ export default function Book() {
 
   // ?tab=私人課：例如用了私人課體驗券後直接切到私人課
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(searchParams.get('tab') === '私人課' ? '私人課' : '團體課');
+  const [tabChoice, setTab] = useState<Tab>(searchParams.get('tab') === '私人課' ? '私人課' : '團體課');
+  // 行業用詞與團體課程開關（ADR 0011）：沒開團體課程的店只有私人（個人療程）
+  const { t, groupClassesEnabled } = useTerms();
+  const tab: Tab = groupClassesEnabled ? tabChoice : '私人課';
   const [date, setDate] = useState<Dayjs>(today);
   const [coachId, setCoachId] = useState<number | null>(null);
   const [privatePlanId, setPrivatePlanId] = useState<number | null>(null);
@@ -160,7 +164,8 @@ export default function Book() {
     disabled: resolveAvailability(date, hour, overrides) === 'closed' || date.hour(hour).isBefore(now),
   }));
 
-  const planLabel = (p: Purchase | undefined) => (p ? `${productById.get(p.product_id)?.name ?? '方案'} · 剩 ${p.remaining_hours} 堂` : null);
+  const planLabel = (p: Purchase | undefined) =>
+    p ? `${productById.get(p.product_id)?.name ?? '方案'} · 剩 ${p.remaining_hours} ${t.unit}` : null;
 
   const book = useMutation({
     mutationFn: (p: Pending) => {
@@ -267,14 +272,25 @@ export default function Book() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <FrontPageHeader title="預約課程" />
+      <FrontPageHeader title={t.book} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 14, color: token.colorTextSecondary, flex: 'none' }}>分店</span>
         <BranchPicker branches={branchList.active} value={branchId} onChange={pickBranch} />
       </div>
 
-      <Segmented<Tab> block size="large" value={tab} onChange={setTab} options={['團體課', '私人課']} />
+      {groupClassesEnabled && (
+        <Segmented<Tab>
+          block
+          size="large"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: '團體課', label: t.group },
+            { value: '私人課', label: t.private },
+          ]}
+        />
+      )}
 
       <DateStrip dates={dates} value={date} onChange={setDate} countByDate={tab === '團體課' ? countByDate : undefined} />
 
@@ -320,7 +336,7 @@ export default function Book() {
 
       <ConfirmSheet
         open={pending !== null}
-        title={pending?.kind === 'group' ? pending.session.course_name : '私人課'}
+        title={pending?.kind === 'group' ? pending.session.course_name : t.private}
         subtitle={[
           pending?.kind === 'group' ? pending.session.coach_name : pendingCoach ? pendingCoach.alias || pendingCoach.name : '',
           pending?.kind === 'group' ? pending.session.branch_name : branchName,

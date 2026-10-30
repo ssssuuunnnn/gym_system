@@ -1,4 +1,4 @@
-{#- 形象網站「側欄」排版：像一個 App。桌機左邊是固定的目錄（品牌、各段落、會員登入、預約體驗課），
+{#- 形象網站「側欄」排版：像一個 App。桌機左邊是固定的目錄（品牌、各段落、會員登入、預約{{ t.trial }}），
     右邊每個段落是一張浮起的白色卡片，主視覺下方有三個重點數字（下一堂課、方案起價、教練人數）。
     手機沒有側欄，改用共用的頁首選單；卡片照後台順序由上而下。 -#}
 {% extends 'site/_layout.html' %}
@@ -36,7 +36,7 @@
     {% for key, label in nav %}<a href="#{{ key }}">{{ icon(key) }}<span>{{ label }}</span></a>{% endfor %}
   </nav>
   <div class="sb-foot">
-    {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+    {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
     <a href="/login" class="btn btn-outline">會員登入</a>
     {% if line_url %}<a href="{{ line_url }}" class="btn btn-line" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
   </div>
@@ -52,7 +52,7 @@
     <h1 id="hero-title">{{ c.hero.tagline or full_name }}</h1>
     {% if c.hero.description %}<p class="lead">{{ c.hero.description }}</p>{% endif %}
     <div class="actions">
-      {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約體驗課</a>{% endif %}
+      {% if 'trial' in sections %}<a class="btn btn-accent btn-lg" href="#trial">預約{{ t.trial }}</a>{% endif %}
       {% if 'schedule' in sections %}<a class="btn btn-outline btn-lg" href="#schedule">看本週課表</a>{% endif %}
     </div>
   </div>
@@ -79,8 +79,8 @@
   {% endif %}
   {% if show_coach %}
   <a class="card stat" href="#coaches">
-    <span class="small muted">教練團隊</span>
-    <span class="stat-num"><span class="num">{{ coaches|length }}</span> <span class="small">位教練</span></span>
+    <span class="small muted">{{ t.staff }}團隊</span>
+    <span class="stat-num"><span class="num">{{ coaches|length }}</span> <span class="small">位{{ t.staff }}</span></span>
     <span class="small muted">{{ coaches[0].name }}{% if coaches|length > 1 %} 等{% endif %}</span>
   </a>
   {% endif %}
@@ -148,7 +148,7 @@
     {% set featured = loop.index == 2 and plans|length >= 3 %}
     <div class="sb-plan{% if featured %} featured{% endif %}">
       {% if featured %}<span class="badge">推薦</span>{% endif %}
-      {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} 堂{% endif %}</span>{% endif %}
+      {% if p.kind %}<span class="small plan-kind">{{ p.kind }}{% if p.hours %}・{{ p.hours }} {{ t.unit }}{% endif %}</span>{% endif %}
       <h3>{{ p.name }}</h3>
       <p class="price"><span>NT$</span><span class="num">{{ p.price }}</span></p>
       {% if p.description %}<p class="small muted">{{ p.description }}</p>{% endif %}

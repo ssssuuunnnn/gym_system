@@ -15,6 +15,7 @@ from fastapi import BackgroundTasks
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.services import terms
 from app.core import clock
 from app.core.tenant_context import TenantInfo, current_tenant
 from app.db import session as db_session
@@ -51,7 +52,7 @@ def item_name(db: Session, reservation: Reservation) -> str:
         if course:
             return course.name
     product = db.get(Product, reservation.product_id)
-    return product.name if product else "課程"
+    return product.name if product else terms.t("service")
 
 
 # ---------- enqueue ----------
@@ -109,7 +110,7 @@ def notify_booking_result(db: Session, reservation: Reservation) -> int | None:
         return enqueue(db, LineMemberEvent.booking_confirmed, member, title, rows, "查看我的預約", "bookings")
     if reservation.status == ReservationStatus.rejected:
         rows = [r for r in rows if r[0] != "人數"] + [
-            ("說明", "這個時段無法安排，扣抵的堂數已退回" if reservation.purchase_id else "這個時段無法安排")
+            ("說明", f"這個時段無法安排，扣抵的{terms.t('hours')}已退回" if reservation.purchase_id else "這個時段無法安排")
         ]
         return enqueue(db, LineMemberEvent.booking_rejected, member, "預約未成立", rows, "重新預約", "book")
     return None
@@ -120,7 +121,7 @@ def notify_booking_cancelled(db: Session, reservation: Reservation, refunded: bo
     member = db.get(User, reservation.member_id)
     rows = _with_branch(db, reservation, [("項目", item_name(db, reservation)), ("時間", time_label(reservation))])
     if reservation.purchase_id:
-        rows.append(("堂數", "已退回" if refunded else "不退回（開課前取消期限內）"))
+        rows.append((terms.t("hours"), "已退回" if refunded else "不退回（取消期限內）"))
     return enqueue(db, LineMemberEvent.booking_cancelled, member, "預約已取消", rows, "查看我的預約", "bookings")
 
 
@@ -130,9 +131,9 @@ def notify_payment_confirmed(db: Session, purchase) -> int | None:
     rows = [("方案", f"{product.name} × {purchase.quantity}"), ("金額", f"NT$ {float(purchase.amount):,.0f}")]
     if product.category == ProductCategory.supply:
         return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, "查看我的訂單", "products")
-    rows.append(("堂數", f"已入帳 {float(purchase.total_hours):g} 堂"))
+    rows.append((terms.t("hours"), f"已入帳 {float(purchase.total_hours):g} {terms.t('unit')}"))
     # 課程方案：直接到預約頁；會員若是為了某堂課才買的，預約頁會自動打開那堂（前端 lib/bookIntent.ts）
-    return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, "去預約課程", "book")
+    return enqueue(db, LineMemberEvent.payment_confirmed, member, "已收到款項", rows, f"去{terms.t('book')}", "book")
 
 
 # ---------- 上課提醒 ----------
@@ -174,7 +175,7 @@ def enqueue_reminders(db: Session, channel: LineOaChannel) -> list[int]:
             db,
             LineMemberEvent.class_reminder,
             db.get(User, member_id),
-            "明天的課程提醒",
+            f"明天的{terms.t('service')}提醒",
             rows,
             "查看我的預約",
             "bookings",
@@ -246,7 +247,7 @@ def _tenant_context(db: Session, tenant_id: int):
     tenant = db.get(Tenant, tenant_id)
     if tenant is None:
         return None, None
-    token = current_tenant.set(TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone))
+    token = current_tenant.set(TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone, business_type=tenant.business_type.name))
     return tenant, token
 
 

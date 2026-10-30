@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -25,6 +25,17 @@ class SystemSettings(TenantMixin, Base):
     )
     # 付款方式說明（例如轉帳帳號）：會員下單後在「我的商品」看到，見 ADR 0005
     payment_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 團體課程功能（ADR 0011）：None＝依行業預設（健身開、美體關）
+    group_classes_setting: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+    @property
+    def group_classes_enabled(self) -> bool:
+        """實際是否開啟團體課程：有設定就照設定，沒有就照行業預設。"""
+        from app.services.terms import GROUP_CLASSES_DEFAULT, business_type
+
+        if self.group_classes_setting is not None:
+            return self.group_classes_setting
+        return GROUP_CLASSES_DEFAULT[business_type()]

@@ -6,6 +6,7 @@ import { getPayout, listMyPayouts, type CoachPayout } from '../../api/coachPayou
 import PayoutItemsTable from '../../components/PayoutItemsTable';
 import StatusTag from '../../components/StatusTag';
 import { formatServerTime } from '../../lib/datetime';
+import { useTerms } from '../../lib/terms';
 
 const money = (n: number) => `NT$ ${n.toLocaleString('zh-TW')}`;
 
@@ -19,11 +20,12 @@ function PayoutDetail({ id }: { id: number }) {
  * 尚未結算的月份不顯示；有疑問請聯絡工作室。
  */
 export default function MyPayouts() {
+  const { t } = useTerms();
   const { data, isLoading } = useQuery({ queryKey: ['my-coach-payouts'], queryFn: listMyPayouts });
 
   const columns: ColumnsType<CoachPayout> = [
     { title: '月份', dataIndex: 'period', render: (v: string) => dayjs(v).format('YYYY-MM') },
-    { title: '堂數', dataIndex: 'session_count' },
+    { title: t.hours, dataIndex: 'session_count' },
     { title: '金額', dataIndex: 'amount', render: (v: number) => <Typography.Text strong>{money(v)}</Typography.Text> },
     { title: '狀態', dataIndex: 'status', render: (v: string) => <StatusTag status={v} /> },
     {
@@ -40,7 +42,7 @@ export default function MyPayouts() {
         我的鐘點
       </Typography.Title>
       <Typography.Paragraph type="secondary">
-        工作室每月結算後會顯示在這裡；已出席與未到的堂數都會計入。私人課依你的私人課鐘點費，團體課依各課程的每堂教練費（一堂算一次）。
+        工作室每月結算後會顯示在這裡；已出席與未到的{t.hours}都會計入。{t.private}依你的每{t.unit}費用計算{t.unit === '堂' ? '，團體課依各課程設定的費用（同一時段算一次）' : ''}。
       </Typography.Paragraph>
       <Table
         rowKey="id"

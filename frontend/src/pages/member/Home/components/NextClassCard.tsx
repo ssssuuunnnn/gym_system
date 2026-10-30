@@ -12,6 +12,7 @@ import {
   selfCheckInOpensAt,
 } from '../../../../lib/booking';
 import FrontCard from '../../../../components/member/FrontCard';
+import { useTerms } from '../../../../lib/terms';
 
 export interface NextClassCardProps {
   reservation: Reservation;
@@ -28,6 +29,7 @@ export interface NextClassCardProps {
 export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, onCancel, checkingIn, cancelling }: NextClassCardProps) {
   const { token } = theme.useToken();
   const start = classStart(r);
+  const { t } = useTerms();
   const late = isLateCancel(r, deadlineHours);
   const canCheckIn = r.status === '已確認' && !r.attendance && selfCheckInOpen(r, info.durationMinutes);
   const canCancel = !r.attendance && (r.status === '待確認' || (r.status === '已確認' && !hasStarted(r)));
@@ -36,7 +38,7 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
     <section aria-labelledby="next-class-title" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h2 id="next-class-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>
-          下一堂課
+          下一{t.unit === '堂' ? '堂課' : `次${t.service}`}
         </h2>
         <Tag variant="filled" style={{ marginInlineEnd: 0, color: token.colorPrimary, background: token.colorPrimaryBg }}>
           {relativeStartLabel(start)}
@@ -54,7 +56,7 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 700 }}>{info.title}</span>
             <span style={{ fontSize: 13, color: token.colorTextSecondary }}>
-              {[info.coachName, info.isGroup ? '團體課' : '私人課', info.branchName].filter(Boolean).join(' · ')}
+              {[info.coachName, info.isGroup ? t.group : t.private, info.branchName].filter(Boolean).join(' · ')}
             </span>
           </div>
           {r.status === '待確認' && (
@@ -64,7 +66,7 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
           )}
           {r.attendance && (
             <Tag variant="filled" color={r.attendance === '已出席' ? 'success' : 'error'} style={{ marginInlineEnd: 0 }}>
-              {r.attendance === '已出席' ? '已簽到' : '未到'}
+              {r.attendance === '已出席' ? `已${t.checkIn}` : '未到'}
             </Tag>
           )}
         </div>
@@ -81,13 +83,13 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
                 onClick={onCheckIn}
                 style={{ flex: 1, fontWeight: 700 }}
               >
-                {canCheckIn ? '簽到' : `${selfCheckInOpensAt(r).format('HH:mm')} 開放簽到`}
+                {canCheckIn ? t.checkIn : `${selfCheckInOpensAt(r).format('HH:mm')} 開放${t.checkIn}`}
               </Button>
             )}
             {canCancel && (
               <Popconfirm
-                title="確定要取消這堂課？"
-                description={late ? `已在開課前 ${deadlineHours} 小時內，取消後這堂不會退回。` : undefined}
+                title={`確定要取消這${t.unit === '堂' ? '堂課' : `次${t.service}`}？`}
+                description={late ? `已在開始前 ${deadlineHours} 小時內，取消後這 1 ${t.unit}不會退回。` : undefined}
                 okText={late ? '仍要取消' : '確定取消'}
                 cancelText="不取消"
                 onConfirm={onCancel}
@@ -103,7 +105,7 @@ export function NextClassCard({ reservation: r, info, deadlineHours, onCheckIn, 
         {canCancel && late && (
           <p style={{ margin: 0, fontSize: 12, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: 6 }}>
             <InfoCircleOutlined aria-hidden="true" />
-            已在開課前 {deadlineHours} 小時內，取消後這堂不會退回
+            已在開始前 {deadlineHours} 小時內，取消後這 1 {t.unit}不會退回
           </p>
         )}
       </FrontCard>

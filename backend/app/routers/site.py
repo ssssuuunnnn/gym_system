@@ -34,6 +34,7 @@ from app.models.system_settings import SystemSettings
 from app.models.website import Website
 from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, DEFAULT_THEME, SITE_THEMES, SiteContent
 from app.services import line as line_service
+from app.services import terms
 from app.services import staff_notifications
 from app.services.schedule import group_sessions
 from app.services import branches as branch_service
@@ -45,20 +46,25 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static" / "site"
 templates = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=select_autoescape(["html", "xml"]))
 
 WEEKDAY_LABEL = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
-CATEGORY_LABEL = {
-    ProductCategory.course: "團體課程",
-    ProductCategory.single_course: "課程",
-    ProductCategory.supply: "用品",
-}
-SECTION_NAV_LABEL = {
-    "about": "關於我們",
-    "schedule": "團體課表",
-    "coaches": "教練團隊",
-    "pricing": "方案價格",
-    "gallery": "環境照片",
-    "faq": "常見問題",
-    "contact": "交通與聯絡",
-}
+def category_label(category: ProductCategory) -> str:
+    """方案分類的顯示文字依行業（ADR 0011）：課程→療程、用品→商品。"""
+    return {
+        ProductCategory.course: "團體課程",
+        ProductCategory.single_course: terms.t("product_course"),
+        ProductCategory.supply: terms.t("product_supply"),
+    }.get(category, "")
+
+
+def section_nav_label(key: str) -> str | None:
+    return {
+        "about": "關於我們",
+        "schedule": "團體課表",
+        "coaches": f"{terms.t('staff')}團隊",
+        "pricing": "方案價格",
+        "gallery": "環境照片",
+        "faq": "常見問題",
+        "contact": "交通與聯絡",
+    }.get(key)
 
 # 體驗課表單防垃圾：同一個 IP 在 10 分鐘內最多送 3 次；隱藏欄位有值就當機器人
 INQUIRY_RATE_WINDOW = timedelta(minutes=10)
@@ -90,7 +96,7 @@ async def _resolve_tenant(request: Request) -> TenantInfo | HTMLResponse:
         return await get_tenant(request)
     except HTTPException as exc:
         if exc.status_code == 403:
-            return _message_page("網站暫停服務", "這家健身房的網站目前暫停服務。", 403)
+            return _message_page("網站暫停服務", "這家店的網站目前暫停服務。", 403)
         return _message_page("找不到這個網站", "請確認網址是否正確。", 404)
 
 
@@ -204,7 +210,7 @@ def _plans(db: Session, content: SiteContent) -> list[dict]:
             continue
         result.append(
             {
-                "kind": CATEGORY_LABEL.get(product.category, ""),
+                "kind": category_label(product.category),
                 "name": product.name,
                 "price": _money(product.price),
                 "amount": float(product.price),  # 只用來找最低價（方案起價）
@@ -232,6 +238,10 @@ def render_site(
     accent = content.brand_color if content.brand_color in BRAND_COLORS else DEFAULT_BRAND_COLOR
 
     visible = [s.key for s in content.sections if s.visible]
+    # 沒有開團體課程的店（美體店預設）不顯示課表（ADR 0011）
+    group_on = company.group_classes_enabled if company else terms.GROUP_CLASSES_DEFAULT[tenant.business_type]
+    if not group_on:
+        visible = [key for key in visible if key != "schedule"]
     data = {
         "schedule_days": _schedule_days(db, content.schedule.show_seats) if "schedule" in visible else [],
         "coaches": _coaches(db, content) if "coaches" in visible else [],
@@ -268,7 +278,7 @@ def render_site(
     contact = content.contact
     json_ld = {
         "@context": "https://schema.org",
-        "@type": "ExerciseGym",
+        "@type": "ExerciseGym" if tenant.business_type == "fitness" else "HealthAndBeautyBusiness",
         "name": full_name,
         "url": f"{base}/",
     }
@@ -303,7 +313,8 @@ def render_site(
         accent=accent,
         accent_light=brand["light"],
         sections=sections,
-        nav=[(key, SECTION_NAV_LABEL[key]) for key in sections if key in SECTION_NAV_LABEL],
+        nav=[(key, label) for key in sections if (label := section_nav_label(key))],
+        t=terms.terms(tenant.business_type),
         title=title,
         description=description,
         canonical=f"{base}/",
@@ -392,7 +403,7 @@ async def submit_inquiry(request: Request, background_tasks: BackgroundTasks):
     with _tenant_db(tenant) as db:
         content = _published(db)
         if content is None or not any(s.key == "trial" and s.visible for s in content.sections):
-            return _message_page("找不到這個頁面", "這家健身房目前沒有開放線上預約體驗課。", 404)
+            return _message_page("找不到這個頁面", f"這家店目前沒有開放線上預約{terms.t('trial')}。", 404)
 
         # 機器人填了隱藏欄位：假裝成功，不存資料
         if form.get(HONEYPOT_FIELD):

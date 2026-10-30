@@ -6,12 +6,12 @@ import { useAuthStore } from '../store/auth';
 import { getSettings } from '../api/settings';
 import { getInquirySummary } from '../api/inquiries';
 import BackOfficeShell, { type BackOfficeMenuItem } from './BackOfficeShell';
-import { ADMIN_MENU, ADMIN_MENU_GROUPS, allows, menuEntryFor, type AdminMenuEntry } from './adminMenu';
+import { ADMIN_MENU, ADMIN_MENU_GROUPS, allows, menuEntryFor, menuGroupLabel, menuHidden, menuLabel, type AdminMenuEntry } from './adminMenu';
 import { usePermissions } from '../lib/permissions';
 import { RECENT_MENU_LIMIT, useAdminMenuPrefs } from '../lib/useAdminMenuPrefs';
 import { NotificationBell } from './notifications/NotificationBell';
+import { useTerms } from '../lib/terms';
 
-const DEFAULT_BRAND_NAME = '健身工作室管理系統';
 
 /**
  * 健身房後台版型（管理員）：共用 BackOfficeShell，換上健身房的導覽與品牌。
@@ -40,12 +40,14 @@ export default function AppLayout() {
   // 側欄：釘選 → 最近使用 → 儀表板 → 各分類（只放有權限的功能；沒有項目的分類不顯示）
   const location = useLocation();
   const prefs = useAdminMenuPrefs();
-  const allowed = ADMIN_MENU.filter((m) => allows(m.perm, can, isOwner));
+  // 行業用詞與團體課程開關（ADR 0011）
+  const { t, groupClassesEnabled } = useTerms();
+  const allowed = ADMIN_MENU.filter((m) => allows(m.perm, can, isOwner) && !menuHidden(m, groupClassesEnabled));
   const allowedByKey = new Map(allowed.map((m) => [m.key, m]));
   const leaf = (m: AdminMenuEntry, prefix = ''): BackOfficeMenuItem => ({
     key: `${prefix}${m.key}`,
     path: m.key,
-    label: m.label,
+    label: menuLabel(m, t),
     icon: m.icon,
     badge: m.key === '/admin/inquiries' ? newInquiries : undefined,
   });
@@ -66,7 +68,7 @@ export default function AppLayout() {
     ...allowed.filter((m) => m.group === null).map((m) => leaf(m)),
     ...ADMIN_MENU_GROUPS.flatMap((g) => {
       const children = allowed.filter((m) => m.group === g.key).map((m) => leaf(m));
-      return children.length ? [{ key: g.key, label: g.label, icon: g.icon, children }] : [];
+      return children.length ? [{ key: g.key, label: menuGroupLabel(g, t), icon: g.icon, children }] : [];
     }),
   ];
 
@@ -88,7 +90,7 @@ export default function AppLayout() {
       openStateStorageKey={`adminMenuOpen:${window.location.hostname}`}
       pinnedPaths={prefs.pinned}
       onTogglePin={prefs.togglePin}
-      brandName={settings?.short_name || settings?.company_name || DEFAULT_BRAND_NAME}
+      brandName={settings?.short_name || settings?.company_name || t.systemName}
       brandLogoUrl={settings?.logo_url}
       userLabel={`${username}（${level ?? '管理員'}）`}
       headerExtra={<NotificationBell />}

@@ -23,6 +23,7 @@ import {
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import type { PermissionCode } from '../api/staff';
+import type { Terms } from '../lib/terms';
 
 /** 'owner'＝只有主要管理者看得到（後台帳號） */
 export type MenuPermission = PermissionCode | 'owner';
@@ -76,6 +77,26 @@ export const ADMIN_MENU: AdminMenuEntry[] = [
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined />, perm: 'settings', group: 'setup' },
   { key: '/admin/staff', label: '後台帳號', icon: <SafetyOutlined />, perm: 'owner', group: 'setup' },
 ];
+
+/** 選單名稱依行業用詞（ADR 0011）：教練管理→美容師管理、教練鐘點→美容師服務費 */
+export function menuLabel(entry: AdminMenuEntry, t: Terms): string {
+  if (entry.key === '/admin/coaches') return `${t.staff}管理`;
+  if (entry.key === '/admin/coach-payouts') return t.staffPay;
+  if (entry.key === '/admin/courses' && t.staff !== '教練') return '團體課程管理';
+  return entry.label;
+}
+
+/** 分類名稱依行業用詞（「教練」→「美容師」、「預約與課程」→「預約與療程」） */
+export function menuGroupLabel(group: AdminMenuGroup, t: Terms): string {
+  if (group.key === 'coaching') return t.staff;
+  if (group.key === 'booking') return `預約與${t.service}`;
+  return group.label;
+}
+
+/** 沒開團體課程的店（美體預設）不顯示「課程管理」（團體課程）；權限與網址仍在 */
+export function menuHidden(entry: AdminMenuEntry, groupClassesEnabled: boolean): boolean {
+  return entry.key === '/admin/courses' && !groupClassesEnabled;
+}
 
 /** 網址屬於哪個選單（最長前綴優先：/admin/members/12 → 會員管理） */
 export function menuEntryFor(pathname: string): AdminMenuEntry | undefined {

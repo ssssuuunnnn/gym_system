@@ -12,7 +12,8 @@ import FrontPageHeader from '../../../components/member/FrontPageHeader';
 import FrontCard from '../../../components/member/FrontCard';
 import { PlanCard } from './components/PlanCard';
 import { OrderSheet } from './components/OrderSheet';
-import { MEMBER_CATEGORY_LABEL, fitsIntent } from './lib';
+import { memberCategoryLabel, fitsIntent } from './lib';
+import { useTerms } from '../../../lib/terms';
 
 type Filter = '全部' | ProductCategory;
 const CATEGORY_ORDER: ProductCategory[] = ['團體課程', '課程', '用品'];
@@ -25,6 +26,7 @@ const CATEGORY_ORDER: ProductCategory[] = ['團體課程', '課程', '用品'];
 export default function BuyProduct() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t, groupClassesEnabled } = useTerms();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
@@ -43,7 +45,8 @@ export default function BuyProduct() {
   const nameOf = (p: Product) => (p.course_id != null ? courseName.get(p.course_id) : undefined);
   const unpaidCount = purchases.filter((p) => p.payment_status === '待付款').length;
 
-  const active = (products ?? []).filter((p) => p.is_active);
+  // 沒開團體課程的店（美體預設）不賣團體課程方案（ADR 0011）
+  const active = (products ?? []).filter((p) => p.is_active && (groupClassesEnabled || p.category !== '團體課程'));
   const categories = CATEGORY_ORDER.filter((c) => active.some((p) => p.category === c));
   const visible = active
     .filter((p) => filter === '全部' || p.category === filter)
@@ -89,7 +92,7 @@ export default function BuyProduct() {
           <div style={{ fontSize: 13, color: token.colorTextSecondary }}>想預約</div>
           <div style={{ fontSize: 16, fontWeight: 700 }}>{bookIntentLabel(intent)}</div>
           <div style={{ fontSize: 13, color: token.colorTextSecondary, marginTop: 4 }}>
-            標示「適用這堂課」的方案可以用來預約；確認收款後回到預約課程就能直接預約。
+            標示「適用這個時段」的方案可以用來預約；確認收款後回到{t.book}就能直接預約。
           </div>
         </FrontCard>
       )}
@@ -108,7 +111,7 @@ export default function BuyProduct() {
           onChange={setFilter}
           options={[
             { value: '全部', label: '全部' },
-            ...categories.map((c) => ({ value: c, label: MEMBER_CATEGORY_LABEL[c] })),
+            ...categories.map((c) => ({ value: c, label: memberCategoryLabel(c, t) })),
           ]}
         />
       )}

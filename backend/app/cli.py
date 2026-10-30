@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import hash_password
 from app.models.platform import PlatformAdmin
-from app.models.tenant import Tenant, TenantStatus
+from app.models.tenant import BusinessType, Tenant, TenantStatus
 from app.services import tenants as tenant_service
 from app.services.tenants import TenantError
 
@@ -36,6 +36,7 @@ def ensure_tenant(
     timezone: str = "Asia/Taipei",
     admin_username: str | None = None,
     admin_password: str | None = None,
+    business_type: str = "fitness",
 ) -> None:
     """建立健身房（可選同時建立第一位管理員）；已存在則略過（可重複執行）。"""
     sub = tenant_service.normalize_subdomain(subdomain)
@@ -43,8 +44,15 @@ def ensure_tenant(
         if s.query(Tenant.id).filter(Tenant.subdomain == sub).first():
             print(f"[cli] 健身房已存在，略過：{sub}")
             return
-        tenant = tenant_service.create_tenant(s, subdomain=sub, name=name or sub, timezone=timezone)
-        detail = {"subdomain": tenant.subdomain, "name": tenant.name, "timezone": tenant.timezone}
+        tenant = tenant_service.create_tenant(
+            s, subdomain=sub, name=name or sub, timezone=timezone, business_type=BusinessType[business_type]
+        )
+        detail = {
+            "subdomain": tenant.subdomain,
+            "name": tenant.name,
+            "timezone": tenant.timezone,
+            "business_type": tenant.business_type.value,
+        }
         if admin_username and admin_password:
             tenant_service.create_tenant_admin(s, tenant.id, admin_username, admin_password)
             detail["admin_username"] = admin_username
@@ -79,6 +87,9 @@ def main(argv: list[str] | None = None) -> None:
     p_create.add_argument("--subdomain", required=True)
     p_create.add_argument("--name")
     p_create.add_argument("--timezone", default="Asia/Taipei")
+    p_create.add_argument(
+        "--type", dest="business_type", default="fitness", choices=["fitness", "beauty"], help="行業類型：fitness 健身／beauty 美體"
+    )
     p_create.add_argument("--admin-username")
     p_create.add_argument("--admin-password")
 
@@ -94,11 +105,13 @@ def main(argv: list[str] | None = None) -> None:
         if args.command == "create-platform-admin":
             ensure_platform_admin(args.username, args.password)
         elif args.command == "create-tenant":
-            ensure_tenant(args.subdomain, args.name, args.timezone, args.admin_username, args.admin_password)
+            ensure_tenant(
+                args.subdomain, args.name, args.timezone, args.admin_username, args.admin_password, args.business_type
+            )
         elif args.command == "list-tenants":
             with owner_session() as s:
                 for t in s.query(Tenant).order_by(Tenant.id):
-                    print(f"{t.id}\t{t.subdomain}\t{t.status.name}\t{t.timezone}\t{t.name}")
+                    print(f"{t.id}\t{t.subdomain}\t{t.status.name}\t{t.business_type.name}\t{t.timezone}\t{t.name}")
         elif args.command == "set-status":
             with owner_session() as s:
                 tenant = s.query(Tenant).filter(Tenant.subdomain == args.subdomain).first()
