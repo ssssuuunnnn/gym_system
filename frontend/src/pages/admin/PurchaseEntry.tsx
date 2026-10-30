@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Typography, Form, Select, InputNumber, DatePicker, Button, Space, Input, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { isAxiosError } from 'axios';
 import { createPurchase, PAYMENT_METHODS, type PaymentMethod } from '../../api/purchases';
+import { listUsableCoupons, quoteCoupon } from '../../api/coupons';
+import { apiErrorMessage } from '../../api/errors';
 import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
 
@@ -16,6 +18,8 @@ interface FormValues {
   amount: number;
   payment_method: PaymentMethod;
   payment_note?: string;
+  /** 會員手上的折價券（ADR 0010） */
+  member_coupon_id?: number;
 }
 
 /**
@@ -30,17 +34,48 @@ export default function PurchaseEntry() {
   const [form] = Form.useForm<FormValues>();
   const productId = Form.useWatch('product_id', form);
   const quantity = Form.useWatch('quantity', form);
+  const userId = Form.useWatch('user_id', form);
+  const memberCouponId = Form.useWatch('member_coupon_id', form);
+  // 會員現場出示的公開代碼（按「套用」才試算）
+  const [codeInput, setCodeInput] = useState('');
+  const [code, setCode] = useState<string | null>(null);
 
   const { data: members, isLoading: membersLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
   const { data: products, isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
   const selectedProduct = products?.find((p) => p.id === productId);
+  const ready = !!userId && !!productId && !!quantity;
+
+  // 優惠券：會員手上可用的折價券，以及選了券／代碼之後由伺服器試算的金額
+  const { data: usable = [] } = useQuery({
+    queryKey: ['coupons-usable', userId, productId, quantity],
+    queryFn: () => listUsableCoupons(productId, quantity, userId),
+    enabled: ready,
+  });
+  const couponChosen = !!memberCouponId || !!code;
+  const quote = useQuery({
+    queryKey: ['coupon-quote', userId, productId, quantity, memberCouponId ?? null, code],
+    queryFn: () =>
+      quoteCoupon({ product_id: productId, quantity, user_id: userId, member_coupon_id: memberCouponId ?? null, code }),
+    enabled: ready && couponChosen,
+    retry: false,
+  });
+  const quoted = couponChosen && quote.data ? quote.data : null;
 
   useEffect(() => {
-    if (selectedProduct && quantity) {
+    if (quoted) {
+      form.setFieldValue('amount', quoted.final);
+    } else if (selectedProduct && quantity) {
       form.setFieldValue('amount', selectedProduct.price * quantity);
     }
-  }, [selectedProduct, quantity, form]);
+  }, [selectedProduct, quantity, quoted, form]);
+
+  // 換會員就清掉券
+  useEffect(() => {
+    form.setFieldValue('member_coupon_id', undefined);
+    setCode(null);
+    setCodeInput('');
+  }, [userId, form]);
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -52,11 +87,16 @@ export default function PurchaseEntry() {
         amount: values.amount,
         payment_method: values.payment_method,
         payment_note: values.payment_note || null,
+        member_coupon_id: values.member_coupon_id ?? null,
+        coupon_code: values.member_coupon_id ? null : code,
       }),
     onSuccess: () => {
       message.success('已登錄購買紀錄');
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['coupons-usable'] });
       form.resetFields();
+      setCode(null);
+      setCodeInput('');
     },
     onError: (error) => {
       const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
@@ -112,12 +152,58 @@ export default function PurchaseEntry() {
         </Form.Item>
 
         <Form.Item
+          name="member_coupon_id"
+          label="優惠券（選填）"
+          extra={ready && !usable.length ? '這位會員沒有可用的折價券' : undefined}
+        >
+          <Select
+            allowClear
+            disabled={!ready || !!code}
+            placeholder={ready ? '不使用' : '先選會員、商品與數量'}
+            options={usable.map((u) => ({
+              value: u.member_coupon.id,
+              disabled: !u.usable,
+              label: u.usable
+                ? `${u.member_coupon.name}（折 NT$${u.discount.toLocaleString()}）`
+                : `${u.member_coupon.name}（${u.reason}）`,
+            }))}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="或輸入優惠代碼"
+          validateStatus={code && quote.isError ? 'error' : undefined}
+          help={code && quote.isError ? apiErrorMessage(quote.error) : undefined}
+        >
+          <Space.Compact style={{ width: '100%' }}>
+            <Input
+              value={codeInput}
+              disabled={!ready || !!memberCouponId}
+              placeholder="例如 WELCOME300"
+              onChange={(e) => {
+                setCodeInput(e.target.value);
+                if (!e.target.value) setCode(null);
+              }}
+            />
+            <Button disabled={!ready || !!memberCouponId || !codeInput.trim()} onClick={() => setCode(codeInput.trim())}>
+              套用
+            </Button>
+          </Space.Compact>
+        </Form.Item>
+
+        <Form.Item
           name="amount"
           label="金額"
           rules={[{ required: true, message: '請輸入金額' }]}
-          extra={selectedProduct ? '已依商品單價 × 數量帶入，可手動調整' : undefined}
+          extra={
+            quoted
+              ? `已套用「${quoted.coupon_name}」：原價 NT$${quoted.original.toLocaleString()}，折抵 NT$${quoted.discount.toLocaleString()}（金額由系統計算）`
+              : selectedProduct
+                ? '已依商品單價 × 數量帶入，可手動調整'
+                : undefined
+          }
         >
-          <InputNumber min={0} style={{ width: '100%' }} addonAfter="NT$" />
+          <InputNumber min={0} style={{ width: '100%' }} addonAfter="NT$" disabled={!!quoted} />
         </Form.Item>
 
         <Form.Item

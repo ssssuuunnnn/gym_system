@@ -21,7 +21,9 @@ from app.schemas.purchase import (
     PurchaseSelfCreate,
 )
 from app.services.staff import has_perm
+from app.services import coupons as coupon_service
 from app.services import hours
+from app.services.coupons import CouponError
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
@@ -82,9 +84,31 @@ def _build_purchase(
     db.add(purchase)
     if paid:
         hours.record_purchase(db, purchase, created_by=created_by)
-    db.commit()
-    db.refresh(purchase)
+    db.flush()
     return purchase
+
+
+def _coupon_quote(db: Session, buyer: User, product_id: int, quantity: int, code: str | None, member_coupon_id: int | None):
+    """有指定優惠券時由伺服器試算折後金額（R44）；沒有則回 None。"""
+    if not coupon_service.normalize_code(code) and member_coupon_id is None:
+        return None
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到商品")
+    try:
+        return coupon_service.quote(db, buyer, product, quantity, code=code, member_coupon_id=member_coupon_id)
+    except CouponError as err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err.message)
+
+
+def _apply_coupon(db: Session, buyer: User, quote, purchase: Purchase) -> None:
+    if quote is None:
+        return
+    try:
+        coupon_service.apply_to_purchase(db, buyer, quote, purchase)
+    except CouponError as err:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err.message)
 
 
 def _get_locked_purchase(db: Session, purchase_id: int) -> Purchase:
@@ -120,19 +144,28 @@ def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_acces
     """
     對應「購買紀錄登錄」：選擇會員、選擇商品、數量、購買日期、金額、付款方式。
     管理員登錄即代表已收款，建立為「已付款」並立即入帳堂數。
+    使用優惠券時金額改由後端計算（商品單價 × 數量 − 折抵）。
     """
-    return _build_purchase(
+    member = db.get(User, payload.user_id)
+    if not member:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到會員")
+    quote = _coupon_quote(db, member, payload.product_id, payload.quantity, payload.coupon_code, payload.member_coupon_id)
+    purchase = _build_purchase(
         db,
         user_id=payload.user_id,
         product_id=payload.product_id,
         quantity=payload.quantity,
         purchase_date=payload.purchase_date,
-        amount=payload.amount,
+        amount=float(quote.final) if quote else payload.amount,
         created_by=admin.id,
         paid=True,
         payment_method=payload.payment_method,
         payment_note=payload.payment_note,
     )
+    _apply_coupon(db, member, quote, purchase)
+    db.commit()
+    db.refresh(purchase)
+    return purchase
 
 
 @router.post("/self", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
@@ -153,22 +186,28 @@ def create_self_purchase(
     if not product.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此商品未上架")
 
+    quote = _coupon_quote(
+        db, current_user, payload.product_id, payload.quantity, payload.coupon_code, payload.member_coupon_id
+    )
     purchase = _build_purchase(
         db,
         user_id=current_user.id,
         product_id=payload.product_id,
         quantity=payload.quantity,
         purchase_date=date.today(),
-        amount=float(product.price) * payload.quantity,
+        amount=float(quote.final) if quote else float(product.price) * payload.quantity,
         created_by=current_user.id,
         paid=False,
     )
+    # 優惠券（ADR 0010）：同一筆交易標成已使用；訂單取消時退回
+    _apply_coupon(db, current_user, quote, purchase)
     # LINE 通知店家：有人下單、等待確認收款（docs/adr/0004-line-notifications.md）
     notification_id = line_service.notify_payment(db, purchase, product)
     # 後台鈴鐺通知（ADR 0009）
     staff_notifications.notify_order_unpaid(db, purchase, product)
     db.commit()
     line_service.schedule(background_tasks, notification_id)
+    db.refresh(purchase)
     return purchase
 
 
@@ -217,6 +256,8 @@ def cancel_purchase(
         purchase.product.stock += purchase.quantity
     purchase.payment_status = PaymentStatus.cancelled
     purchase.cancelled_at = datetime.utcnow()
+    # 用掉的折價券退回「我的優惠券」（ADR 0010）
+    coupon_service.release_for_purchase(db, purchase)
     db.commit()
     db.refresh(purchase)
     return purchase

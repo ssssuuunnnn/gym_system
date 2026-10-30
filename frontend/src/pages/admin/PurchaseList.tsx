@@ -118,7 +118,20 @@ export default function PurchaseList() {
       render: (id: number) => productNameById.get(id) ?? `#${id}`,
     },
     { title: '數量', dataIndex: 'quantity' },
-    { title: '金額', dataIndex: 'amount', render: (amount: number) => `NT$ ${amount}` },
+    {
+      title: '金額',
+      key: 'amount',
+      render: (_, p) => (
+        <>
+          NT$ {p.amount.toLocaleString()}
+          {p.coupon_name && (
+            <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+              {p.payment_method === '體驗券' ? p.coupon_name : `${p.coupon_name} 折 ${p.discount_amount.toLocaleString()}`}
+            </Typography.Text>
+          )}
+        </>
+      ),
+    },
     {
       title: '堂數（剩餘／總計）',
       key: 'hours',

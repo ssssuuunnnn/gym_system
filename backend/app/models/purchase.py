@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -19,6 +19,8 @@ class PaymentMethod(str, enum.Enum):
     transfer = "轉帳"
     card = "刷卡"
     other = "其他"
+    # 體驗券送的堂數（金額 0，ADR 0010）
+    coupon = "體驗券"
 
 
 class Purchase(TenantMixin, Base):
@@ -41,6 +43,11 @@ class Purchase(TenantMixin, Base):
     quantity: Mapped[int] = mapped_column(nullable=False)
     purchase_date: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    # 使用優惠券時的原價與折抵金額（ADR 0010）；amount 是折後應付金額
+    original_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    discount_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    # 體驗券設定「不計教練鐘點」時，用這筆堂數上的課不計鐘點
+    payout_excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     # 購買的總堂數＝建立當下的 商品堂數 × 數量；確認收款時依此入帳，不受之後商品堂數變動影響
     total_hours: Mapped[float] = mapped_column(
         Numeric(10, 2), nullable=False, server_default="0", default=0, comment="購買總堂數"
@@ -59,3 +66,14 @@ class Purchase(TenantMixin, Base):
 
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     product: Mapped["Product"] = relationship("Product")
+    member_coupon: Mapped["MemberCoupon | None"] = relationship(
+        "MemberCoupon",
+        primaryjoin="Purchase.id == foreign(MemberCoupon.purchase_id)",
+        uselist=False,
+        viewonly=True,
+    )
+
+    @property
+    def coupon_name(self) -> str | None:
+        """這筆購買用了哪張優惠券（沒有用則為 None）。"""
+        return self.member_coupon.coupon.name if self.member_coupon else None

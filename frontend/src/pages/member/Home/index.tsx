@@ -1,10 +1,11 @@
 import { App, Button, Skeleton, theme } from 'antd';
-import { ClockCircleOutlined, RightOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, GiftOutlined, RightOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import dayjs from 'dayjs';
 import { listPurchases } from '../../../api/purchases';
+import { listMyCoupons } from '../../../api/coupons';
 import { cancelReservation, listReservations, markAttendance } from '../../../api/reservations';
 import { getSettings } from '../../../api/settings';
 import { useAuthStore } from '../../../store/auth';
@@ -42,6 +43,7 @@ export default function MemberHome() {
 
   const purchases = useQuery({ queryKey: ['my-purchases'], queryFn: () => listPurchases() });
   const reservations = useQuery({ queryKey: ['my-reservations'], queryFn: () => listReservations() });
+  const coupons = useQuery({ queryKey: ['my-coupons'], queryFn: listMyCoupons });
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
   const lookups = useBookingLookups();
 
@@ -70,6 +72,8 @@ export default function MemberHome() {
   // 方案：已付款、有堂數且還有剩（API 依新到舊排序）
   const plans = (purchases.data ?? []).filter((p) => p.payment_status === '已付款' && p.total_hours > 0 && p.remaining_hours > 0);
   const unpaid = (purchases.data ?? []).filter((p) => p.payment_status === '待付款');
+  // 還沒使用的體驗券（ADR 0010）
+  const trials = (coupons.data ?? []).filter((c) => c.kind === '體驗券' && c.status === '可使用');
   const plan = plans[0];
 
   // 接下來：待確認／已確認、還沒下課的預約，依開課時間排序
@@ -98,6 +102,30 @@ export default function MemberHome() {
             planName={plan ? lookups.productById.get(plan.product_id)?.name ?? '方案' : ''}
             otherPlanCount={Math.max(plans.length - 1, 0)}
           />
+
+          {trials.length > 0 && (
+            <Link
+              to="/member/coupons"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 14,
+                background: token.purple1,
+                color: token.purple7,
+                textDecoration: 'none',
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              <GiftOutlined aria-hidden="true" style={{ fontSize: 18 }} />
+              <span style={{ flex: 1 }}>
+                你有 {trials.length} 張體驗券（{trials[0].summary}），使用後就能預約
+              </span>
+              <RightOutlined aria-hidden="true" style={{ fontSize: 12 }} />
+            </Link>
+          )}
 
           {unpaid.length > 0 && (
             <Link

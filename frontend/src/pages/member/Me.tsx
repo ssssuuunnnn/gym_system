@@ -7,6 +7,7 @@ import {
   LogoutOutlined,
   SwapOutlined,
   MessageOutlined,
+  GiftOutlined,
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -76,6 +77,7 @@ export default function Me({ mode }: MeProps) {
       ? [
           { to: '/member/products', label: '我的方案與訂單', icon: <ShoppingOutlined />, hint: '剩餘堂數、付款狀態' },
           { to: '/member/purchase', label: '購買方案', icon: <ShoppingCartOutlined /> },
+          { to: '/member/coupons', label: '我的優惠券', icon: <GiftOutlined />, hint: '體驗券、折價券、輸入優惠代碼' },
         ]
       : []),
     ...(passwordAccount ? [{ to: '/member/change-password', label: '修改密碼', icon: <LockOutlined /> }] : []),

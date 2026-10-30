@@ -18,6 +18,9 @@ class PurchaseCreate(BaseModel):
     # 管理員登錄即視為已收款；付款方式選填
     payment_method: PaymentMethod | None = None
     payment_note: str | None = Field(default=None, max_length=255)
+    # 使用優惠券（ADR 0010）：有指定時金額改由後端以 商品單價 × 數量 − 折抵 計算，不採用 amount
+    coupon_code: str | None = Field(default=None, max_length=30)
+    member_coupon_id: int | None = None
 
 
 class PurchaseSelfCreate(BaseModel):
@@ -25,6 +28,9 @@ class PurchaseSelfCreate(BaseModel):
 
     product_id: int
     quantity: int = Field(default=1, ge=1)
+    # 使用優惠券：輸入公開代碼，或從「我的優惠券」挑一張（擇一）
+    coupon_code: str | None = Field(default=None, max_length=30)
+    member_coupon_id: int | None = None
 
 
 class PurchaseOut(BaseModel):
@@ -36,6 +42,10 @@ class PurchaseOut(BaseModel):
     quantity: int
     purchase_date: date
     amount: float
+    # 使用優惠券時的原價、折抵金額與券名（ADR 0010）
+    original_amount: float | None = None
+    discount_amount: float = 0
+    coupon_name: str | None = None
     total_hours: float
     remaining_hours: float
     payment_status: PaymentStatus

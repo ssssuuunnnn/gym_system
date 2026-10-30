@@ -48,7 +48,8 @@ export async function addInquiryNote(id: number, text: string) {
 
 export async function convertInquiry(
   id: number,
-  payload: { username: string; password: string; must_change_password: boolean },
+  /** coupon_id：同時送一張體驗券（ADR 0010） */
+  payload: { username: string; password: string; must_change_password: boolean; coupon_id?: number | null },
 ) {
   const { data } = await apiClient.post<Inquiry>(`/inquiries/${id}/convert`, payload);
   return data;

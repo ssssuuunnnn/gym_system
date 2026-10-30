@@ -1,8 +1,10 @@
 import { apiClient } from './client';
 
 export type PaymentStatus = '待付款' | '已付款' | '已取消';
-export type PaymentMethod = '現金' | '轉帳' | '刷卡' | '其他';
+/** 體驗券＝用體驗券換到的堂數（金額 0，ADR 0010），不會出現在收款選單 */
+export type PaymentMethod = '現金' | '轉帳' | '刷卡' | '其他' | '體驗券';
 
+/** 收款時可選的付款方式 */
 export const PAYMENT_METHODS: PaymentMethod[] = ['現金', '轉帳', '刷卡', '其他'];
 
 export interface Purchase {
@@ -11,7 +13,12 @@ export interface Purchase {
   product_id: number;
   quantity: number;
   purchase_date: string;
+  /** 應付金額（使用優惠券時為折後金額） */
   amount: number;
+  /** 使用優惠券時的原價、折抵金額與券名 */
+  original_amount: number | null;
+  discount_amount: number;
+  coupon_name: string | null;
   /** 購買總堂數（下單當下的商品堂數 × 數量） */
   total_hours: number;
   /** 剩餘堂數：待付款時為 0，確認收款後才入帳 */
@@ -43,6 +50,9 @@ export interface PurchaseCreatePayload {
   amount: number;
   payment_method?: PaymentMethod | null;
   payment_note?: string | null;
+  /** 使用會員手上的優惠券：金額改由後端計算 */
+  member_coupon_id?: number | null;
+  coupon_code?: string | null;
 }
 
 /** 管理員登錄購買：視為已收款，建立即為「已付款」並入帳堂數 */
@@ -54,6 +64,9 @@ export async function createPurchase(payload: PurchaseCreatePayload) {
 export interface SelfPurchasePayload {
   product_id: number;
   quantity: number;
+  /** 輸入公開代碼，或從「我的優惠券」挑一張（擇一） */
+  coupon_code?: string | null;
+  member_coupon_id?: number | null;
 }
 
 /** 會員自助購買：歸屬對象、金額、購買日期一律由後端帶入；建立為「待付款」 */

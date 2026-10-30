@@ -11,6 +11,7 @@ import {
   Input,
   Modal,
   Segmented,
+  Select,
   Space,
   Table,
   Timeline,
@@ -19,6 +20,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
+import { listCouponOptions } from '../../api/coupons';
 import {
   addInquiryNote,
   convertInquiry,
@@ -40,6 +42,8 @@ interface ConvertValues {
   username: string;
   password: string;
   must_change_password: boolean;
+  /** 同時送的體驗券（ADR 0010） */
+  coupon_id?: number | null;
 }
 
 /**
@@ -111,11 +115,24 @@ export default function Inquiries() {
     onError: (err) => message.error(apiErrorMessage(err)),
   });
 
+  // 轉為會員時可以順便送體驗券：預設選最新一張啟用中的體驗券
+  const { data: trialCoupons = [] } = useQuery({
+    queryKey: ['coupon-options', '體驗券'],
+    queryFn: () => listCouponOptions('體驗券'),
+    enabled: convertOpen,
+  });
+  useEffect(() => {
+    if (convertOpen && trialCoupons.length && convertForm.getFieldValue('coupon_id') === undefined) {
+      convertForm.setFieldValue('coupon_id', trialCoupons[0].id);
+    }
+  }, [convertOpen, trialCoupons, convertForm]);
+
   const openConvert = (inquiry: Inquiry) => {
     convertForm.setFieldsValue({
       username: inquiry.phone.replace(/\D/g, ''),
       password: generatePassword(),
       must_change_password: true,
+      coupon_id: undefined,
     });
     setConvertOpen(true);
   };
@@ -285,7 +302,10 @@ export default function Inquiries() {
         onOk={async () => {
           if (!selected) return;
           const values = await convertForm.validateFields();
-          convertMutation.mutate({ id: selected.id, values: { ...values, username: values.username.trim() } });
+          convertMutation.mutate({
+            id: selected.id,
+            values: { ...values, username: values.username.trim(), coupon_id: values.coupon_id ?? null },
+          });
         }}
         destroyOnHidden
       >
@@ -308,8 +328,20 @@ export default function Inquiries() {
               <Button onClick={() => convertForm.setFieldValue('password', generatePassword())}>重新產生</Button>
             </Space.Compact>
           </Form.Item>
-          <Form.Item name="must_change_password" valuePropName="checked" style={{ marginBottom: 0 }}>
+          <Form.Item name="must_change_password" valuePropName="checked">
             <Checkbox>第一次登入時必須自行修改密碼（建議）</Checkbox>
+          </Form.Item>
+          <Form.Item
+            name="coupon_id"
+            label="同時送體驗券"
+            style={{ marginBottom: 0 }}
+            extra={trialCoupons.length ? '會出現在會員的「我的優惠券」' : '還沒有啟用中的體驗券，可到「優惠券」建立'}
+          >
+            <Select
+              allowClear
+              placeholder="不送"
+              options={trialCoupons.map((c) => ({ value: c.id, label: `${c.name}（${c.summary}）` }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

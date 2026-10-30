@@ -32,6 +32,7 @@ from app.models.time_slot import TimeSlot  # noqa: F401
 from app.models.user import StaffLevel, User, UserRole  # noqa: F401
 from app.models.staff_audit import StaffAuditLog  # noqa: F401
 from app.models.staff_notification import StaffNotification, StaffNotificationKind  # noqa: F401
+from app.models.coupon import Coupon, CouponKind, CouponSource, DiscountType, MemberCoupon, MemberCouponStatus  # noqa: F401
 from app.models.website import Website  # noqa: F401,E402
 from app.models.inquiry import Inquiry, InquiryNote, InquiryStatus  # noqa: F401,E402
 from app.models.line import (  # noqa: F401,E402

@@ -57,7 +57,7 @@ def test_owner_creates_staff_with_permissions(client, db, owner, member):
     me = client.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {token['access_token']}"}).json()
     assert me["staff"] == {"level": "一般使用者", "permissions": ["dashboard", "reservations"]}
     owner_me = client.get(f"{API}/auth/me", headers=auth(owner)).json()
-    assert owner_me["staff"]["level"] == "主要管理者" and len(owner_me["staff"]["permissions"]) == 14
+    assert owner_me["staff"]["level"] == "主要管理者" and len(owner_me["staff"]["permissions"]) == 15
     assert client.get(f"{API}/auth/me", headers=auth(member)).json()["staff"] is None
 
 
@@ -89,7 +89,7 @@ def test_staff_only_reaches_granted_features(client, db, owner, member):
 def test_manager_has_everything_but_accounts(client, db, owner, member):
     amy_id = create(client, owner).json()["id"]
     res = client.put(f"{API}/staff/{amy_id}", json={"level": "管理者"}, headers=auth(owner))
-    assert res.status_code == 200 and res.json()["level"] == "管理者" and len(res.json()["permissions"]) == 14
+    assert res.status_code == 200 and res.json()["level"] == "管理者" and len(res.json()["permissions"]) == 15
     amy = db.get(User, amy_id)
     h = auth(amy)
     assert client.put(f"{API}/time-slots", json={"slot_date": "2030-01-02", "start_hour": 10, "is_open": False},
