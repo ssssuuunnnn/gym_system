@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session
 from app.core.tenant_context import TenantInfo
 from app.deps import get_db, get_tenant
 from app.models.system_settings import SystemSettings
-from app.models.tenant import BusinessType, Tenant
+from app.models.tenant import BusinessType
 from app.services import terms
+from app.services.shop import shop_names
 
 router = APIRouter(prefix="/tenant", tags=["tenant"])
 
@@ -27,9 +28,6 @@ class TenantProfile(BaseModel):
 def tenant_profile(tenant: TenantInfo = Depends(get_tenant), db: Session = Depends(get_db)):
     row = db.query(SystemSettings).first()
     enabled = row.group_classes_enabled if row else terms.GROUP_CLASSES_DEFAULT[tenant.business_type]
-    if row:
-        name = row.short_name or row.company_name
-    else:
-        # 還沒設定過系統設定：用平台開通時填的名稱
-        name = db.query(Tenant.name).filter(Tenant.id == tenant.id).scalar() or terms.t("system_name")
+    # 簡稱 → 公司名稱 → 平台開通時填的名稱（預設的「…管理系統」不算店名）
+    name = shop_names(db, tenant.id, row).short
     return TenantProfile(name=name, business_type=BusinessType[tenant.business_type], group_classes_enabled=enabled)

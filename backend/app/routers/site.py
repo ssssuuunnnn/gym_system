@@ -37,6 +37,7 @@ from app.services import line as line_service
 from app.services import terms
 from app.services import staff_notifications
 from app.services.schedule import group_sessions
+from app.services.shop import DEFAULT_COMPANY_NAMES, shop_names
 from app.services import branches as branch_service
 
 router = APIRouter(tags=["site"], include_in_schema=False)
@@ -70,6 +71,10 @@ def section_nav_label(key: str) -> str | None:
 INQUIRY_RATE_WINDOW = timedelta(minutes=10)
 INQUIRY_RATE_LIMIT = 3
 HONEYPOT_FIELD = "website"
+
+
+# 預設的公司名稱（含沒有系統設定時用的「健身工作室」），不當成自訂的網頁標題
+PLACEHOLDER_TITLES = DEFAULT_COMPANY_NAMES | {name.replace("管理系統", "") for name in DEFAULT_COMPANY_NAMES}
 
 
 # ---------- 共用 ----------
@@ -231,8 +236,9 @@ def render_site(
     form: FormState | None = None,
 ) -> str:
     company = db.query(SystemSettings).first()
-    company_name = (company.short_name or company.company_name) if company else tenant.subdomain
-    full_name = company.company_name if company else company_name
+    # 店名：簡稱 → 公司名稱 → 平台開通時的名稱（與後台、前台分頁標題同一個來源）
+    names = shop_names(db, tenant.id, company)
+    company_name, full_name = names.short, names.full
     base = _base_url(request)
     brand = BRAND_COLORS.get(content.brand_color) or BRAND_COLORS[DEFAULT_BRAND_COLOR]
     accent = content.brand_color if content.brand_color in BRAND_COLORS else DEFAULT_BRAND_COLOR
@@ -273,7 +279,11 @@ def render_site(
         return f"{base}{url}" if url else None
 
     og_image = absolute(content.seo.og_image_url or content.hero.image_url or (company.logo_url if company else None))
-    title = content.seo.title or full_name
+    # 舊網站建立時會把當時的名稱（常是預設的「…管理系統」）寫進搜尋標題，這種視同沒填
+    seo_title = content.seo.title.strip()
+    title = full_name if not seo_title or seo_title in PLACEHOLDER_TITLES else seo_title
+    if preview:
+        title = f"（預覽）{title}"
     description = content.seo.description or content.hero.description or ""
     contact = content.contact
     json_ld = {

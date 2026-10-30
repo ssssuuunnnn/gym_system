@@ -88,6 +88,28 @@ def test_fitness_website_keeps_fitness_words(client, admin):
     assert "預約體驗課" in html and "ExerciseGym" in html
 
 
+def test_shop_name_in_titles(client, admin):
+    """形象網站與分頁標題用同一個店名；系統設定的預設公司名稱不算店名。"""
+    client.get(f"{API}/system-settings", headers=auth(admin))  # 建立預設設定（公司名稱＝健身工作室管理系統）
+    assert client.get(f"{API}/tenant/profile").json()["name"] == "Alpha 健身"
+    client.get(f"{API}/website", headers=auth(admin))
+    client.post(f"{API}/website/publish", headers=auth(admin))
+    assert "<title>Alpha 健身</title>" in client.get("/").text
+
+    client.put(f"{API}/system-settings", json={"company_name": "阿法運動中心", "short_name": "阿法"}, headers=auth(admin))
+    assert client.get(f"{API}/tenant/profile").json()["name"] == "阿法"
+    html = client.get("/").text
+    assert "<title>阿法運動中心</title>" in html and '"name": "阿法運動中心"' in html
+
+    draft = client.get(f"{API}/website", headers=auth(admin)).json()["draft"]
+    draft["seo"]["title"] = "阿法｜桃園健身房"
+    client.put(f"{API}/website/draft", json=draft, headers=auth(admin))
+    client.post(f"{API}/website/publish", headers=auth(admin))
+    assert "<title>阿法｜桃園健身房</title>" in client.get("/").text
+    token = client.post(f"{API}/website/preview-token", headers=auth(admin)).json()["token"]
+    assert "<title>（預覽）阿法｜桃園健身房</title>" in client.get(f"/site/preview?token={token}").text
+
+
 def test_platform_sets_business_type(platform_client, platform_admin):
     body = {"subdomain": "spa-one", "name": "一號美體", "timezone": "Asia/Taipei", "business_type": "美體",
             "admin_username": "boss", "admin_password": "init-pw-123"}

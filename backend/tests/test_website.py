@@ -126,7 +126,8 @@ def full_site(client, admin, coach_id, product_ids):
 
 
 def test_unpublished_site_redirects_to_login(client, admin, gym):
-    assert draft(client, admin)["seo"]["title"] == "PulseFit 健身工作室"
+    # 搜尋標題預設留空，網頁標題跟著系統設定的店名
+    assert draft(client, admin)["seo"]["title"] == ""
     res = client.get("/", follow_redirects=False)
     assert res.status_code == 302 and res.headers["location"] == "/login"
     assert "Disallow: /" in client.get("/robots.txt").text

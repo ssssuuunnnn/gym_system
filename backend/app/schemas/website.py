@@ -291,7 +291,7 @@ class SiteContent(_Model):
 def default_site_content(company_name: str, terms: dict[str, str] | None = None) -> SiteContent:
     """新網站的預設內容；美體店的標題、體驗選項用美體的用詞（ADR 0011）。"""
     content = SiteContent()
-    content.seo.title = company_name[:70]
+    # 搜尋與分享標題留空：網頁標題跟著系統設定的店名走（改名後不用再改網站）
     if terms and terms["staff"] != "教練":
         content.coaches.title = f"{terms['staff']}團隊"
         content.trial.title = f"預約{terms['trial']}"
