@@ -13,6 +13,13 @@ class TenantStatus(str, enum.Enum):
     suspended = "停用"
 
 
+class BusinessType(str, enum.Enum):
+    """行業類型（ADR 0011）：決定前後台的用詞與預設功能。資料庫存成員名稱。"""
+
+    fitness = "健身"
+    beauty = "美體"
+
+
 class Tenant(Base):
     """
     租戶＝一家健身房（一間公司）。見 docs/adr/0001-multi-tenancy.md。
@@ -29,6 +36,9 @@ class Tenant(Base):
     )
     timezone: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="Asia/Taipei", default="Asia/Taipei", comment="營業所在時區"
+    )
+    business_type: Mapped[BusinessType] = mapped_column(
+        Enum(BusinessType), nullable=False, server_default="fitness", default=BusinessType.fitness, comment="行業類型"
     )
     contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="聯絡人")
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="聯絡 Email")

@@ -16,6 +16,7 @@ import { listCourses } from '../../../api/courses';
 import WeekCalendar from './components/WeekCalendar';
 import { useBranches } from '../../../lib/useBranches';
 import EditBookingModal from './components/EditBookingModal';
+import { useTerms } from '../../../lib/terms';
 
 /**
  * 我的預約：本週課表週檢視 + 預約清單。後端依登入身份自動篩選為自己的預約，
@@ -27,6 +28,7 @@ import EditBookingModal from './components/EditBookingModal';
  */
 export default function MyBookings() {
   const branchList = useBranches();
+  const { t } = useTerms();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isCoach } = useAuthStore();
@@ -48,7 +50,7 @@ export default function MyBookings() {
   const cancelMutation = useMutation({
     mutationFn: (id: number) => cancelReservation(id),
     onSuccess: (reservation) => {
-      message.success(reservation.late_cancel ? '已取消預約（期限內取消，堂數不退回）' : '已取消預約');
+      message.success(reservation.late_cancel ? `已取消預約（期限內取消，${t.hours}不退回）` : '已取消預約');
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
     },
@@ -61,10 +63,10 @@ export default function MyBookings() {
   const checkInMutation = useMutation({
     mutationFn: (id: number) => markAttendance(id, '已出席'),
     onSuccess: () => {
-      message.success('簽到成功');
+      message.success(`${t.checkIn}成功`);
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
     },
-    onError: (error) => message.error(errorDetail(error, '簽到失敗，請稍後再試')),
+    onError: (error) => message.error(errorDetail(error, `${t.checkIn}失敗，請稍後再試`)),
   });
 
   const columns: ColumnsType<Reservation> = [
@@ -79,7 +81,7 @@ export default function MyBookings() {
       render: (startHour: number) => `${startHour}:00`,
     },
     {
-      title: '課程名稱',
+      title: `${t.service}名稱`,
       key: 'name',
       render: (_, record) =>
         (record.course_id && courseNameById.get(record.course_id)) ?? productNameById.get(record.product_id) ?? '—',
@@ -124,7 +126,7 @@ export default function MyBookings() {
               loading={checkInMutation.isPending && checkInMutation.variables === record.id}
               onClick={() => checkInMutation.mutate(record.id)}
             >
-              簽到
+              {t.checkIn}
             </Button>
           ) : null}
           {(record.status === '待確認' || (record.status === '已確認' && !hasStarted(record))) &&
@@ -133,7 +135,7 @@ export default function MyBookings() {
               title="確定要取消此預約？"
               description={
                 isLateCancel(record, deadlineHours)
-                  ? `已在開課前 ${deadlineHours} 小時內，取消後這堂不會退回。`
+                  ? `已在開始前 ${deadlineHours} 小時內，取消後這 1 ${t.unit}不會退回。`
                   : undefined
               }
               okText={isLateCancel(record, deadlineHours) ? '仍要取消' : '確定'}

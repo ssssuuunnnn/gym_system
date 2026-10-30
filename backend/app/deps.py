@@ -48,7 +48,7 @@ def _lookup_tenant(subdomain: str) -> tuple[TenantInfo | None, TenantStatus | No
     with db_session.SessionLocal() as s:
         tenant = s.query(Tenant).filter(Tenant.subdomain == subdomain).first()
         result = (
-            (TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone), tenant.status)
+            (TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone, business_type=tenant.business_type.name), tenant.status)
             if tenant
             else (None, None)
         )
@@ -122,11 +122,11 @@ def require_perm(*codes: str):
     後台功能權限（ADR 0008）：有其中任何一項功能才可呼叫。主要管理者、管理者擁有全部功能。
     也可直接呼叫 require_perm("x")(current_user) 在函式內檢查。
     """
-    from app.services.staff import LABEL, has_perm
+    from app.services.staff import has_perm, label
 
     def dependency(current_user: User = Depends(require_admin)) -> User:
         if not has_perm(current_user, *codes):
-            names = "、".join(LABEL[c] for c in codes)
+            names = "、".join(label(c) for c in codes)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"沒有「{names}」的權限")
         return current_user
 

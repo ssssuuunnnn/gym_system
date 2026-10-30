@@ -39,14 +39,14 @@
     <nav aria-label="主選單" class="nav nav-desktop">
       {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
       <a href="/login" class="nav-login">會員登入</a>
-      {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+      {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
     </nav>
     <details class="menu">
       <summary aria-label="選單"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
       <nav aria-label="主選單" class="nav nav-mobile">
         {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
         <a href="/login" class="nav-login">會員登入</a>
-        {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約體驗課</a>{% endif %}
+        {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
       </nav>
     </details>
   </div>
@@ -70,7 +70,7 @@
 {% if 'trial' in sections and not form.sent %}
 <div class="mobile-cta">
   {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
-  <a class="btn btn-accent" href="#trial">預約體驗課</a>
+  <a class="btn btn-accent" href="#trial">預約{{ t.trial }}</a>
 </div>
 {% endif %}
 </body>

@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
 import { App, Button, Card, Col, Form, Input, Row, Select, Space, Typography } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateTenant, type Tenant, type TenantUpdatePayload } from '../../../../api/platform';
+import { BUSINESS_TYPE_OPTIONS, updateTenant, type Tenant, type TenantUpdatePayload } from '../../../../api/platform';
 import { apiErrorMessage } from '../../../../api/platformClient';
 import { formatServerTime } from '../../../../lib/datetime';
 import { baseDomainWithPort } from '../../../../lib/host';
 import { TIMEZONE_OPTIONS } from '../../../../lib/timezones';
 
-type InfoValues = Required<Pick<TenantUpdatePayload, 'name' | 'timezone'>> &
+type InfoValues = Required<Pick<TenantUpdatePayload, 'name' | 'timezone' | 'business_type'>> &
   Pick<TenantUpdatePayload, 'contact_name' | 'contact_email' | 'contact_phone' | 'note'>;
 
-const FIELDS: (keyof InfoValues)[] = ['name', 'timezone', 'contact_name', 'contact_email', 'contact_phone', 'note'];
+const FIELDS: (keyof InfoValues)[] = ['name', 'timezone', 'business_type', 'contact_name', 'contact_email', 'contact_phone', 'note'];
 
 function toValues(t: Tenant): InfoValues {
   return {
     name: t.name,
     timezone: t.timezone,
+    business_type: t.business_type,
     contact_name: t.contact_name,
     contact_email: t.contact_email,
     contact_phone: t.contact_phone,
@@ -109,6 +110,11 @@ export function TenantInfoCard({ tenant }: TenantInfoCardProps) {
           <Col xs={24} md={12}>
             <Form.Item name="timezone" label="時區" rules={[{ required: true }]}>
               <Select showSearch options={TIMEZONE_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item name="business_type" label="行業類型" extra="改了之後，這家店前後台的用詞會跟著換（已建立的資料不受影響）">
+              <Select options={BUSINESS_TYPE_OPTIONS} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>

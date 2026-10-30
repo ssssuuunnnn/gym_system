@@ -10,6 +10,7 @@ import { apiErrorMessage } from '../../api/errors';
 import { formatServerTime } from '../../lib/datetime';
 import FrontPageHeader from '../../components/member/FrontPageHeader';
 import FrontCard from '../../components/member/FrontCard';
+import { useTerms } from '../../lib/terms';
 
 type Tab = '可使用' | '已使用／過期';
 
@@ -20,6 +21,7 @@ type Tab = '可使用' | '已使用／過期';
 export default function MyCoupons() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t } = useTerms();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('可使用');
@@ -44,7 +46,7 @@ export default function MyCoupons() {
   const redeem = useMutation({
     mutationFn: (c: MemberCoupon) => redeemTrialCoupon(c.id),
     onSuccess: (p) => {
-      message.success(`已加入 ${p.total_hours} 堂，挑一堂課吧`);
+      message.success(`已加入 ${p.total_hours} ${t.unit}，挑個時段預約吧`);
       queryClient.invalidateQueries({ queryKey: ['my-coupons'] });
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       queryClient.invalidateQueries({ queryKey: ['purchases'] });

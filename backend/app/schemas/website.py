@@ -168,15 +168,15 @@ class FaqSection(_Model):
     items: list[FaqItem] = Field(default_factory=list, max_length=20)
 
 
-def default_privacy_notice(company_name: str) -> str:
+def default_privacy_notice(company_name: str, trial: str = "體驗課程") -> str:
     return (
         f"{company_name}（以下稱本公司）依個人資料保護法告知：\n"
-        "一、蒐集目的：安排體驗課程與聯繫服務。\n"
+        f"一、蒐集目的：安排{trial}與聯繫服務。\n"
         "二、蒐集的個人資料類別：姓名、手機號碼、LINE ID 及您填寫的留言。\n"
         "三、利用期間：至蒐集目的完成為止；未成為會員者，最長保存 6 個月後刪除。\n"
         "四、利用地區與對象：僅限本公司於臺灣境內聯繫您時使用，不提供給第三方。\n"
         "五、您可以向本公司請求查詢、閱覽、複製、補充、更正、停止蒐集利用或刪除您的個人資料。\n"
-        "六、您可自由選擇是否提供；若不提供，本公司將無法與您聯繫安排體驗課程。"
+        f"六、您可自由選擇是否提供；若不提供，本公司將無法與您聯繫安排{trial}。"
     )
 
 
@@ -288,10 +288,21 @@ class SiteContent(_Model):
         return [u for u in urls if u]
 
 
-def default_site_content(company_name: str) -> SiteContent:
+def default_site_content(company_name: str, terms: dict[str, str] | None = None) -> SiteContent:
+    """新網站的預設內容；美體店的標題、體驗選項用美體的用詞（ADR 0011）。"""
     content = SiteContent()
     content.seo.title = company_name[:70]
-    content.trial.privacy_notice = default_privacy_notice(company_name)
+    if terms and terms["staff"] != "教練":
+        content.coaches.title = f"{terms['staff']}團隊"
+        content.trial.title = f"預約{terms['trial']}"
+        content.trial.interests = [terms["private"], "還不確定，想先諮詢"]
+        content.trial.privacy_notice = default_privacy_notice(company_name, terms["trial"])
+        # 美體店預設不開團體課程：課表區塊先隱藏
+        for section in content.sections:
+            if section.key == "schedule":
+                section.visible = False
+    else:
+        content.trial.privacy_notice = default_privacy_notice(company_name)
     return content
 
 

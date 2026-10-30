@@ -7,6 +7,7 @@ import { listProducts, createProduct, updateProduct, PRODUCT_CATEGORIES, type Pr
 import { listActiveCourses } from '../../api/courses';
 import { listCoaches } from '../../api/coaches';
 import { useBranches } from '../../lib/useBranches';
+import { productCategoryLabel, useTerms } from '../../lib/terms';
 
 interface FormValues {
   name: string;
@@ -30,6 +31,7 @@ interface FormValues {
  */
 export default function ProductForm() {
   const navigate = useNavigate();
+  const { t, groupClassesEnabled } = useTerms();
   const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const productId = id ? Number(id) : undefined;
@@ -112,7 +114,10 @@ export default function ProductForm() {
 
         <Form.Item name="category" label="分類" rules={[{ required: true, message: '請選擇分類' }]}>
           <Select
-            options={PRODUCT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            // 分類名稱依行業用詞；沒開團體課程的店不能新增團體課程方案（編輯中的保留）
+            options={PRODUCT_CATEGORIES.filter(
+              (c) => c !== '團體課程' || groupClassesEnabled || editingProduct?.category === '團體課程',
+            ).map((c) => ({ value: c, label: productCategoryLabel(c, t) }))}
             onChange={() => {
               form.setFieldsValue({ course_id: undefined, session_hours: undefined, stock: undefined });
             }}

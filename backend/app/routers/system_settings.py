@@ -7,6 +7,7 @@ from app.deps import get_db
 from app.deps import get_current_user, require_perm
 from app.models.system_settings import SystemSettings
 from app.schemas.system_settings import SystemSettingsLogoOut, SystemSettingsOut, SystemSettingsUpdate
+from app.services import terms
 
 router = APIRouter(prefix="/system-settings", tags=["system-settings"])
 
@@ -17,15 +18,14 @@ require_access = require_perm("settings")
 LOGO_CONTENT_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 
-# 尚未設定時的預設公司名稱，與既有側欄硬編碼文字一致，確保首次啟動視覺不變
-DEFAULT_COMPANY_NAME = "健身工作室管理系統"
 
 
 def _get_or_create_settings(db: Session) -> SystemSettings:
     """全站僅一筆設定；不存在時以預設值建立（idempotent，供 GET/PUT 共用）。"""
     settings_row = db.query(SystemSettings).first()
     if settings_row is None:
-        settings_row = SystemSettings(company_name=DEFAULT_COMPANY_NAME)
+        # 尚未設定時的預設公司名稱依行業（健身／美體工作室管理系統）
+        settings_row = SystemSettings(company_name=terms.t("system_name"))
         db.add(settings_row)
         db.commit()
         db.refresh(settings_row)
@@ -44,6 +44,8 @@ def update_system_settings(payload: SystemSettingsUpdate, db: Session = Depends(
     data = payload.model_dump(exclude_unset=True)
     if "company_name" in data and not data["company_name"].strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="公司名稱不可空白")
+    if "group_classes_enabled" in data:
+        settings_row.group_classes_setting = data.pop("group_classes_enabled")
     for field, value in data.items():
         setattr(settings_row, field, value)
     db.commit()

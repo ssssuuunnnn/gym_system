@@ -4,6 +4,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import type { Attendance, CoachingReservation } from '../../../../api/reservations';
 import { CHECK_IN_OPENS_BEFORE_MINUTES } from '../../../../lib/booking';
 import FrontCard from '../../../../components/member/FrontCard';
+import { useTerms } from '../../../../lib/terms';
 
 /** 一堂課：團體課＝同課程同日同時段的所有預約；私人課＝一筆預約 */
 export interface ClassUnit {
@@ -32,6 +33,7 @@ export interface ClassUnitCardProps {
 export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: ClassUnitCardProps) {
   const { token } = theme.useToken();
   const now = dayjs();
+  const { t } = useTerms();
   const opensAt = unit.start.subtract(CHECK_IN_OPENS_BEFORE_MINUTES, 'minute');
   const open = !now.isBefore(opensAt);
   const started = !now.isBefore(unit.start);
@@ -40,14 +42,14 @@ export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: C
   const noShow = unit.reservations.filter((r) => r.attendance === '未到').length;
   const pending = unit.reservations.length - attended - noShow;
   const subtitle = `${
-    unit.isGroup ? `團體課 · ${unit.reservations.length} 位學員` : `${unit.reservations[0]?.member_username ?? ''} · 私人課`
+    unit.isGroup ? `${t.group} · ${unit.reservations.length} 位${t.customer}` : `${unit.reservations[0]?.member_username ?? ''} · ${t.private}`
   } · ${unit.branchName}`;
 
   const summary = !open ? (
-    <span style={{ fontSize: 12, color: token.colorTextSecondary, flex: 'none' }}>{opensAt.format('HH:mm')} 開放簽到</span>
+    <span style={{ fontSize: 12, color: token.colorTextSecondary, flex: 'none' }}>{opensAt.format('HH:mm')} 開放{t.checkIn}</span>
   ) : inProgress ? (
     <Tag variant="filled" style={{ marginInlineEnd: 0, color: token.colorTextLightSolid, background: token.colorPrimary }}>
-      上課中
+      進行中
     </Tag>
   ) : pending > 0 ? (
     <Tag variant="filled" color="warning" style={{ marginInlineEnd: 0 }}>
@@ -122,10 +124,10 @@ export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: C
               {r.attendance === null ? (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Button type="primary" loading={markingId === r.id} onClick={() => onMark(r.id, '已出席')} style={{ fontWeight: 700 }}>
-                    簽到
+                    {t.checkIn}
                   </Button>
-                  <Popconfirm title={`${r.member_username} 未到？`} description="未到不退堂。" okText="標記未到" cancelText="取消" disabled={!started} onConfirm={() => onMark(r.id, '未到')}>
-                    <Button disabled={!started} title={started ? undefined : '課程開始後才能標記未到'}>
+                  <Popconfirm title={`${r.member_username} 未到？`} description={`未到不退${t.unit}。`} okText="標記未到" cancelText="取消" disabled={!started} onConfirm={() => onMark(r.id, '未到')}>
+                    <Button disabled={!started} title={started ? undefined : '開始後才能標記未到'}>
                       未到
                     </Button>
                   </Popconfirm>
@@ -135,10 +137,10 @@ export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: C
                   <Button
                     size="small"
                     icon={<CheckOutlined />}
-                    aria-label={`${r.member_username} 已簽到${started ? '，點一下可更正' : ''}`}
+                    aria-label={`${r.member_username} 已${t.checkIn}${started ? '，點一下可更正' : ''}`}
                     style={{ border: 'none', background: token.colorSuccessBg, color: token.colorSuccessText, fontWeight: 500 }}
                   >
-                    已簽到
+                    已{t.checkIn}
                   </Button>
                 </Popconfirm>
               ) : (
@@ -155,7 +157,7 @@ export function ClassUnitCard({ unit, expanded, onToggle, onMark, markingId }: C
             </div>
           ))}
           <p style={{ margin: 0, padding: '8px 0 0', borderTop: `1px solid ${token.colorBorderSecondary}`, fontSize: 12, color: token.colorTextSecondary }}>
-            學員可在開課前 {CHECK_IN_OPENS_BEFORE_MINUTES} 分鐘自行簽到；未到不退堂
+            {t.customer}可在開始前 {CHECK_IN_OPENS_BEFORE_MINUTES} 分鐘自行{t.checkIn}；未到不退{t.unit}
           </p>
         </div>
       )}

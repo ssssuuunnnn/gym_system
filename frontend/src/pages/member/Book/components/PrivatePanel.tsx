@@ -1,6 +1,7 @@
 import { Button, theme } from 'antd';
 import type { Coach } from '../../../../api/coaches';
 import FrontCard from '../../../../components/member/FrontCard';
+import { useTerms } from '../../../../lib/terms';
 
 export interface PrivateHour {
   hour: number;
@@ -20,18 +21,19 @@ export interface PrivatePanelProps {
 /** 私人課：先選教練，再選時段（整點，公休與已過時段停用）。 */
 export function PrivatePanel({ coaches, coachId, onCoachChange, hours, onPickHour }: PrivatePanelProps) {
   const { token } = theme.useToken();
+  const { t } = useTerms();
   const sectionTitle = { margin: 0, fontSize: 15, fontWeight: 700 } as const;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <section aria-labelledby="pick-coach" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h2 id="pick-coach" style={sectionTitle}>
-          選擇教練
+          選擇{t.staff}
         </h2>
         {coaches.length === 0 ? (
-          <FrontCard style={{ fontSize: 14, color: token.colorTextSecondary }}>目前沒有可預約的私人教練</FrontCard>
+          <FrontCard style={{ fontSize: 14, color: token.colorTextSecondary }}>目前沒有可預約的{t.privateStaff}</FrontCard>
         ) : (
-          <div role="radiogroup" aria-label="教練" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div role="radiogroup" aria-label={t.staff} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {coaches.map((c) => {
               const selected = c.id === coachId;
               return (
@@ -101,7 +103,7 @@ export function PrivatePanel({ coaches, coachId, onCoachChange, hours, onPickHou
               ))}
             </div>
           )}
-          <p style={{ margin: 0, fontSize: 12, color: token.colorTextSecondary }}>私人課以 1 小時為一堂，送出後由工作室與教練確認。</p>
+          <p style={{ margin: 0, fontSize: 12, color: token.colorTextSecondary }}>{t.private}以 1 小時為 1 {t.unit}，送出後由工作室與{t.staff}確認。</p>
         </section>
       )}
     </div>

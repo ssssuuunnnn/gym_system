@@ -7,6 +7,7 @@ import { cancelPurchase, listPurchases, type Purchase } from '../../api/purchase
 import { listProducts } from '../../api/products';
 import { getSettings } from '../../api/settings';
 import StatusTag from '../../components/StatusTag';
+import { useTerms } from '../../lib/terms';
 
 /**
  * 我的商品／庫存：對應「我的商品／庫存」。後端依登入身份自動篩選為自己的購買紀錄。
@@ -14,6 +15,7 @@ import StatusTag from '../../components/StatusTag';
  */
 export default function MyProducts() {
   const queryClient = useQueryClient();
+  const { t } = useTerms();
   const { data: purchases, isLoading } = useQuery({ queryKey: ['my-purchases'], queryFn: () => listPurchases() });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
@@ -48,11 +50,11 @@ export default function MyProducts() {
       render: (value: string) => <StatusTag status={value} />,
     },
     {
-      title: '剩餘堂數',
+      title: `剩餘${t.hours}`,
       dataIndex: 'remaining_hours',
       render: (value: number, record) =>
         record.payment_status === '待付款' ? (
-          <Typography.Text type="secondary">付款後入帳 {record.total_hours} 堂</Typography.Text>
+          <Typography.Text type="secondary">付款後入帳 {record.total_hours} {t.unit}</Typography.Text>
         ) : record.total_hours > 0 ? (
           value
         ) : (
@@ -93,7 +95,7 @@ export default function MyProducts() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`有 ${unpaidCount} 筆訂單待付款，確認收款後堂數才會入帳。`}
+          title={`有 ${unpaidCount} 筆訂單待付款，確認收款後${t.hours}才會入帳。`}
           description={
             <span style={{ whiteSpace: 'pre-line' }}>{settings?.payment_instructions || '請向櫃台付款。'}</span>
           }

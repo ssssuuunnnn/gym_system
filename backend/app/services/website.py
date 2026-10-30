@@ -9,20 +9,18 @@ from app.models.product import Product
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
 from app.schemas.website import SiteContent, default_site_content
-
-DEFAULT_COMPANY_NAME = "健身工作室"
-
+from app.services import terms
 
 def company_name(db: Session) -> str:
     row = db.query(SystemSettings).first()
-    return (row.short_name or row.company_name) if row else DEFAULT_COMPANY_NAME
+    return (row.short_name or row.company_name) if row else terms.t("system_name").replace("管理系統", "")
 
 
 def get_or_create_website(db: Session) -> Website:
     """每家一筆，第一次讀取時以預設內容建立（比照 system_settings 的做法）。"""
     site = db.query(Website).first()
     if site is None:
-        site = Website(draft=default_site_content(company_name(db)).model_dump(mode="json"))
+        site = Website(draft=default_site_content(company_name(db), terms.terms()).model_dump(mode="json"))
         db.add(site)
         db.flush()
     return site

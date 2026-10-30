@@ -19,6 +19,8 @@ class SystemSettingsUpdate(BaseModel):
     # 開課前幾小時內取消不退堂；0＝不限制，上限一週
     cancel_deadline_hours: int | None = Field(default=None, ge=0, le=168)
     payment_instructions: str | None = Field(default=None, max_length=500)
+    # 團體課程功能開關（美體店預設關閉，ADR 0011）
+    group_classes_enabled: bool | None = None
 
 
 class SystemSettingsOut(SystemSettingsBase):
@@ -26,6 +28,7 @@ class SystemSettingsOut(SystemSettingsBase):
 
     id: int
     updated_at: datetime
+    group_classes_enabled: bool = True
 
 
 class SystemSettingsLogoOut(BaseModel):

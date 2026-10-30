@@ -17,6 +17,7 @@ import {
 import { listMembers } from '../../api/users';
 import { useBranches } from '../../lib/useBranches';
 import { formatServerTime } from '../../lib/datetime';
+import { coachTypeLabel, useTerms } from '../../lib/terms';
 
 // 電話格式：數字、+、-、括號、空白，至少 8 碼（與教練資料設計稿一致）
 const PHONE_RE = /^[0-9+\-() ]{8,}$/;
@@ -43,6 +44,7 @@ const fmtDateTime = (value: string) => formatServerTime(value);
  * 後端無 GET /coaches/{id}，編輯模式從既有列表快取取出該筆資料帶入（同 ProductForm 作法）。
  */
 export default function CoachForm() {
+  const { t, groupClassesEnabled } = useTerms();
   const { id } = useParams<{ id: string }>();
   const coachId = id ? Number(id) : undefined;
   const isEdit = coachId != null;
@@ -126,7 +128,7 @@ export default function CoachForm() {
   const bankCodeBad = bankCode.length > 0 && bankCode.length !== 3;
   const bankAccountBad = bankAccount.length > 0 && bankAccount.length < 10;
 
-  let bankNote = '用於教練鐘點費撥款，僅管理員可見';
+  let bankNote = `用於${t.staffPay}撥款，僅管理員可見`;
   if (bankCodeBad) bankNote = '銀行代號為 3 碼數字';
   else if (bankAccountBad) bankNote = '銀行帳號請輸入 10–16 碼數字';
 
@@ -229,7 +231,7 @@ export default function CoachForm() {
       return createCoach(payload);
     },
     onSuccess: () => {
-      message.success(isEdit ? '已儲存變更' : '已新增教練');
+      message.success(isEdit ? '已儲存變更' : `已新增${t.staff}`);
       queryClient.invalidateQueries({ queryKey: ['coaches'] });
       queryClient.invalidateQueries({ queryKey: ['members'] });
       navigate('/admin/coaches');
@@ -244,7 +246,7 @@ export default function CoachForm() {
     mutationFn: () => deleteCoach(coachId!),
     onSuccess: () => {
       setDeleteOpen(false);
-      message.success('已刪除教練資料');
+      message.success(`已刪除${t.staff}資料`);
       queryClient.invalidateQueries({ queryKey: ['coaches'] });
       queryClient.invalidateQueries({ queryKey: ['members'] });
       navigate('/admin/coaches');
@@ -279,11 +281,11 @@ export default function CoachForm() {
       <Card>
         <Result
           status="404"
-          title="找不到此教練資料"
+          title={`找不到此${t.staff}資料`}
           subTitle="可能已被刪除，請返回列表重新確認。"
           extra={
             <Button type="primary" onClick={() => navigate('/admin/coaches')}>
-              返回教練資料列表
+              返回{t.staff}資料列表
             </Button>
           }
         />
@@ -298,28 +300,28 @@ export default function CoachForm() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <Breadcrumb
           items={[
-            { title: '教練管理' },
-            { title: '教練資料列表' },
-            { title: isEdit ? '編輯教練資料' : '新增教練' },
+            { title: `${t.staff}管理` },
+            { title: `${t.staff}資料列表` },
+            { title: isEdit ? `編輯${t.staff}資料` : `新增${t.staff}` },
           ]}
         />
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
           <div style={{ fontSize: 24, fontWeight: 600, lineHeight: 1.3 }}>
-            {isEdit ? '編輯教練資料' : '新增教練'}
+            {isEdit ? `編輯${t.staff}資料` : `新增${t.staff}`}
           </div>
           <div style={{ fontSize: 13, color: token.colorTextTertiary, paddingBottom: 4 }}>
             {isEdit
-              ? `綁定帳號 ${pickedUsername}，此帳號身份為教練（類型見下方）`
-              : '綁定後該會員帳號的身份會變成教練，類型於下方設定'}
+              ? `綁定帳號 ${pickedUsername}，此帳號身份為${t.staff}（類型見下方）`
+              : `綁定後該會員帳號的身份會變成${t.staff}，類型於下方設定`}
           </div>
         </div>
       </div>
 
       <Card
-        title="教練資料"
+        title={`${t.staff}資料`}
         extra={
           isEdit && editingCoach
-            ? `教練編號 #${editingCoach.id} · 建立於 ${fmtDateTime(editingCoach.created_at)}`
+            ? `${t.staff}編號 #${editingCoach.id} · 建立於 ${fmtDateTime(editingCoach.created_at)}`
             : undefined
         }
       >
@@ -332,11 +334,11 @@ export default function CoachForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            {hint('顯示於課程排程與會員預約畫面')}
+            {hint('顯示於排程與會員預約畫面')}
           </div>
 
           <div style={row}>
-            <div style={labelCol}>授課名稱</div>
+            <div style={labelCol}>{t.teach}名稱</div>
             <Input
               style={{ width: 320 }}
               placeholder="例如：Coach Pei"
@@ -389,24 +391,27 @@ export default function CoachForm() {
           </div>
 
           <div style={row}>
-            <div style={labelCol}>{required}教練類型</div>
+            <div style={labelCol}>{required}類型</div>
             <Checkbox.Group
               value={coachTypes}
               onChange={(v) => setCoachTypes(normalizeCoachTypes(coachTypes, v as CoachType[]))}
-              options={COACH_TYPES.map((t) => ({ value: t, label: t }))}
+              // 沒開團體課程的店不顯示「團體課程教練」（已勾的保留）
+              options={COACH_TYPES.filter(
+                (type) => type !== '團體課程教練' || groupClassesEnabled || coachTypes.includes(type),
+              ).map((type) => ({ value: type, label: coachTypeLabel(type, t) }))}
             />
             {hint(
               coachTypes.length === 0
                 ? '請至少選擇一種類型'
                 : coachTypes.includes('場租教練')
-                  ? '場租教練不屬於公司，來租借場地，系統不計鐘點'
-                  : '私人課依下方每堂鐘點費、團體課依各課程設定的每堂教練費計算',
+                  ? `${t.rentalStaff}不屬於公司，來租借場地，系統不計費用`
+                  : `${t.private}依下方每${t.unit}費用${groupClassesEnabled ? '、團體課依各課程設定的費用' : ''}計算`,
               coachTypes.length === 0,
             )}
           </div>
 
           <div style={row}>
-            <div style={labelCol}>{required}授課分店</div>
+            <div style={labelCol}>{required}{t.teach}分店</div>
             <Checkbox.Group
               value={effectiveBranchIds}
               onChange={(v) => setBranchIds(v as number[])}
@@ -415,28 +420,28 @@ export default function CoachForm() {
                 .map((b) => ({ value: b.id, label: b.name }))}
             />
             {hint(
-              effectiveBranchIds.length === 0 ? '請至少選擇一間分店' : '會員預約私人課時，只會在這些分店看到這位教練',
+              effectiveBranchIds.length === 0 ? '請至少選擇一間分店' : `會員預約${t.private}時，只會在這些分店看到這位${t.staff}`,
               effectiveBranchIds.length === 0,
             )}
           </div>
 
           {isPrivate && (
           <div style={row}>
-            <div style={labelCol}>{required}私人課鐘點費</div>
+            <div style={labelCol}>{required}{t.private}{t.unit === '堂' ? '鐘點費' : '服務費'}</div>
             <InputNumber
               style={{ width: 200 }}
               min={0}
               precision={0}
               prefix="NT$"
-              suffix="／堂"
+              suffix={`／${t.unit}`}
               value={sessionRate}
               status={sessionRate === null ? 'error' : undefined}
               onChange={(v) => setSessionRate(v)}
             />
             {hint(
               sessionRate === null
-                ? '請輸入每堂鐘點費，不支薪請填 0'
-                : '私人課鐘點：已出席與未到的堂數 × 費率。僅管理員可見',
+                ? `請輸入每${t.unit}費用，不支薪請填 0`
+                : `${t.private}：已出席與未到的${t.hours} × 費率。僅管理員可見`,
               sessionRate === null,
             )}
           </div>
@@ -447,14 +452,14 @@ export default function CoachForm() {
             <Input.TextArea
               style={{ flex: 1, minHeight: 96 }}
               autoSize={{ minRows: 4 }}
-              placeholder="擅長項目、證照、適合的學員類型⋯"
+              placeholder={`擅長項目、證照、適合的${t.customer}類型⋯`}
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
             />
           </div>
 
           <div style={rowTop}>
-            <div style={{ ...labelCol, paddingTop: 6 }}>教練照片</div>
+            <div style={{ ...labelCol, paddingTop: 6 }}>{t.staff}照片</div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <input
                 ref={fileInputRef}
@@ -536,7 +541,7 @@ export default function CoachForm() {
                 ) : (
                   <>
                     <div style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                      會員預約畫面與課程排程會顯示這張照片
+                      會員預約畫面與排程會顯示這張照片
                     </div>
                     <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
                       建議 4:5 直式、600 × 750 以上，限 jpg、png，單檔 2MB 以內
@@ -579,7 +584,7 @@ export default function CoachForm() {
                     <Tag>不可變更</Tag>
                   </div>
                   <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
-                    一個帳號只能對應一筆教練資料；如需換綁請刪除本筆後重新建立
+                    一個帳號只能對應一筆{t.staff}資料；如需換綁請刪除本筆後重新建立
                   </div>
                 </>
               ) : picked ? (
@@ -669,7 +674,7 @@ export default function CoachForm() {
                               >
                                 {m.username}
                               </span>
-                              {bound && <Tag color="warning">已綁定教練</Tag>}
+                              {bound && <Tag color="warning">已綁定{t.staff}</Tag>}
                               <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>#{m.id}</span>
                             </div>
                           );
@@ -695,7 +700,7 @@ export default function CoachForm() {
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
-                    僅能綁定既有會員帳號；一個帳號只能對應一筆教練資料
+                    僅能綁定既有會員帳號；一個帳號只能對應一筆{t.staff}資料
                   </div>
                 </>
               )}
@@ -720,7 +725,7 @@ export default function CoachForm() {
       >
         {isEdit && (
           <Button type="text" danger onClick={() => setDeleteOpen(true)}>
-            刪除教練資料
+            刪除{t.staff}資料
           </Button>
         )}
         <span style={{ fontSize: 13, color: token.colorTextTertiary }}>{readyLabel}</span>
@@ -731,16 +736,16 @@ export default function CoachForm() {
         </Button>
       </div>
 
-      <Modal open={deleteOpen} title="刪除教練資料" footer={null} width={420} onCancel={() => setDeleteOpen(false)}>
+      <Modal open={deleteOpen} title={`刪除${t.staff}資料`} footer={null} width={420} onCancel={() => setDeleteOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <ExclamationCircleFilled style={{ fontSize: 20, color: token.colorError, lineHeight: 1.4 }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontSize: 14, color: token.colorText }}>
-                確定要刪除「{editingCoach?.name}」的教練資料？
+                確定要刪除「{editingCoach?.name}」的{t.staff}資料？
               </div>
               <div style={{ fontSize: 13, color: token.colorTextSecondary, lineHeight: 1.6 }}>
-                刪除後綁定帳號 {pickedUsername} 的身份會回復為學員，既有課程與預約需另行調整。此動作無法復原。
+                刪除後綁定帳號 {pickedUsername} 的身份會回復為{t.customer}，既有{t.service}與預約需另行調整。此動作無法復原。
               </div>
             </div>
           </div>

@@ -164,6 +164,7 @@ def create_tenant(
             name=payload.name,
             timezone=payload.timezone,
             status=payload.status,
+            business_type=payload.business_type,
             contact_name=payload.contact_name,
             contact_email=payload.contact_email,
             contact_phone=payload.contact_phone,
@@ -189,6 +190,7 @@ def create_tenant(
             "name": tenant.name,
             "timezone": tenant.timezone,
             "status": tenant.status.value,
+            "business_type": tenant.business_type.value,
             "admin_username": tenant_admin.username,
         },
     )
@@ -224,6 +226,8 @@ def update_tenant(
         data["name"] = data["name"].strip()
     elif "name" in data:
         data.pop("name")  # 名稱不可清空
+    if "business_type" in data and data["business_type"] is None:
+        data.pop("business_type")
     if "timezone" in data:
         if data["timezone"] is None:
             data.pop("timezone")
@@ -242,7 +246,7 @@ def update_tenant(
     if changes:
         _audit(db, admin, "update_tenant", tenant.id, changes)
         db.commit()
-        if "timezone" in changes:
+        if "timezone" in changes or "business_type" in changes:
             clear_tenant_cache()
         db.refresh(tenant)
     return _tenant_out(tenant, _stats_by_tenant(db))

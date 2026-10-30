@@ -13,6 +13,8 @@ class TenantInfo:
     id: int
     subdomain: str
     timezone: str
+    # 行業類型（BusinessType 的成員名稱 fitness／beauty），決定用詞（services/terms.py）
+    business_type: str = "fitness"
 
 
 current_tenant: ContextVar[TenantInfo | None] = ContextVar("current_tenant", default=None)

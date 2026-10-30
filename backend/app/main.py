@@ -28,6 +28,7 @@ from app.routers import (
     staff,
     staff_notifications,
     coupons,
+    tenant_profile,
     system_settings,
     time_slots,
     users,
@@ -81,6 +82,7 @@ app.include_router(branches.router, prefix=settings.API_V1_PREFIX)
 app.include_router(staff.router, prefix=settings.API_V1_PREFIX)
 app.include_router(staff_notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(coupons.router, prefix=settings.API_V1_PREFIX)
+app.include_router(tenant_profile.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(site.router)
 

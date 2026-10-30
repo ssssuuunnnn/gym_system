@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatServerTime } from '../../lib/datetime';
 import { listMembers, type Member } from '../../api/users';
+import { useTerms } from '../../lib/terms';
 
 /**
  * 會員列表：對應「會員列表」。身份（學員／教練）為衍生值，教練類型見教練資料，來自後端 UserOut.is_coach。
  */
 export default function MemberList() {
   const navigate = useNavigate();
+  const { t } = useTerms();
 
   const { data: members, isLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
 
@@ -25,7 +27,7 @@ export default function MemberList() {
     {
       title: '身份',
       dataIndex: 'is_coach',
-      render: (isCoach: boolean) => <Tag color={isCoach ? 'blue' : 'default'}>{isCoach ? '教練' : '學員'}</Tag>,
+      render: (isCoach: boolean) => <Tag color={isCoach ? 'blue' : 'default'}>{isCoach ? t.staff : t.customer}</Tag>,
     },
     {
       title: '加入時間',

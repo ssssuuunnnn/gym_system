@@ -1,4 +1,12 @@
 import { platformClient } from './platformClient';
+import type { BusinessType } from './tenant';
+
+export type { BusinessType };
+/** 開通時可選的行業類型與說明 */
+export const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
+  { value: '健身', label: '健身／運動' },
+  { value: '美體', label: '美體（按摩、美容、SPA）' },
+];
 
 /** 對應 backend/app/schemas/platform.py */
 export type TenantStatus = '試用' | '啟用' | '停用';
@@ -19,6 +27,8 @@ export interface Tenant {
   subdomain: string;
   status: TenantStatus;
   timezone: string;
+  /** 行業類型：決定這家店前後台的用詞與預設功能（ADR 0011） */
+  business_type: BusinessType;
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
@@ -42,6 +52,7 @@ export interface TenantCreatePayload extends TenantContactPayload {
   subdomain: string;
   timezone: string;
   status: TenantStatus;
+  business_type: BusinessType;
   admin_username: string;
   admin_password: string;
   admin_must_change_password: boolean;
@@ -50,6 +61,7 @@ export interface TenantCreatePayload extends TenantContactPayload {
 export interface TenantUpdatePayload extends TenantContactPayload {
   name?: string;
   timezone?: string;
+  business_type?: BusinessType;
   line_monthly_cap?: number;
 }
 

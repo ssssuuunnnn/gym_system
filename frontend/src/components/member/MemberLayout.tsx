@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { useAuthStore } from '../../store/auth';
 import { getMyCoachProfile, isPayableCoach } from '../../api/coaches';
 import { FRONT_MAX_WIDTH, FRONT_THEMES, TAB_BAR_HEIGHT, type FrontMode } from './memberTheme';
+import { useTerms, type Terms } from '../../lib/terms';
 
 interface TabItem {
   to: string;
@@ -22,16 +23,25 @@ interface TabItem {
   icon: ReactNode;
 }
 
-const MEMBER_TABS: TabItem[] = [
+// 分頁名稱依行業用詞（ADR 0011）
+const memberTabs = (t: Terms): TabItem[] => [
   { to: '/member/dashboard', label: '首頁', icon: <HomeOutlined /> },
-  { to: '/member/book', label: '預約課程', icon: <CalendarOutlined /> },
+  { to: '/member/book', label: t.book, icon: <CalendarOutlined /> },
   { to: '/member/bookings', label: '我的預約', icon: <ScheduleOutlined /> },
   { to: '/member/me', label: '我的', icon: <UserOutlined /> },
 ];
 
-const COACH_TODAY: TabItem = { to: '/coach/today', label: '今日課表', icon: <CheckSquareOutlined /> };
-const COACH_RECORDS: TabItem = { to: '/coach/attendance', label: '簽到紀錄', icon: <UnorderedListOutlined /> };
-const COACH_PAYOUTS: TabItem = { to: '/coach/payouts', label: '我的鐘點', icon: <WalletOutlined /> };
+const coachToday = (t: Terms): TabItem => ({
+  to: '/coach/today',
+  label: t.unit === '堂' ? '今日課表' : '今日預約',
+  icon: <CheckSquareOutlined />,
+});
+const coachRecords = (t: Terms): TabItem => ({ to: '/coach/attendance', label: `${t.checkIn}紀錄`, icon: <UnorderedListOutlined /> });
+const coachPayouts = (t: Terms): TabItem => ({
+  to: '/coach/payouts',
+  label: t.unit === '堂' ? '我的鐘點' : '我的服務費',
+  icon: <WalletOutlined />,
+});
 const COACH_ME: TabItem = { to: '/coach/me', label: '我的', icon: <UserOutlined /> };
 
 export interface MemberLayoutProps {
@@ -46,6 +56,7 @@ export interface MemberLayoutProps {
 export default function MemberLayout({ mode }: MemberLayoutProps) {
   const { mustChangePassword, isCoach } = useAuthStore();
   const location = useLocation();
+  const { t } = useTerms();
 
   // 教練類型不在 JWT 內（管理員可隨時調整），登入後另外讀取，決定是否顯示「我的鐘點」
   const { data: coachProfile } = useQuery({
@@ -65,8 +76,8 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
 
   const tabs =
     mode === 'member'
-      ? MEMBER_TABS
-      : [COACH_TODAY, COACH_RECORDS, ...(isPayableCoach(coachProfile?.coach_types) ? [COACH_PAYOUTS] : []), COACH_ME];
+      ? memberTabs(t)
+      : [coachToday(t), coachRecords(t), ...(isPayableCoach(coachProfile?.coach_types) ? [coachPayouts(t)] : []), COACH_ME];
 
   return (
     <ConfigProvider theme={FRONT_THEMES[mode]}>

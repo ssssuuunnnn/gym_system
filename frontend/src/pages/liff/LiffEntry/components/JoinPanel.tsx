@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { lineJoin, lineLink, type LoginToken } from '../../../../api/lineOa';
 import { apiErrorMessage } from '../../../../api/errors';
 import FrontCard from '../../../../components/member/FrontCard';
+import { useTerms } from '../../../../lib/terms';
 
 type Mode = '加入會員' | '我已經是會員';
 
@@ -21,6 +22,7 @@ export interface JoinPanelProps {
 export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinPanelProps) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t } = useTerms();
   const [mode, setMode] = useState<Mode>('加入會員');
 
   const joinMutation = useMutation({
@@ -42,7 +44,7 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
           歡迎來到{gymName}
         </Typography.Title>
         <Typography.Text type="secondary">
-          {lineDisplayName ? `${lineDisplayName}，` : ''}加入會員後就能在 LINE 裡預約課程、查詢預約與購買方案。
+          {lineDisplayName ? `${lineDisplayName}，` : ''}加入會員後就能在 LINE 裡{t.book}、查詢預約與購買方案。
         </Typography.Text>
       </div>
 
@@ -83,7 +85,7 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
             >
               <strong style={{ color: token.colorText }}>個人資料告知</strong>
               <br />
-              {gymName}會蒐集你的姓名、手機與 LINE 帳號識別碼，用於會員管理、課程預約與聯絡。你可以隨時向櫃台查詢、更正或要求刪除。
+              {gymName}會蒐集你的姓名、手機與 LINE 帳號識別碼，用於會員管理、{t.service}預約與聯絡。你可以隨時向櫃台查詢、更正或要求刪除。
             </div>
             <Form.Item
               name="consent"
@@ -94,7 +96,7 @@ export function JoinPanel({ gymName, linkToken, lineDisplayName, onDone }: JoinP
             </Form.Item>
             {/* 行銷同意和個資告知分開、預設不勾（R31）；之後可在「我的」開關 */}
             <Form.Item name="marketing_consent" valuePropName="checked" style={{ marginTop: -12 }}>
-              <Checkbox>我願意收到新課程、優惠與活動訊息（選填）</Checkbox>
+              <Checkbox>我願意收到新{t.service}、優惠與活動訊息（選填）</Checkbox>
             </Form.Item>
             <Button type="primary" htmlType="submit" block size="large" loading={joinMutation.isPending}>
               加入會員

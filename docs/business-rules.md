@@ -414,6 +414,22 @@
 - **實作**：`services/coupons.issue`／`is_expired`
 - **測試**：`test_new_member_only_and_expiry`
 
+## 行業類型與用詞
+
+### R48. 依行業類型切換用詞，只換顯示文字
+
+- **確認日期**：2026-10-30
+- **規則**：每家店是「健身」或「美體」（平台開通時選，之後可由平台修改）。美體店的用詞：美容師、療程、個人療程、次、顧客、報到、體驗療程、美容師服務費；健身維持原用詞。店家不能自訂稱呼。API 與資料庫裡的值（商品分類、教練類型等）不變，只換畫面與通知上的文字。
+- **實作**：`services/terms.py`、`frontend/src/lib/terms.ts`、`routers/tenant_profile.py`
+- **測試**：`test_fitness_profile_by_default`、`test_beauty_terms_and_group_classes_switch`、`test_beauty_website_and_notifications`、`test_terms_guard.py`
+
+### R49. 美體店預設關閉團體課程
+
+- **確認日期**：2026-10-30
+- **規則**：團體課程功能健身預設開、美體預設關，可在系統設定「功能」切換。關閉時隱藏課程管理、團體課程方案、團體課程教練類型、會員預約頁的團體課分頁與網站課表；已建立的資料保留。
+- **實作**：`system_settings.group_classes_setting`、`SystemSettings.group_classes_enabled`
+- **測試**：`test_beauty_terms_and_group_classes_switch`、`test_beauty_website_and_notifications`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -443,3 +459,4 @@
 - 分店店長權限（管理員只管理部分分店）
 - 更細的權限（只能看／可以改）、自訂角色範本
 - 優惠券第二期：用會員名單批次發券、發券時 LINE 通知會員、使用統計與轉換率
+- 美體店：依療程長度佔用預約時段、抽成式人員費用、美體版 LINE 圖文選單

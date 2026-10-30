@@ -1,7 +1,8 @@
 import { Tag, theme } from 'antd';
 import { RightOutlined } from '@ant-design/icons';
 import type { Product } from '../../../../api/products';
-import { MEMBER_CATEGORY_LABEL, formatPrice } from '../lib';
+import { memberCategoryLabel, formatPrice } from '../lib';
+import { useTerms } from '../../../../lib/terms';
 
 export interface PlanCardProps {
   product: Product;
@@ -16,12 +17,13 @@ export interface PlanCardProps {
 export function PlanCard({ product, courseName, recommended, onSelect }: PlanCardProps) {
   const { token } = theme.useToken();
   const isSupply = product.category === '用品';
+  const { t } = useTerms();
   const soldOut = isSupply && (product.stock ?? 0) <= 0;
   const perSession = !isSupply && product.session_hours > 0 ? Math.round(product.price / product.session_hours) : null;
 
   const meta = [
-    MEMBER_CATEGORY_LABEL[product.category],
-    isSupply ? `庫存 ${product.stock ?? 0}` : `${product.session_hours} 堂`,
+    memberCategoryLabel(product.category, t),
+    isSupply ? `庫存 ${product.stock ?? 0}` : `${product.session_hours} ${t.unit}`,
     courseName,
   ].filter(Boolean);
 
@@ -52,7 +54,7 @@ export function PlanCard({ product, courseName, recommended, onSelect }: PlanCar
           <span style={{ fontSize: 16, fontWeight: 700 }}>{product.name}</span>
           {recommended && (
             <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-              適用這堂課
+              適用這個時段
             </Tag>
           )}
           {soldOut && <Tag style={{ marginInlineEnd: 0 }}>已售完</Tag>}
@@ -62,7 +64,7 @@ export function PlanCard({ product, courseName, recommended, onSelect }: PlanCar
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flex: 'none' }}>
         <span style={{ fontSize: 17, fontWeight: 700 }}>{formatPrice(product.price)}</span>
         {perSession !== null && product.session_hours > 1 && (
-          <span style={{ fontSize: 12, color: token.colorTextSecondary }}>每堂約 {formatPrice(perSession)}</span>
+          <span style={{ fontSize: 12, color: token.colorTextSecondary }}>每{t.unit}約 {formatPrice(perSession)}</span>
         )}
       </span>
       <RightOutlined aria-hidden="true" style={{ fontSize: 12, color: token.colorTextSecondary }} />

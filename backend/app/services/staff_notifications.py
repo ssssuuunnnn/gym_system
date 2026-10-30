@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.services import terms
 from app.models.staff_notification import StaffNotification, StaffNotificationKind as Kind
 from app.models.user import User, UserRole
 from app.services.staff import has_perm
@@ -111,7 +112,8 @@ def notify_inquiry(db: Session, inquiry) -> int:
         parts.append(f"想體驗 {inquiry.interest}")
     if inquiry.preferred_slot:
         parts.append(inquiry.preferred_slot)
-    return notify(db, Kind.inquiry_new, "新的體驗課詢問", "・".join(parts), f"/admin/inquiries?highlight={inquiry.id}")
+    title = f"新的{terms.t('trial')}詢問"
+    return notify(db, Kind.inquiry_new, title, "・".join(parts), f"/admin/inquiries?highlight={inquiry.id}")
 
 
 def purge_expired(db: Session) -> None:

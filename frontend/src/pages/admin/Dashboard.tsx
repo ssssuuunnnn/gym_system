@@ -10,6 +10,7 @@ import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
+import { useTerms } from '../../lib/terms';
 
 type ScheduleRow = {
   key: string;
@@ -26,6 +27,7 @@ type ScheduleRow = {
  */
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useTerms();
   const today = dayjs();
   const todayStr = today.format('YYYY-MM-DD');
   const todayDow = today.day(); // 0=週日...6=週六，與 courses.day_of_week（1-6，週日無資料）同軸
@@ -81,7 +83,7 @@ export default function Dashboard() {
     { title: '類型', dataIndex: 'type' },
     { title: '名稱', dataIndex: 'name' },
     {
-      title: '教練',
+      title: t.staff,
       dataIndex: 'coach_id',
       render: (coachId: number | null) => (coachId ? coachNameById.get(coachId) ?? `#${coachId}` : '—'),
     },
@@ -136,14 +138,14 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <Card title="今日課程與時段" style={{ flex: '2 1 480px' }} loading={reservationsLoading}>
+        <Card title={`今日${t.service}與時段`} style={{ flex: '2 1 480px' }} loading={reservationsLoading}>
           <Table
             rowKey="key"
             size="small"
             columns={scheduleColumns}
             dataSource={scheduleRows}
             pagination={false}
-            locale={{ emptyText: todayDow === 0 ? '今日無排定課程' : '今日尚無排程' }}
+            locale={{ emptyText: todayDow === 0 ? `今日無排定${t.service}` : '今日尚無排程' }}
           />
         </Card>
         <Card
