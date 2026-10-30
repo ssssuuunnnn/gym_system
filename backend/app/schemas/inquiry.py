@@ -49,3 +49,5 @@ class InquiryConvert(BaseModel):
     username: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=8)
     must_change_password: bool = True
+    # 同時發一張體驗券（ADR 0010）
+    coupon_id: int | None = None

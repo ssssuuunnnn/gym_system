@@ -342,7 +342,7 @@
 ### R38. 一般使用者只能用勾選的功能，後端每支 API 都檢查
 
 - **確認日期**：2026-10-29
-- **規則**：功能＝後台側欄的選單（14 項）。含敏感資料的功能（教練管理、教練鐘點、會員管理、系統設定）由主要管理者自行決定是否開放。內建「櫃台、店長、會計」範本只是幫忙勾選。權限修改立即生效。教練的電話、匯款帳號、鐘點費與課程的每堂教練費，只有相關功能的帳號看得到。
+- **規則**：功能＝後台側欄的選單（15 項，2026-10-30 加入「優惠券」）。含敏感資料的功能（教練管理、教練鐘點、會員管理、系統設定）由主要管理者自行決定是否開放。內建「櫃台、店長、會計」範本只是幫忙勾選。權限修改立即生效。教練的電話、匯款帳號、鐘點費與課程的每堂教練費，只有相關功能的帳號看得到。
 - **實作**：`services/staff.py`、`deps.require_perm`、各 router 的 `require_access`
 - **測試**：`test_staff_only_reaches_granted_features`、`test_meta_lists_menu_permissions_and_templates`、`test_audit_log_records_permission_changes`
 
@@ -377,6 +377,43 @@
 - **實作**：`services/staff_notifications.purge_expired`（打開通知列表時執行）
 - **測試**：`test_paging_permission_filter_and_purge`
 
+## 體驗券與折價券
+
+### R43. 優惠券分兩種，共用同一套發放與限制
+
+- **確認日期**：2026-10-30
+- **規則**：折價券在購買方案時折抵金額（折固定金額或打折，可設最低消費、適用方案）；體驗券送一個方案的堂數。發放管道：會員輸入公開代碼領取、後台發給指定會員、LINE 新加入自動發（只限設定「LINE 新加入自動發」的體驗券）、詢問轉為會員時送。所有管道都檢查：啟用中、在期間內、總張數、每人張數、新會員限定（沒有付費購買紀錄的會員）。停用的券不能再發或領，已發出的仍可在效期內使用；作廢只限還沒使用的券，作廢的不算總張數。券發出後不能改類型、折扣內容與送的方案。
+- **實作**：`services/coupons.issue`、`routers/coupons.py`
+- **測試**：`test_create_and_validate`、`test_staff_issue_limits_void_and_edit_lock`、`test_new_member_only_and_expiry`、`test_line_join_and_convert_issue_trial`
+
+### R44. 折價券的金額由伺服器計算，一張訂單一張券
+
+- **確認日期**：2026-10-30
+- **規則**：購買時使用折價券，應付金額＝商品單價 × 數量 − 折抵，由後端計算，不採用前端傳來的金額（後台登錄購買時也一樣）；折抵不會讓金額小於 0，打折的折抵金額四捨五入到元。一張訂單只能用一張券。下單時券就標成已使用；待付款訂單取消時券退回「可使用」。購買紀錄保留原價、折抵金額與券名。
+- **實作**：`services/coupons.quote`／`apply_to_purchase`／`release_for_purchase`、`routers/purchases.py`
+- **測試**：`test_code_discount_is_computed_by_server_and_returned_on_cancel`、`test_percent_min_amount_scope_and_usable_list`、`test_admin_purchase_with_coupon_ignores_entered_amount`
+
+### R45. 體驗券換成金額 0、已付款的堂數
+
+- **確認日期**：2026-10-30
+- **規則**：會員按「使用並預約」時，建立一筆該方案（數量 1）、金額 0、付款方式「體驗券」、已付款的購買紀錄，堂數立即入帳，之後和一般方案一樣預約、扣堂、退堂。送的方案可以是沒有上架販售的體驗課方案。體驗券不能拿來折抵購買金額。
+- **實作**：`services/coupons.redeem_trial`
+- **測試**：`test_trial_voucher_gives_hours_for_booking`
+
+### R46. 體驗券可設定不計教練鐘點
+
+- **確認日期**：2026-10-30
+- **規則**：建立體驗券時選擇「計教練鐘點」與否。不計時，用這張券換到的堂數上的課，在教練鐘點結算時不算；團體課同一堂還有其他學員時，那一堂照算。
+- **實作**：`purchases.payout_excluded`、`services/payouts.billable_units`
+- **測試**：`test_trial_classes_can_be_excluded_from_coach_payouts`
+
+### R47. 券的效期
+
+- **確認日期**：2026-10-30
+- **規則**：券可設定可使用期間（開始／結束日期）與「發出後幾天內有效」，兩者都設時取較早的日期，以工作室當地日期判斷。過期的券不能使用，在「我的優惠券」顯示為已過期。
+- **實作**：`services/coupons.issue`／`is_expired`
+- **測試**：`test_new_member_only_and_expiry`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -405,3 +442,4 @@
 - 線上付款（信用卡、LINE Pay）
 - 分店店長權限（管理員只管理部分分店）
 - 更細的權限（只能看／可以改）、自訂角色範本
+- 優惠券第二期：用會員名單批次發券、發券時 LINE 通知會員、使用統計與轉換率

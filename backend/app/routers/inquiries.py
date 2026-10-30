@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import hash_password
 from app.deps import get_db, require_perm
+from app.models.coupon import Coupon, CouponSource
 from app.models.inquiry import Inquiry, InquiryNote, InquiryStatus
 from app.models.user import User, UserRole
+from app.services import coupons as coupon_service
+from app.services.coupons import CouponError
 from app.schemas.inquiry import (
     InquiryConvert,
     InquiryNoteCreate,
@@ -121,11 +124,23 @@ def convert_to_member(
     )
     db.add(user)
     db.flush()
+    note = f"已建立會員帳號「{username}」"
+    if payload.coupon_id is not None:
+        # 轉為會員時同時送體驗券（ADR 0010）；發不了就整筆不成立
+        coupon = db.get(Coupon, payload.coupon_id)
+        if coupon is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到優惠券")
+        try:
+            coupon_service.issue(db, coupon, user, CouponSource.convert, admin.display_name or admin.username)
+        except CouponError as err:
+            db.rollback()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"體驗券：{err.message}")
+        note += f"，並送「{coupon.name}」"
     inquiry.member_user_id = user.id
     inquiry.status = InquiryStatus.converted
     inquiry.updated_at = datetime.utcnow()
     db.add(
-        InquiryNote(inquiry_id=inquiry.id, text=f"已建立會員帳號「{username}」", created_by_name=admin.username)
+        InquiryNote(inquiry_id=inquiry.id, text=note, created_by_name=admin.username)
     )
     db.commit()
     db.refresh(inquiry)

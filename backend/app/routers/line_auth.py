@@ -25,6 +25,7 @@ from app.deps import get_current_user, get_db, get_tenant
 from app.models.user import User, UserRole
 from app.schemas.line_oa import LineAuthIn, LineAuthOut, LineJoinIn, LineLinkIn, LinePreferences
 from app.schemas.user import Token, UserOut, user_out
+from app.services import coupons as coupon_service
 from app.services import line_oa as oa
 from app.services.line import LineApiError
 from app.services.members import clear_line_link, issue_token, new_line_username, normalize_phone, set_line_link
@@ -102,6 +103,8 @@ def line_join(payload: LineJoinIn, tenant: TenantInfo = Depends(get_tenant), db:
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="這個 LINE 帳號已經是會員，請重新開啟")
+    # LINE 新加入會員：自動發「LINE 新加入」體驗券（ADR 0010）
+    coupon_service.auto_issue_on_line_join(db, user)
     token = issue_token(user, db)
     db.commit()
     return token

@@ -7,6 +7,7 @@
 - 私人課：沒有課程的預約歸預約指定的教練，一筆算一堂，費用＝教練的「私人課每堂鐘點費」
   （session_rate）。只有「私人教練」類型才計；場租教練的學員工作室不付鐘點。
 - 教練以會員身份為自己預約的場地（member_id 為教練本人）不算鐘點。
+- 用「不計教練鐘點」的體驗券堂數上的課不算（R46）；團體課同一堂還有其他學員時，那一堂照算。
 - 月份依預約日期（工作室當地日期）。
 """
 
@@ -53,7 +54,12 @@ def billable_units(db: Session, coach: Coach, period: date) -> list[BillableUnit
     first, last = month_range(period)
     rows = (
         db.query(Reservation)
-        .options(joinedload(Reservation.member), joinedload(Reservation.product), joinedload(Reservation.course))
+        .options(
+            joinedload(Reservation.member),
+            joinedload(Reservation.product),
+            joinedload(Reservation.course),
+            joinedload(Reservation.purchase),
+        )
         .filter(
             Reservation.status == ReservationStatus.confirmed,
             Reservation.attendance.isnot(None),
@@ -67,6 +73,8 @@ def billable_units(db: Session, coach: Coach, period: date) -> list[BillableUnit
 
     units: dict[tuple, BillableUnit] = {}
     for r in rows:
+        if r.purchase is not None and r.purchase.payout_excluded:
+            continue
         course: Course | None = r.course
         if course is not None:
             if course.coach_id != coach.id:

@@ -56,12 +56,21 @@ export default function BuyProduct() {
     });
 
   const buy = useMutation({
-    mutationFn: ({ product, quantity }: { product: Product; quantity: number }) =>
-      createSelfPurchase({ product_id: product.id, quantity }),
+    mutationFn: ({
+      product,
+      quantity,
+      coupon,
+    }: {
+      product: Product;
+      quantity: number;
+      coupon: { member_coupon_id?: number; coupon_code?: string };
+    }) => createSelfPurchase({ product_id: product.id, quantity, ...coupon }),
     onSuccess: (created) => {
       setOrder(created);
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['my-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['coupons-usable'] });
     },
     onError: (err) => message.error(apiErrorMessage(err, '購買失敗，請稍後再試')),
   });
@@ -136,7 +145,7 @@ export default function BuyProduct() {
         paymentInstructions={settings?.payment_instructions ?? null}
         intentLabel={intent && selected && fitsIntent(selected, intent) ? bookIntentLabel(intent) : null}
         submitting={buy.isPending}
-        onSubmit={(quantity) => selected && buy.mutate({ product: selected, quantity })}
+        onSubmit={(quantity, coupon) => selected && buy.mutate({ product: selected, quantity, coupon })}
         onClose={closeSheet}
         onViewOrders={() => navigate('/member/products')}
       />

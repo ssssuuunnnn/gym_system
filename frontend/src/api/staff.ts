@@ -12,6 +12,7 @@ export type PermissionCode =
   | 'availability'
   | 'members'
   | 'segments'
+  | 'coupons'
   | 'website'
   | 'inquiries'
   | 'branches'

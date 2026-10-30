@@ -29,6 +29,7 @@ import SystemSettings from '../pages/admin/SystemSettings';
 import Website from '../pages/admin/Website';
 import Inquiries from '../pages/admin/Inquiries';
 import MemberSegments from '../pages/admin/MemberSegments';
+import Coupons from '../pages/admin/Coupons';
 import Branches from '../pages/admin/Branches';
 import StaffAccounts from '../pages/admin/StaffAccounts';
 import RequirePerm from './RequirePerm';
@@ -40,6 +41,7 @@ import Me from '../pages/member/Me';
 import CoachToday from '../pages/coach/Today';
 import BuyProduct from '../pages/member/BuyProduct';
 import MyProducts from '../pages/member/MyProducts';
+import MyCoupons from '../pages/member/MyCoupons';
 import MyBookings from '../pages/member/MyBookings';
 import SubmitBooking from '../pages/member/SubmitBooking';
 import AddPerson from '../pages/member/AddPerson';
@@ -91,6 +93,7 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'members', element: <RequirePerm perm="members"><MemberList /></RequirePerm> },
           { path: 'members/:id', element: <RequirePerm perm="members"><MemberDetail /></RequirePerm> },
           { path: 'member-segments', element: <RequirePerm perm="segments"><MemberSegments /></RequirePerm> },
+          { path: 'coupons', element: <RequirePerm perm="coupons"><Coupons /></RequirePerm> },
           { path: 'branches', element: <RequirePerm perm="branches"><Branches /></RequirePerm> },
           { path: 'staff', element: <RequirePerm perm="owner"><StaffAccounts /></RequirePerm> },
           // { path: 'slot-settings', element: <RequirePerm perm="availability"><SlotSettings /></RequirePerm> },
@@ -123,6 +126,7 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'book', element: <Book /> },
           { path: 'purchase', element: <BuyProduct /> },
           { path: 'products', element: <MyProducts /> },
+          { path: 'coupons', element: <MyCoupons /> },
           { path: 'bookings', element: <MyBookings /> },
           // 舊的表單式預約（保留給特殊情況，例如場租），主要入口改為「預約課程」
           { path: 'bookings/submit', element: <SubmitBooking /> },

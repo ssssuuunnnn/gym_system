@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { App, Segmented, Select, Skeleton, theme } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -79,7 +79,9 @@ export default function Book() {
   const startKey = dates[0].format('YYYY-MM-DD');
   const endKey = dates[dates.length - 1].format('YYYY-MM-DD');
 
-  const [tab, setTab] = useState<Tab>('團體課');
+  // ?tab=私人課：例如用了私人課體驗券後直接切到私人課
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(searchParams.get('tab') === '私人課' ? '私人課' : '團體課');
   const [date, setDate] = useState<Dayjs>(today);
   const [coachId, setCoachId] = useState<number | null>(null);
   const [privatePlanId, setPrivatePlanId] = useState<number | null>(null);

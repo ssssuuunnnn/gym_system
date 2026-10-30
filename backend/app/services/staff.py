@@ -26,6 +26,7 @@ PERMISSIONS: list[dict] = [
     {"code": "availability", "label": "公休設定", "sensitive": False, "hint": "各分店的公休時段"},
     {"code": "members", "label": "會員管理", "sensitive": True, "hint": "會員資料（含手機）、密碼、黑名單"},
     {"code": "segments", "label": "會員名單", "sensitive": False, "hint": "篩選名單、建立 LINE 受眾"},
+    {"code": "coupons", "label": "優惠券", "sensitive": False, "hint": "建立體驗券與折價券、發給會員"},
     {"code": "website", "label": "形象網站", "sensitive": False, "hint": "編輯與發布網站"},
     {"code": "inquiries", "label": "詢問名單", "sensitive": False, "hint": "體驗課詢問與轉為會員"},
     {"code": "branches", "label": "分店管理", "sensitive": False, "hint": "新增、編輯、停用分店"},
@@ -46,7 +47,7 @@ TEMPLATES: list[dict] = [
         "label": "店長",
         "codes": [
             "dashboard", "reservations", "coaches", "products", "purchases", "courses",
-            "availability", "members", "segments", "website", "inquiries", "branches",
+            "availability", "members", "segments", "coupons", "website", "inquiries", "branches",
         ],
     },
     {"key": "accountant", "label": "會計", "codes": ["dashboard", "purchases", "payouts"]},
