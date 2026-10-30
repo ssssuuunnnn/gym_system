@@ -45,6 +45,28 @@ const coachPayouts = (t: Terms): TabItem => ({
 });
 const COACH_ME: TabItem = { to: '/coach/me', label: '我的', icon: <UserOutlined /> };
 
+/**
+ * 分頁標題的頁面名稱（「店名｜頁面」）：會員首頁只顯示店名；
+ * 底部分頁以外的頁面（購買方案、我的商品…）另外列出。
+ */
+function frontPageTitle(mode: FrontMode, pathname: string, tabs: TabItem[], t: Terms): string | undefined {
+  // 整段比對，避免 /member/bookings 被當成 /member/book
+  const under = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
+  if (under('/member/dashboard')) return undefined;
+  if (under('/coach/me')) return `${t.staff}專區`;
+  const extra: Record<string, string> = {
+    '/member/purchase': '購買方案',
+    '/member/products': '我的商品',
+    '/member/coupons': '我的優惠券',
+    '/member/bookings/submit': '送出預約申請',
+  };
+  const hit = Object.keys(extra).find(under);
+  if (hit) return extra[hit];
+  const tab = tabs.find((item) => under(item.to));
+  if (tab) return tab.label;
+  return mode === 'coach' ? `${t.staff}專區` : undefined;
+}
+
 export interface MemberLayoutProps {
   /** member＝會員前台（品牌藍）；coach＝教練前台（深青綠），僅綁定教練資料的會員可進入 */
   mode: FrontMode;
@@ -58,8 +80,6 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
   const { mustChangePassword, isCoach } = useAuthStore();
   const location = useLocation();
   const { t } = useTerms();
-  // 分頁標題：會員端就是店名；教練端加上「教練專區」（美體：美容師專區）
-  useShopTitle(mode === 'coach' ? `${t.staff}專區` : undefined);
 
   // 教練類型不在 JWT 內（管理員可隨時調整），登入後另外讀取，決定是否顯示「我的鐘點」
   const { data: coachProfile } = useQuery({
@@ -84,9 +104,16 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
 
   return (
     <ConfigProvider theme={FRONT_THEMES[mode]}>
+      <FrontTitle section={frontPageTitle(mode, location.pathname, tabs, t)} />
       <FrontShell tabs={tabs} />
     </ConfigProvider>
   );
+}
+
+/** 依目前頁面設定瀏覽器分頁標題（店名來自 GET /tenant/profile） */
+function FrontTitle({ section }: { section?: string }) {
+  useShopTitle(section);
+  return null;
 }
 
 function FrontShell({ tabs }: { tabs: TabItem[] }) {
