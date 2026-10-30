@@ -48,7 +48,7 @@ export function SettingsPanel({ content, onChange }: SettingsPanelProps) {
         </Space>
       </Form.Item>
 
-      <Form.Item htmlFor="site-settings-1" label="搜尋與分享標題" extra="留空時使用公司名稱">
+      <Form.Item htmlFor="site-settings-1" label="搜尋與分享標題" extra="留空時使用系統設定的公司名稱，改名後會自動更新">
         <Input id="site-settings-1" value={seo.title} maxLength={70} showCount onChange={(e) => setSeo({ title: e.target.value })} />
       </Form.Item>
       <Form.Item htmlFor="site-settings-2" label="搜尋與分享描述" extra="留空時使用主視覺的說明">

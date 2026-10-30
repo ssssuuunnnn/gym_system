@@ -9,11 +9,17 @@ from app.models.product import Product
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
 from app.schemas.website import SiteContent, default_site_content
+from app.core.tenant_context import current_tenant
 from app.services import terms
+from app.services.shop import shop_names
 
 def company_name(db: Session) -> str:
-    row = db.query(SystemSettings).first()
-    return (row.short_name or row.company_name) if row else terms.t("system_name").replace("管理系統", "")
+    """預設網站內容用的店名（與分頁標題同一個來源，見 services/shop.py）。"""
+    tenant = current_tenant.get()
+    if tenant is None:
+        row = db.query(SystemSettings).first()
+        return (row.short_name or row.company_name) if row else terms.t("system_name").replace("管理系統", "")
+    return shop_names(db, tenant.id).short
 
 
 def get_or_create_website(db: Session) -> Website:
