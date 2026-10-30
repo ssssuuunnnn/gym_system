@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, InputNumber, Result, theme } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { listUsableCoupons, quoteCoupon } from '../../../../api/coupons';
@@ -43,11 +43,13 @@ export function OrderSheet(props: OrderSheetProps) {
     }
   }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: usable = [] } = useQuery({
+  const { data: usableData } = useQuery({
     queryKey: ['coupons-usable', product?.id, quantity],
     queryFn: () => listUsableCoupons(product!.id, quantity),
     enabled: product !== null && !order,
   });
+  // 要用穩定的參照：查詢停用時若每次都給新的 []，下面的 effect 會每次重跑、一直 setState
+  const usable = useMemo(() => usableData ?? [], [usableData]);
   useEffect(() => {
     if (couponTouched) return;
     const best = usable.find((u) => u.usable);
