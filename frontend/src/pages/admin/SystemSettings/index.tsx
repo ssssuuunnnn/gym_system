@@ -109,6 +109,8 @@ export default function SystemSettings() {
     onSuccess: () => {
       message.success('已儲存變更');
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
+      // 店家名稱用在網頁標題（GET /tenant/profile）
+      queryClient.invalidateQueries({ queryKey: ['tenant-profile'] });
     },
     onError: (error) => {
       const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;

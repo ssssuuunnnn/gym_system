@@ -11,6 +11,7 @@ import { usePermissions } from '../lib/permissions';
 import { RECENT_MENU_LIMIT, useAdminMenuPrefs } from '../lib/useAdminMenuPrefs';
 import { NotificationBell } from './notifications/NotificationBell';
 import { useTerms } from '../lib/terms';
+import { useShopTitle } from '../lib/usePageTitle';
 
 
 /**
@@ -21,6 +22,7 @@ import { useTerms } from '../lib/terms';
 // 側欄項目與對應的功能權限在 components/adminMenu.tsx（路由守衛共用）
 
 export default function AppLayout() {
+  useShopTitle('管理後台');
   const navigate = useNavigate();
   const { username, logout, mustChangePassword } = useAuthStore();
   const queryClient = useQueryClient();

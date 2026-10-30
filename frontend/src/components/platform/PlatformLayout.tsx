@@ -3,6 +3,7 @@ import { Button } from 'antd';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { usePlatformAuthStore } from '../../store/platformAuth';
 import BackOfficeShell, { type BackOfficeMenuItem } from '../BackOfficeShell';
+import { usePageTitle } from '../../lib/usePageTitle';
 
 /**
  * 平台管理後台版型：共用健身房後台的 BackOfficeShell，只換導覽與登入者。
@@ -15,6 +16,7 @@ const platformMenuItems: BackOfficeMenuItem[] = [
 ];
 
 export default function PlatformLayout() {
+  usePageTitle('平台管理');
   const navigate = useNavigate();
   const { token, username, logout } = usePlatformAuthStore();
 

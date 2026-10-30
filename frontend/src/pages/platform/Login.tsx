@@ -4,9 +4,11 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { platformLogin } from '../../api/platform';
 import { apiErrorMessage } from '../../api/platformClient';
 import { usePlatformAuthStore } from '../../store/platformAuth';
+import { usePageTitle } from '../../lib/usePageTitle';
 
 /** 平台管理後台登入頁（platform.<主網域>/login），與各家健身房的登入頁分開。 */
 export default function PlatformLogin() {
+  usePageTitle('平台管理');
   const navigate = useNavigate();
   const { message } = App.useApp();
   const { token, login } = usePlatformAuthStore();

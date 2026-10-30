@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Card, Form, Input, Button, Typography, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { register as registerApi } from '../../api/auth';
+import { useShopTitle } from '../../lib/usePageTitle';
 
 /**
  * 會員註冊頁：場租教練、學員皆使用同一頁註冊（一律建立 role=member，
  * 是否為教練由管理員後續在「教練資料」畫面綁定）。
  */
 export default function Register() {
+  useShopTitle('加入會員');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 

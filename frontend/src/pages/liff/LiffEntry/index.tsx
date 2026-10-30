@@ -9,6 +9,7 @@ import { FRONT_MAX_WIDTH, FRONT_THEMES } from '../../../components/member/member
 import { useAuthStore } from '../../../store/auth';
 import { JoinPanel } from './components/JoinPanel';
 import { devMockIdToken, liffTarget } from './lib';
+import { useShopTitle } from '../../../lib/usePageTitle';
 
 type State =
   | { kind: 'loading' }
@@ -127,6 +128,7 @@ function LiffEntryInner() {
 }
 
 export default function LiffEntry() {
+  useShopTitle();
   return (
     <ConfigProvider theme={FRONT_THEMES.member}>
       <App>

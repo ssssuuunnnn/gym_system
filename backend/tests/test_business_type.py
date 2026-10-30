@@ -32,7 +32,9 @@ def test_terms_tables_have_the_same_keys():
 
 
 def test_fitness_profile_by_default(client, admin):
-    assert client.get(f"{API}/tenant/profile").json() == {"business_type": "健身", "group_classes_enabled": True}
+    # 還沒有系統設定時用平台開通時的名稱
+    assert client.get(f"{API}/tenant/profile").json() == {
+        "name": "Alpha 健身", "business_type": "健身", "group_classes_enabled": True}
     s = client.get(f"{API}/system-settings", headers=auth(admin)).json()
     assert s["company_name"] == "健身工作室管理系統" and s["group_classes_enabled"] is True
     labels = {p["code"]: p["label"] for p in client.get(f"{API}/staff/meta", headers=auth(admin)).json()["permissions"]}
@@ -41,7 +43,8 @@ def test_fitness_profile_by_default(client, admin):
 
 def test_beauty_terms_and_group_classes_switch(client, admin, beauty):
     # 不需登入也讀得到（登入頁、LINE 加入會員頁用）
-    assert client.get(f"{API}/tenant/profile").json() == {"business_type": "美體", "group_classes_enabled": False}
+    assert client.get(f"{API}/tenant/profile").json()["business_type"] == "美體"
+    assert client.get(f"{API}/tenant/profile").json()["group_classes_enabled"] is False
     s = client.get(f"{API}/system-settings", headers=auth(admin)).json()
     assert s["company_name"] == "美體工作室管理系統" and s["group_classes_enabled"] is False
     labels = {p["code"]: p["label"] for p in client.get(f"{API}/staff/meta", headers=auth(admin)).json()["permissions"]}
@@ -51,9 +54,12 @@ def test_beauty_terms_and_group_classes_switch(client, admin, beauty):
     res = client.put(f"{API}/system-settings", json={"group_classes_enabled": True}, headers=auth(admin))
     assert res.status_code == 200 and res.json()["group_classes_enabled"] is True
     assert client.get(f"{API}/tenant/profile").json()["group_classes_enabled"] is True
-    # 沒帶這個欄位的修改不影響開關
+    # 沒帶這個欄位的修改不影響開關；名稱用系統設定的簡稱
     client.put(f"{API}/system-settings", json={"short_name": "小美"}, headers=auth(admin))
-    assert client.get(f"{API}/tenant/profile").json()["group_classes_enabled"] is True
+    profile = client.get(f"{API}/tenant/profile").json()
+    assert profile["group_classes_enabled"] is True and profile["name"] == "小美"
+    client.put(f"{API}/system-settings", json={"short_name": "", "company_name": "小美美體館"}, headers=auth(admin))
+    assert client.get(f"{API}/tenant/profile").json()["name"] == "小美美體館"
 
 
 def test_beauty_website_and_notifications(client, db, admin, beauty):
