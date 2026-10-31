@@ -11,7 +11,7 @@ import { tenantUrl } from '../../lib/host';
 
 type StatusFilter = TenantStatus | '全部';
 
-/** 平台管理後台首頁：所有健身房、狀態與使用概況。 */
+/** 平台管理後台首頁：所有店家、狀態與使用概況。 */
 export default function TenantList() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<StatusFilter>('全部');
@@ -73,9 +73,9 @@ export default function TenantList() {
       render: (_, t) => t.stats.member_count,
     },
     {
-      title: '教練',
+      title: '教練／美容師',
       key: 'coaches',
-      width: 90,
+      width: 140,
       align: 'right',
       sorter: (a, b) => a.stats.coach_count - b.stats.coach_count,
       render: (_, t) => t.stats.coach_count,
@@ -112,16 +112,16 @@ export default function TenantList() {
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          健身房
+          店家
         </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/tenants/new')}>
-          開通健身房
+          開通店家
         </Button>
       </div>
 
       <Row gutter={16}>
         {[
-          { title: '健身房總數', value: summary.total },
+          { title: '店家總數', value: summary.total },
           { title: '啟用中', value: summary.active },
           { title: '試用中', value: summary.trial },
           { title: '本月預約（全平台）', value: summary.reservations },
@@ -155,7 +155,7 @@ export default function TenantList() {
           loading={isLoading}
           onRow={(t) => ({ onClick: () => navigate(`/tenants/${t.id}`), style: { cursor: 'pointer' } })}
           pagination={{ pageSize: 20, hideOnSinglePage: true, showTotal: (total) => `共 ${total} 家` }}
-          locale={{ emptyText: tenants?.length ? '沒有符合條件的健身房' : '還沒有健身房，點右上角「開通健身房」開始' }}
+          locale={{ emptyText: tenants?.length ? '沒有符合條件的店家' : '還沒有店家，點右上角「開通店家」開始' }}
         />
       </Card>
     </Space>

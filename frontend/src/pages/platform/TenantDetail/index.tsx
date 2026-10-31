@@ -10,7 +10,7 @@ import { TenantAdminsCard } from './components/TenantAdminsCard';
 import { TenantInfoCard } from './components/TenantInfoCard';
 import { TenantStatusCard } from './components/TenantStatusCard';
 
-/** 健身房詳情：基本資料、狀態與使用概況、管理員帳號、這家的操作紀錄。 */
+/** 店家詳情：基本資料、狀態與使用概況、管理員帳號、這家的操作紀錄。 */
 export default function TenantDetail() {
   const tenantId = Number(useParams().id);
   const { data: tenant, isLoading, isError } = useQuery({
@@ -25,7 +25,7 @@ export default function TenantDetail() {
   });
 
   if (isError) {
-    return <Result status="404" title="找不到這家健身房" extra={<Link to="/tenants">回健身房列表</Link>} />;
+    return <Result status="404" title="找不到這家店" extra={<Link to="/tenants">回店家列表</Link>} />;
   }
   if (isLoading || !tenant) {
     return <Skeleton active />;
@@ -33,7 +33,7 @@ export default function TenantDetail() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <Breadcrumb items={[{ title: <Link to="/tenants">健身房</Link> }, { title: tenant.name }]} />
+      <Breadcrumb items={[{ title: <Link to="/tenants">店家</Link> }, { title: tenant.name }]} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           {tenant.name}

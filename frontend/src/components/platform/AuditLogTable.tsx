@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { AuditLog } from '../../api/platform';
 import { formatServerTime } from '../../lib/datetime';
 
-/** 健身房資料欄位的顯示名稱（修改紀錄用） */
+/** 店家資料欄位的顯示名稱（修改紀錄用） */
 const TENANT_FIELD_LABEL: Record<string, string> = {
   name: '名稱',
   timezone: '時區',
@@ -48,12 +48,12 @@ export function describeAuditDetail(log: AuditLog): string {
 export interface AuditLogTableProps {
   logs: AuditLog[] | undefined;
   loading?: boolean;
-  /** 是否顯示「健身房」欄（在單一健身房的詳情頁可隱藏） */
+  /** 是否顯示「店家」欄（在單一店家的詳情頁可隱藏） */
   showTenant?: boolean;
   pageSize?: number;
 }
 
-/** 平台操作紀錄表格：操作紀錄頁與健身房詳情頁共用。 */
+/** 平台操作紀錄表格：操作紀錄頁與店家詳情頁共用。 */
 export default function AuditLogTable({ logs, loading, showTenant = true, pageSize = 20 }: AuditLogTableProps) {
   const columns: ColumnsType<AuditLog> = [
     {
@@ -65,7 +65,7 @@ export default function AuditLogTable({ logs, loading, showTenant = true, pageSi
     ...(showTenant
       ? ([
           {
-            title: '健身房',
+            title: '店家',
             dataIndex: 'tenant_name',
             width: 180,
             render: (_: unknown, log: AuditLog) =>

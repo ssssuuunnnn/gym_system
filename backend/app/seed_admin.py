@@ -26,7 +26,7 @@ def seed_admin(subdomain: str, username: str, password: str) -> None:
     with SessionLocal() as s:
         tenant = s.query(Tenant).filter(Tenant.subdomain == subdomain).first()
         if tenant is None:
-            sys.exit(f"[seed_admin] 錯誤：找不到健身房「{subdomain}」，請先執行 python -m app.cli create-tenant")
+            sys.exit(f"[seed_admin] 錯誤：找不到店家「{subdomain}」，請先執行 python -m app.cli create-tenant")
         tenant_id = tenant.id
 
     db = tenant_session(tenant_id)
@@ -61,7 +61,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.tenant:
-        sys.exit("[seed_admin] 錯誤：需指定健身房（--tenant 或 DEFAULT_TENANT 環境變數）")
+        sys.exit("[seed_admin] 錯誤：需指定店家（--tenant 或 DEFAULT_TENANT 環境變數）")
     if not args.password:
         sys.exit("[seed_admin] 錯誤：需提供密碼（--password 或 ADMIN_PASSWORD 環境變數）")
 

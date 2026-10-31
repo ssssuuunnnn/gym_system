@@ -1,8 +1,8 @@
 """
-開通與管理健身房（租戶）的共用邏輯：平台管理後台（routers/platform.py）與 CLI（app/cli.py）共用。
+開通與管理店家（租戶）的共用邏輯：平台管理後台（routers/platform.py）與 CLI（app/cli.py）共用。
 見 docs/adr/0001-multi-tenancy.md、docs/adr/0002-platform-console.md。
 
-這裡的函式只 add / flush，由呼叫端決定何時 commit（開通健身房＋第一位管理員是同一個交易）。
+這裡的函式只 add / flush，由呼叫端決定何時 commit（開通店家＋第一位管理員是同一個交易）。
 
 注意：CLI 以資料表擁有者連線，擁有者不受 RLS 限制，所以操作各家帳號的查詢除了 act_as_tenant()
 之外，也明確加上 tenant_id 條件（一般路由不需要這樣做，RLS 會處理）。
@@ -24,7 +24,7 @@ from app.models.user import User, UserRole
 # 子網域格式：小寫英數與連字號，不可以連字號開頭或結尾，最多 63 字
 SUBDOMAIN_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
-# 平台自己會用到的子網域，不開放給健身房
+# 平台自己會用到的子網域，不開放給店家
 RESERVED_SUBDOMAINS = {
     "www", "api", "app", "admin", "platform", "static", "media", "mail", "status", "help", "support", "docs",
 }
@@ -33,11 +33,11 @@ MIN_PASSWORD_LENGTH = 8
 
 # 平台操作紀錄的操作代碼 → 顯示名稱
 AUDIT_ACTIONS = {
-    "create_tenant": "開通健身房",
-    "update_tenant": "修改健身房資料",
+    "create_tenant": "開通店家",
+    "update_tenant": "修改店家資料",
     "set_status": "變更狀態",
-    "create_tenant_admin": "新增健身房管理員",
-    "reset_tenant_admin_password": "重設健身房管理員密碼",
+    "create_tenant_admin": "新增店家管理員",
+    "reset_tenant_admin_password": "重設店家管理員密碼",
 }
 
 
@@ -57,7 +57,7 @@ def subdomain_problem(db: Session, subdomain: str) -> str | None:
     if sub in RESERVED_SUBDOMAINS or sub == settings.PLATFORM_SUBDOMAIN:
         return f"「{sub}」是平台保留的子網域"
     if db.query(Tenant.id).filter(Tenant.subdomain == sub).first():
-        return f"「{sub}」已經有健身房使用"
+        return f"「{sub}」已經有店家使用"
     return None
 
 
@@ -132,7 +132,7 @@ def create_tenant_admin(
         .first()
     )
     if exists:
-        raise TenantError(f"這家健身房已經有「{username}」這個帳號")
+        raise TenantError(f"這家店已經有「{username}」這個帳號")
     from app.services.staff import initial_level  # 避免循環匯入
 
     user = User(

@@ -37,8 +37,8 @@ MAX_FAILED_ATTEMPTS = 5
 
 def _welcome() -> str:
     return (
-        f"歡迎使用「{settings.LINE_BOT_NAME}」！這是健身房管理系統的通知帳號。\n"
-        "請傳送健身房後台「系統設定 › LINE 通知」顯示的 6 位數綁定碼，即可開始接收通知。"
+        f"歡迎使用「{settings.LINE_BOT_NAME}」！這是店家預約管理系統的通知帳號。\n"
+        "請傳送店家後台「系統設定 › LINE 通知」顯示的 6 位數綁定碼，即可開始接收通知。"
     )
 
 
@@ -83,10 +83,10 @@ def _handle_bind(db: Session, user_id: str, code: str) -> str:
     db.add(LineBindAttempt(line_user_id=user_id, success=row is not None, tenant_id=row[0] if row else None))
     if row is None:
         db.commit()
-        return "綁定碼不正確或已過期。請到健身房後台重新產生綁定碼後再傳送。"
+        return "綁定碼不正確或已過期。請到店家後台重新產生綁定碼後再傳送。"
 
     tenant_id, created_by = row
-    gym_name = db.query(Tenant.name).filter(Tenant.id == tenant_id).scalar() or "健身房"
+    gym_name = db.query(Tenant.name).filter(Tenant.id == tenant_id).scalar() or "店家"
     act_as_tenant(db, tenant_id)
     recipient = (
         db.query(LineRecipient)

@@ -64,9 +64,9 @@ async def get_tenant(request: Request) -> TenantInfo:
     subdomain = subdomain_from_host(request.headers.get("host", "")) or settings.DEFAULT_TENANT or None
     info, tenant_status = _lookup_tenant(subdomain) if subdomain else (None, None)
     if info is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到這家健身房")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到這家店")
     if tenant_status == TenantStatus.suspended:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="此健身房目前停用中")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="此店家目前停用中")
     current_tenant.set(info)
     return info
 
