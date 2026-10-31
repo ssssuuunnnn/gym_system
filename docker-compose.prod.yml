@@ -1,0 +1,87 @@
+# 試營運正式環境（單台 AWS Lightsail ＋ Cloudflare），說明見 deploy/lightsail/README.md。
+# 在主機上執行：docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# 與 docker-compose.yml 的差別：密碼／金鑰一律從 .env 讀取（沒填就無法啟動）、只對外開 443、
+# 資料庫與後端不開連接埠、不部署 adminer、HTTPS 由 nginx 以 Cloudflare Origin 憑證提供。
+name: gym-system
+
+x-db-names: &db-names
+  DB_NAME: ${DB_NAME:-fitness_studio}
+  DB_OWNER_USER: ${DB_OWNER_USER:-fitness_owner}
+  DB_APP_USER: ${DB_APP_USER:-fitness_app}
+  DB_PLATFORM_USER: ${DB_PLATFORM_USER:-fitness_platform}
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      <<: *db-names
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?請在 .env 設定 POSTGRES_PASSWORD}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?請在 .env 設定 DB_OWNER_PASSWORD}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?請在 .env 設定 DB_APP_PASSWORD}
+      DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD:?請在 .env 設定 DB_PLATFORM_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-fitness_studio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_APP_USER:-fitness_app}:${DB_APP_PASSWORD}@postgres:5432/${DB_NAME:-fitness_studio}
+      MIGRATION_DATABASE_URL: postgresql+psycopg://${DB_OWNER_USER:-fitness_owner}:${DB_OWNER_PASSWORD}@postgres:5432/${DB_NAME:-fitness_studio}
+      APP_DB_ROLE: ${DB_APP_USER:-fitness_app}
+      PLATFORM_DATABASE_URL: postgresql+psycopg://${DB_PLATFORM_USER:-fitness_platform}:${DB_PLATFORM_PASSWORD}@postgres:5432/${DB_NAME:-fitness_studio}
+      PLATFORM_DB_ROLE: ${DB_PLATFORM_USER:-fitness_platform}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      BASE_DOMAIN: ${BASE_DOMAIN:?請在 .env 設定 BASE_DOMAIN}
+      # 正式環境不設預設健身房：主網域本身不是健身房，健身房一律由平台管理後台開通
+      DEFAULT_TENANT: ""
+      SECRET_KEY: ${SECRET_KEY:?請在 .env 設定 SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      # 前端與 API 同網址（nginx 反向代理），不需要跨網域
+      BACKEND_CORS_ORIGINS: "[]"
+      MEDIA_DIR: /app/media
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
+      LINE_BOT_BASIC_ID: ${LINE_BOT_BASIC_ID:-}
+      LINE_BOT_NAME: ${LINE_BOT_NAME:-店家小幫手}
+      LINE_PLAN_MONTHLY_QUOTA: ${LINE_PLAN_MONTHLY_QUOTA:-3000}
+      PUBLIC_SCHEME: https
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?請在 .env 設定 DATA_ENCRYPTION_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - coach_media:/app/media
+    logging: *logging
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "443:443"
+    volumes:
+      - ./deploy/lightsail/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/lightsail/certs:/etc/nginx/certs:ro
+    logging: *logging
+
+volumes:
+  postgres_data:
+  coach_media:
