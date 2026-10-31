@@ -47,7 +47,7 @@ export default function Login() {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <Card style={{ width: 360 }}>
         <Typography.Title level={3} style={{ textAlign: 'center' }}>
-          健身工作室管理系統
+          後台登入
         </Typography.Title>
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="username" label="帳號" rules={[{ required: true }]}>
