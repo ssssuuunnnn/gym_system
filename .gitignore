@@ -26,3 +26,6 @@ frontend/*.local
 
 # 正式環境的 Cloudflare Origin 憑證（只放在主機上）
 deploy/lightsail/certs/
+
+# 主機上部署前的資料庫備份（deploy/lightsail/update.sh）
+/backups/

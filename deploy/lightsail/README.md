@@ -25,7 +25,9 @@
 - `nginx.conf`：取代 `frontend/nginx.conf` 的 server 設定（443 ＋ Origin 憑證 ＋ Cloudflare 真實 IP），路由規則與本機共用 `frontend/nginx/routes.conf`。
 - `setup-server.sh`：主機首次開機的初始化（Docker、swap、`/opt/gym-system`）。Lightsail 會把它接在自己的 `/bin/sh` 腳本後執行，只能寫 POSIX sh。
 - `init-env.sh`：第一次部署時用隨機值產生 `.env`，並顯示一次平台管理員密碼。
-- `deploy.sh`：從本機部署目前的 commit。
+- `update.sh`：在主機上更新到指定版本（GHCR image）：部署前備份資料庫 → 寫入 `IMAGE_TAG` → pull → 重啟 → 健康檢查。由 GitHub Actions 呼叫，也可手動退版。
+- `deploy.sh`：備援用，從本機上傳原始碼並在主機上 build（GitHub Actions 不能用時）。
+- `.github/workflows/deploy.yml`：自動部署，見下方「自動部署」。
 
 ## Cloudflare 設定（一次）
 
@@ -34,13 +36,68 @@
 3. **SSL/TLS → 原始伺服器 → 建立憑證**：RSA、主機名稱 `*.sunkuo.cc` 與 `sunkuo.cc`、有效期 15 年。把「原始憑證」存成 `deploy/lightsail/certs/origin.pem`、「私密金鑰」存成 `deploy/lightsail/certs/origin.key`（此目錄在 `.gitignore`，`deploy.sh` 會上傳到主機）。
 4. **SSL/TLS → 邊緣憑證**：開啟「一律使用 HTTPS」。
 
-## 部署
+## 自動部署（GitHub Actions ＋ GHCR ＋ Tailscale）
+
+```
+push main → CI（alembic-check、pytest）通過
+          → Deploy：打包 backend／frontend image → ghcr.io/ssssuuunnnn/gym-{backend,frontend}:<commit sha>
+          → 經 Tailscale SSH 進主機 → update.sh <sha>（備份 DB → pull → 重啟＋migration → 健康檢查）
+          → 從外部確認 https://platform.sunkuo.cc/login
+```
+
+- 主機上要已經有 `.env`（首次部署用下方的 `deploy.sh`）。repo 是公開的，Actions 紀錄也公開，所以 workflow 不輸出任何機密。
+- 主機不再 build，也不放原始碼的其他部分；只收 `docker-compose.prod.yml`、`deploy/lightsail/`、`docker/postgres/`。`.env` 與 Origin 憑證只在主機上，不放 GitHub。
+- SSH 22 埠不必對 GitHub 開放：runner 透過 Tailscale（出站連線）連進主機，Lightsail 防火牆維持原樣。
+- 拉 image 用該次工作的 `GITHUB_TOKEN`（部署完就 `docker logout`），主機上不存長期 token。
+- 每次部署前把資料庫備份到主機的 `/opt/gym-system/backups/pre-deploy-*.dump`（保留最新 10 份），部署紀錄在 `backups/deploy-history.log`。
+
+### 一次性設定
+
+1. **Tailscale 管理後台 → Access controls**，加入標籤與規則（只讓 CI 連主機的 22 埠）：
+   ```json
+   "tagOwners": { "tag:ci": ["autogroup:admin"], "tag:server": ["autogroup:admin"] },
+   "grants": [ { "src": ["tag:ci"], "dst": ["tag:server"], "ip": ["tcp:22"] } ]
+   ```
+   （若 policy 還有預設的「全部互通」規則，記得移除或收窄，否則 CI 也能連到你其他裝置。）
+2. **Tailscale → Settings → OAuth clients**：建立 client，權限 `Auth Keys: Write`、標籤 `tag:ci`，記下 Client ID／Secret。
+3. **主機加入 tailnet**（SSH 進主機）：
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up --advertise-tags=tag:server --hostname=gym-system
+   ```
+   在 Tailscale 後台 Machines 找到 `gym-system`，**Disable key expiry**（否則半年後會斷線）。
+4. **部署專用 SSH 金鑰**（在本機，不要重用 `gym-lightsail.pem`）：
+   ```bash
+   ssh-keygen -t ed25519 -N '' -C github-deploy -f ~/.ssh/gym-github-deploy
+   ssh -i ~/.ssh/gym-lightsail.pem ubuntu@<固定 IP> 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/gym-github-deploy.pub
+   ssh-keyscan -t ed25519 <固定 IP> | sed 's/^[^ ]*/gym-system/'   # 主機公鑰，輸出整行當 DEPLOY_KNOWN_HOSTS
+   ```
+5. **GitHub repo → Settings → Environments → New environment `production`**：Deployment branches 限 `main`（想每次手動核准可加 Required reviewers），並加入 Environment secrets：
+
+   | Secret | 內容 |
+   |---|---|
+   | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | 步驟 2 |
+   | `DEPLOY_HOST` | `gym-system`（tailnet 的 MagicDNS 名稱） |
+   | `DEPLOY_SSH_KEY` | `~/.ssh/gym-github-deploy` 私鑰全文 |
+   | `DEPLOY_KNOWN_HOSTS` | 步驟 4 `ssh-keyscan` 的輸出 |
+
+6. 第一次跑完後，GHCR 的 `gym-backend`／`gym-frontend` package 預設是私有的，維持即可（部署用 `GITHUB_TOKEN` 拉取）。
+
+### 日常
+
+- 合併到 `main` → 自動部署。進度在 GitHub → Actions → Deploy。
+- **退版**：Actions → Deploy → Run workflow，`tag` 填舊版本的完整 commit sha（不重新打包，直接部署 GHCR 上的舊 image）；或在主機上 `sh deploy/lightsail/update.sh <sha>`（需先 `docker login ghcr.io`）。若新版的 migration 已改了資料表，退版前可能要先用 `backups/` 的備份還原：
+  ```bash
+  docker compose -f docker-compose.prod.yml exec -T postgres pg_restore -U postgres -d fitness_studio --clean --if-exists < backups/pre-deploy-<…>.dump
+  ```
+
+## 首次部署／手動部署（備援）
 
 ```bash
 deploy/lightsail/deploy.sh ubuntu@<固定 IP>   # 或 export GYM_DEPLOY_HOST=ubuntu@<固定 IP>
 ```
 
-第一次部署會產生 `.env` 並印出平台管理員 `ops` 的密碼（只顯示一次）。之後到 `https://platform.sunkuo.cc` 登入、改密碼、開通健身房。後續更新：commit 後再跑一次 `deploy.sh`（啟動時自動跑 migration）。
+第一次部署會產生 `.env` 並印出平台管理員 `ops` 的密碼（只顯示一次）。**首次部署一定要用這支腳本**：自動部署不會產生 `.env`，因為 repo 公開、Actions 紀錄任何人都看得到。之後到 `https://platform.sunkuo.cc` 登入、改密碼、開通健身房。這支腳本在主機上 build（image 標 `local-<sha>`），只在 GitHub Actions 不能用時使用。
 
 ## 維運
 

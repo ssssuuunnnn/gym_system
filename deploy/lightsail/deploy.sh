@@ -1,5 +1,6 @@
 #!/bin/sh
-# 從本機把目前的 commit（HEAD）部署到 Lightsail 主機：上傳原始碼 → 首次產生 .env → 重新 build 並啟動。
+# 備援用：從本機把目前的 commit（HEAD）部署到 Lightsail 主機：上傳原始碼 → 首次產生 .env → 在主機上 build 並啟動。
+# 平常由 GitHub Actions 自動部署（.github/workflows/deploy.yml，用 GHCR image），這支只在 Actions 不能用時使用。
 # 用法：deploy/lightsail/deploy.sh [ubuntu@主機IP]（或設定 GYM_DEPLOY_HOST）；SSH 金鑰預設 ~/.ssh/gym-lightsail.pem。
 set -eu
 cd "$(dirname "$0")/../.."
@@ -30,6 +31,10 @@ if ! $SSH "test -f /opt/gym-system/deploy/lightsail/certs/origin.pem && test -f 
   exit 1
 fi
 
-echo "==> build 並啟動"
+# 在主機上 build 的 image 標成 local-<sha>，避免和 GHCR 上同 sha 的 image 混淆；下次自動部署會改回 GHCR 版本
+TAG=local-$(git rev-parse --short HEAD)
+$SSH "cd /opt/gym-system && if grep -q '^IMAGE_TAG=' .env; then sed -i 's|^IMAGE_TAG=.*|IMAGE_TAG=$TAG|' .env; else printf '\\nIMAGE_TAG=$TAG\\n' >> .env; fi"
+
+echo "==> build 並啟動（$TAG）"
 $SSH "cd /opt/gym-system && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans && docker image prune -f"
 $SSH "cd /opt/gym-system && docker compose -f docker-compose.prod.yml ps"

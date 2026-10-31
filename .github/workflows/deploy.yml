@@ -1,0 +1,171 @@
+# 自動部署到 AWS Lightsail（說明見 deploy/lightsail/README.md「自動部署」）
+# main 的 CI 通過 → 打包 backend／frontend image 推到 GHCR（標籤＝commit sha）
+# → 透過 Tailscale SSH 進主機 → deploy/lightsail/update.sh（備份資料庫、pull、重啟、健康檢查）。
+# 手動執行（Actions → Deploy → Run workflow）：留空＝打包並部署 main 最新版本；填 commit sha＝退回該版本（不重新打包）。
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要部署的版本（完整 40 碼 commit sha，GHCR 上要已有該 image）；留空＝打包並部署 main 最新版本
+        required: false
+        default: ""
+
+# 同一時間只跑一個部署，後到的排隊（不取消進行中的部署）
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PUBLIC_CHECK_URL: https://platform.sunkuo.cc/login
+
+jobs:
+  prepare:
+    # 只接受本 repo 推到 main 的 CI（排除 fork 的 PR）；手動執行只能從 main
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.head_repository.full_name == github.repository)
+      || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+      build: ${{ steps.pick.outputs.build }}
+      registry: ${{ steps.pick.outputs.registry }}
+    steps:
+      - id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_TAG: ${{ inputs.tag }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ "$EVENT" = workflow_run ]; then
+            sha=$RUN_SHA; build=true
+          elif [ -n "$INPUT_TAG" ]; then
+            if ! echo "$INPUT_TAG" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::tag 必須是完整 40 碼的 commit sha"; exit 1
+            fi
+            sha=$INPUT_TAG; build=false
+          else
+            sha=$GITHUB_SHA; build=true
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "registry=ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "部署版本 $sha（打包：$build）" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: ./backend
+            build_args: ""
+          - name: frontend
+            context: ./frontend
+            build_args: VITE_API_BASE_URL=/api/v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          build-args: ${{ matrix.build_args }}
+          push: true
+          tags: ${{ needs.prepare.outputs.registry }}/gym-${{ matrix.name }}:${{ needs.prepare.outputs.sha }}
+          # 把 package 連到這個 repo，部署時才能用 GITHUB_TOKEN 拉取
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: [prepare, build]
+    # build 被略過（退版）也要部署；build 失敗則不部署
+    if: >-
+      always()
+      && needs.prepare.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ env.PUBLIC_CHECK_URL }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      SHA: ${{ needs.prepare.outputs.sha }}
+      HOST: ubuntu@${{ secrets.DEPLOY_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: 連上 Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: 設定 SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host *\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking yes\n  ConnectTimeout 20\n' > ~/.ssh/config
+
+      - name: 上傳部署設定檔
+        # 主機只需要 compose 檔、nginx 設定、DB 初始化腳本和部署腳本；.env 與憑證只在主機上
+        run: |
+          git archive --format=tar HEAD docker-compose.prod.yml deploy/lightsail docker/postgres \
+            | ssh "$HOST" "tar -x -C /opt/gym-system"
+
+      - name: 登入 GHCR 並更新
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | ssh "$HOST" "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+          ssh "$HOST" "sh /opt/gym-system/deploy/lightsail/update.sh $SHA"
+
+      - name: 登出 GHCR
+        if: always()
+        run: ssh "$HOST" "docker logout ghcr.io" || true
+
+      - name: 從外部確認網站
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -fsS -o /dev/null "$PUBLIC_CHECK_URL" && { echo "OK $PUBLIC_CHECK_URL"; exit 0; }
+            sleep 10
+          done
+          echo "::error::$PUBLIC_CHECK_URL 無法連線"; exit 1

@@ -1,5 +1,7 @@
 # 試營運正式環境（單台 AWS Lightsail ＋ Cloudflare），說明見 deploy/lightsail/README.md。
-# 在主機上執行：docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# 平常由 GitHub Actions 部署（.github/workflows/deploy.yml → 主機 deploy/lightsail/update.sh）：
+# image 在 GitHub 打包推到 GHCR，主機只 pull＋重啟，版本＝.env 的 IMAGE_TAG（commit sha）。
+# 備援：本機 deploy/lightsail/deploy.sh 會在主機上 --build（同一份設定）。
 # 與 docker-compose.yml 的差別：密碼／金鑰一律從 .env 讀取（沒填就無法啟動）、只對外開 443、
 # 資料庫與後端不開連接埠、不部署 adminer、HTTPS 由 nginx 以 Cloudflare Origin 憑證提供。
 name: gym-system
@@ -35,6 +37,7 @@ services:
         max-file: "5"
 
   backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/ssssuuunnnn}/gym-backend:${IMAGE_TAG:-latest}
     build: ./backend
     restart: unless-stopped
     environment:
@@ -68,6 +71,7 @@ services:
     logging: *logging
 
   frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/ssssuuunnnn}/gym-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:
