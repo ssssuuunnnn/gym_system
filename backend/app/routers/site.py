@@ -133,6 +133,19 @@ def _line_url(value: str) -> str:
     return value if value.startswith("https://") else f"https://line.me/R/ti/p/{value}"
 
 
+def _social_links(contact) -> list[dict]:
+    """店家的社群平台（填了才出現），依固定順序；交通與聯絡、頁尾、結構化資料共用。"""
+    links = [
+        ("line", "LINE 官方帳號", _line_url(contact.line) if contact.line else None),
+        ("instagram", "Instagram", f"https://www.instagram.com/{contact.instagram}/" if contact.instagram else None),
+        ("facebook", "Facebook", contact.facebook or None),
+        ("youtube", "YouTube", contact.youtube or None),
+        ("threads", "Threads", f"https://www.threads.com/@{contact.threads}" if contact.threads else None),
+        ("tiktok", "TikTok", f"https://www.tiktok.com/@{contact.tiktok}" if contact.tiktok else None),
+    ]
+    return [{"key": key, "label": label, "url": url} for key, label, url in links if url]
+
+
 def _money(value) -> str:
     amount = float(value)
     return f"{amount:,.0f}" if amount == int(amount) else f"{amount:,.2f}"
@@ -298,14 +311,8 @@ def render_site(
         json_ld["telephone"] = contact.phone
     if og_image:
         json_ld["image"] = og_image
-    same_as = [
-        url
-        for url in (
-            f"https://www.instagram.com/{contact.instagram}/" if contact.instagram else None,
-            contact.facebook or None,
-        )
-        if url
-    ]
+    socials = _social_links(contact)
+    same_as = [link["url"] for link in socials if link["key"] != "line"]
     if same_as:
         json_ld["sameAs"] = same_as
 
@@ -332,8 +339,7 @@ def render_site(
         # </script> 不能出現在內嵌 JSON 裡
         json_ld=json.dumps(json_ld, ensure_ascii=False).replace("</", "<\\/"),
         line_url=_line_url(contact.line) if contact.line else None,
-        instagram_url=f"https://www.instagram.com/{contact.instagram}/" if contact.instagram else None,
-        facebook_url=contact.facebook or None,
+        socials=socials,
         preview=preview,
         form=form or FormState(),
         honeypot=HONEYPOT_FIELD,

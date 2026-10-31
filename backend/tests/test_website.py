@@ -308,6 +308,44 @@ def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plan
     assert "3,600" in teaser and "12,000" not in teaser
 
 
+def test_social_links(client, admin, gym, coach, plans):
+    """社群平台：帳號名稱或網址都可以，網站上顯示在交通與聯絡、頁尾，並放進結構化資料 sameAs。"""
+    full_site(client, admin, coach.id, [plans[0].id])
+    content = draft(client, admin)
+    content["contact"].update(
+        youtube="@pulsefit",
+        threads="https://www.threads.com/@pulsefit.tw",
+        tiktok="@pulsefit_tw",
+        instagram="https://www.instagram.com/lin_ti_aromatherapy/",
+    )
+    assert save(client, admin, content).status_code == 200
+    saved = draft(client, admin)["contact"]
+    assert saved["youtube"] == "https://www.youtube.com/@pulsefit"
+    assert saved["threads"] == "pulsefit.tw" and saved["tiktok"] == "pulsefit_tw"
+    assert saved["instagram"] == "lin_ti_aromatherapy"
+    publish(client, admin)
+    html = client.get("/").text
+    for url in (
+        "https://www.youtube.com/@pulsefit",
+        "https://www.threads.com/@pulsefit.tw",
+        "https://www.tiktok.com/@pulsefit_tw",
+        "https://www.instagram.com/lin_ti_aromatherapy/",
+        "https://www.facebook.com/pulsefit",
+    ):
+        assert html.count(f'href="{url}"') == 2, url  # 交通與聯絡＋頁尾
+    same_as = html.split('"sameAs": [')[1].split("]")[0]
+    assert "youtube.com/@pulsefit" in same_as and "line.me" not in same_as
+
+    for field, value in (
+        ("youtube", "https://evil.example.com/@x"),
+        ("youtube", "http://www.youtube.com/@x"),
+        ("threads", "https://evil.example.com/@x"),
+        ("tiktok", "javascript:alert(1)"),
+    ):
+        bad = {**content, "contact": {**content["contact"], field: value}}
+        assert save(client, admin, bad).status_code == 422, (field, value)
+
+
 def test_validation(client, admin, gym, coach):
     content = draft(client, admin)
     bad = {**content, "contact": {**content["contact"], "facebook": "http://evil.example.com"}}

@@ -60,10 +60,12 @@
     <nav aria-label="頁尾連結" class="footer-links">
       <a href="/login">會員登入</a>
       <a href="/register">加入會員</a>
-      {% if line_url %}<a href="{{ line_url }}" rel="noopener" target="_blank">LINE</a>{% endif %}
-      {% if instagram_url %}<a href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
-      {% if facebook_url %}<a href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
     </nav>
+    {% if socials %}
+    <nav aria-label="社群平台" class="footer-links footer-social">
+      {% for link in socials %}<a href="{{ link.url }}" rel="noopener" target="_blank">{{ 'LINE' if link.key == 'line' else link.label }}</a>{% endfor %}
+    </nav>
+    {% endif %}
   </div>
 </footer>
 

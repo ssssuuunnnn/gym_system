@@ -3,7 +3,7 @@
 
 整份內容存成 websites.draft / websites.published 的 JSON；這裡是唯一的格式定義與驗證。
 - 只存網站用的文字、圖片網址，以及教練／方案的 id；名稱、照片、價格、課堂在顯示時從系統讀取。
-- 連結（LINE、Instagram、Facebook）與圖片網址在這裡驗證，樣板不必再擔心格式。
+- 連結（LINE、Instagram、Facebook、YouTube、Threads、TikTok）與圖片網址在這裡驗證，樣板不必再擔心格式。
 """
 
 import re
@@ -51,6 +51,25 @@ DEFAULT_THEME = "bold"
 SITE_IMAGE_RE = re.compile(r"^/media/[a-z0-9-]{1,63}/site/[0-9a-f]{32}\.(jpg|png)$")
 LINE_ID_RE = re.compile(r"^@?[A-Za-z0-9._-]{1,40}$")
 INSTAGRAM_RE = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+THREADS_RE = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+TIKTOK_RE = re.compile(r"^[A-Za-z0-9._]{2,24}$")
+YOUTUBE_HANDLE_RE = re.compile(r"^@[A-Za-z0-9._-]{3,30}$")
+YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
+THREADS_HOSTS = {"threads.net", "www.threads.net", "threads.com", "www.threads.com"}
+TIKTOK_HOSTS = {"tiktok.com", "www.tiktok.com", "m.tiktok.com"}
+
+
+def _handle_from(value: str, hosts: set[str], pattern: re.Pattern, error: str) -> str:
+    """帳號名稱或網址（https://host/@帳號）→ 帳號名稱（不含 @）。"""
+    if value.startswith("http"):
+        parsed = urlparse(value)
+        if parsed.scheme != "https" or parsed.hostname not in hosts:
+            raise ValueError(error)
+        value = parsed.path.strip("/").split("/")[0]
+    value = value.lstrip("@")
+    if not pattern.match(value):
+        raise ValueError(error)
+    return value
 
 
 def _strip(value):
@@ -209,6 +228,9 @@ class ContactSection(_Model):
     line: str = Field(default="", max_length=200, description="LINE 官方帳號：@ID 或加好友網址")
     instagram: str = Field(default="", max_length=200, description="Instagram 帳號名稱或網址")
     facebook: str = Field(default="", max_length=300, description="Facebook 粉絲專頁網址")
+    youtube: str = Field(default="", max_length=300, description="YouTube 頻道：@帳號或網址")
+    threads: str = Field(default="", max_length=200, description="Threads 帳號名稱或網址")
+    tiktok: str = Field(default="", max_length=200, description="TikTok 帳號名稱或網址")
 
     @field_validator("line")
     @classmethod
@@ -250,6 +272,36 @@ class ContactSection(_Model):
         }:
             raise ValueError("請貼 https://www.facebook.com/ 開頭的粉絲專頁網址")
         return value
+
+    @field_validator("youtube")
+    @classmethod
+    def _youtube(cls, value: str) -> str:
+        """存成完整網址：填 @帳號 時換成 https://www.youtube.com/@帳號。"""
+        value = value.strip()
+        if not value:
+            return ""
+        if YOUTUBE_HANDLE_RE.match(value):
+            return f"https://www.youtube.com/{value}"
+        parsed = urlparse(value)
+        if parsed.scheme != "https" or parsed.hostname not in YOUTUBE_HOSTS:
+            raise ValueError("請填 YouTube 的 @帳號，或貼 https://www.youtube.com/ 開頭的頻道網址")
+        return value
+
+    @field_validator("threads")
+    @classmethod
+    def _threads(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            return ""
+        return _handle_from(value, THREADS_HOSTS, THREADS_RE, "請填 Threads 帳號名稱或 threads.com 網址")
+
+    @field_validator("tiktok")
+    @classmethod
+    def _tiktok(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            return ""
+        return _handle_from(value, TIKTOK_HOSTS, TIKTOK_RE, "請填 TikTok 帳號名稱或 tiktok.com 網址")
 
 
 # ---------- 整份內容 ----------
