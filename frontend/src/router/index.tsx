@@ -29,6 +29,8 @@ import SystemSettings from '../pages/admin/SystemSettings';
 import Website from '../pages/admin/Website';
 import Inquiries from '../pages/admin/Inquiries';
 import MemberSegments from '../pages/admin/MemberSegments';
+import MemberTags from '../pages/admin/MemberTags';
+import News from '../pages/admin/News';
 import Coupons from '../pages/admin/Coupons';
 import Branches from '../pages/admin/Branches';
 import StaffAccounts from '../pages/admin/StaffAccounts';
@@ -93,10 +95,12 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'members', element: <RequirePerm perm="members"><MemberList /></RequirePerm> },
           { path: 'members/:id', element: <RequirePerm perm="members"><MemberDetail /></RequirePerm> },
           { path: 'member-segments', element: <RequirePerm perm="segments"><MemberSegments /></RequirePerm> },
+          { path: 'member-tags', element: <RequirePerm perm="members"><MemberTags /></RequirePerm> },
           { path: 'coupons', element: <RequirePerm perm="coupons"><Coupons /></RequirePerm> },
           { path: 'branches', element: <RequirePerm perm="branches"><Branches /></RequirePerm> },
           { path: 'staff', element: <RequirePerm perm="owner"><StaffAccounts /></RequirePerm> },
           // { path: 'slot-settings', element: <RequirePerm perm="availability"><SlotSettings /></RequirePerm> },
+          { path: 'news', element: <RequirePerm perm="website"><News /></RequirePerm> },
           { path: 'website', element: <RequirePerm perm="website"><Website /></RequirePerm> },
           { path: 'inquiries', element: <RequirePerm perm="inquiries"><Inquiries /></RequirePerm> },
           { path: 'settings', element: <RequirePerm perm="settings"><SystemSettings /></RequirePerm> },

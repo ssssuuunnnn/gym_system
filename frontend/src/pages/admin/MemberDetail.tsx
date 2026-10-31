@@ -24,8 +24,10 @@ import {
   getMember,
   resetMemberPassword,
   setMemberBlacklist,
+  setMemberTags,
   updateMember,
 } from '../../api/users';
+import { MemberTagSelect } from '../../components/MemberTagSelect';
 import { unlinkMemberLine } from '../../api/lineOa';
 import { formatServerTime } from '../../lib/datetime';
 
@@ -68,6 +70,8 @@ export default function MemberDetail() {
   const [pwd2, setPwd2] = useState('');
   const [mustChange, setMustChange] = useState(true);
   const [blacklisted, setBlacklisted] = useState<boolean | null>(null);
+  // null＝沒改過，沿用會員目前的標籤
+  const [tagIds, setTagIds] = useState<number[] | null>(null);
 
   // 僅在載入到（或切換至）另一位會員時重設表單，避免背景重新整理把使用者的編輯清掉
   useEffect(() => {
@@ -80,12 +84,16 @@ export default function MemberDetail() {
       setPwd2('');
       setMustChange(true);
       setBlacklisted(null);
+      setTagIds(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member?.id]);
 
   const reset = pwdMode === 'reset';
   const black = blacklisted === null ? !!member?.is_blacklisted : blacklisted;
+  const savedTags = member?.tag_ids ?? [];
+  const tags = tagIds ?? savedTags;
+  const tagsChanged = [...tags].sort().join(',') !== [...savedTags].sort().join(',');
   const usernameEmpty = username.trim() === '';
   const shortPwd = reset && pwd.length > 0 && pwd.length < 8;
   const mismatch = reset && pwd2.length > 0 && pwd !== pwd2;
@@ -112,8 +120,9 @@ export default function MemberDetail() {
     if (phone.trim() !== (member.phone ?? '')) list.push('手機');
     if (reset) list.push('密碼');
     if (black !== !!member.is_blacklisted) list.push('黑名單狀態');
+    if (tagsChanged) list.push('標籤');
     return list;
-  }, [member, username, displayName, phone, reset, black]);
+  }, [member, username, displayName, phone, reset, black, tagsChanged]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -132,10 +141,12 @@ export default function MemberDetail() {
       if (black !== !!member.is_blacklisted) {
         await setMemberBlacklist(member.id, black);
       }
+      if (tagsChanged) await setMemberTags(member.id, tags);
     },
     onSuccess: () => {
       message.success('已儲存變更');
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['member-tags'] });
       queryClient.invalidateQueries({ queryKey: ['member', memberId] });
       navigate('/admin/members');
     },
@@ -314,6 +325,14 @@ export default function MemberDetail() {
             )}
             <Text type="secondary" style={{ fontSize: 13 }}>
               由會員自己在「我的」開關，只有同意的會員會被加進 LINE 受眾
+            </Text>
+          </div>
+
+          <div style={row}>
+            <div style={labelCol}>標籤</div>
+            <MemberTagSelect id="member-tags" value={tags} onChange={setTagIds} placeholder="選擇標籤（可多選）" style={{ flex: 1, maxWidth: 420 }} />
+            <Text style={{ fontSize: 13 }} type="secondary">
+              只有後台看得到
             </Text>
           </div>
 

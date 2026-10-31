@@ -15,8 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 # ---------- 共用常數 ----------
 
-SECTION_KEYS = ("hero", "about", "schedule", "coaches", "pricing", "gallery", "faq", "trial", "contact")
-SectionKey = Literal["hero", "about", "schedule", "coaches", "pricing", "gallery", "faq", "trial", "contact"]
+SECTION_KEYS = ("hero", "about", "news", "schedule", "coaches", "pricing", "gallery", "faq", "trial", "contact")
+SectionKey = Literal["hero", "about", "news", "schedule", "coaches", "pricing", "gallery", "faq", "trial", "contact"]
 # 一定會顯示、不能關閉的段落
 REQUIRED_SECTIONS = {"hero", "about", "contact"}
 
@@ -177,6 +177,13 @@ class GallerySection(_Model):
     images: list[GalleryImage] = Field(default_factory=list, max_length=12)
 
 
+class NewsSection(_Model):
+    """最新消息段落：消息本身在 news_posts（後台「最新消息」），這裡只設定標題與首頁顯示幾則。"""
+
+    title: str = Field(default="最新消息", max_length=30)
+    count: int = Field(default=3, ge=1, le=12)
+
+
 class FaqItem(_Model):
     q: str = Field(min_length=1, max_length=60)
     a: str = Field(min_length=1, max_length=500)
@@ -314,6 +321,7 @@ class SiteContent(_Model):
     sections: list[SectionToggle] = Field(default_factory=lambda: [SectionToggle(key=k) for k in SECTION_KEYS])
     hero: HeroSection = Field(default_factory=HeroSection)
     about: AboutSection = Field(default_factory=AboutSection)
+    news: NewsSection = Field(default_factory=NewsSection)
     schedule: ScheduleSection = Field(default_factory=ScheduleSection)
     coaches: CoachesSection = Field(default_factory=CoachesSection)
     pricing: PricingSection = Field(default_factory=PricingSection)
@@ -328,7 +336,15 @@ class SiteContent(_Model):
         seen: dict[str, SectionToggle] = {}
         for s in self.sections:
             seen.setdefault(s.key, s)
-        ordered = list(seen.values()) + [SectionToggle(key=k) for k in SECTION_KEYS if k not in seen]
+        ordered = list(seen.values())
+        # 舊網站沒有的新段落（例如最新消息）放在預設順序的前一個段落後面
+        for index, key in enumerate(SECTION_KEYS):
+            if key in seen:
+                continue
+            previous = [k for k in SECTION_KEYS[:index] if k in seen]
+            position = next((i + 1 for i, t in enumerate(ordered) if previous and t.key == previous[-1]), 0)
+            ordered.insert(position, SectionToggle(key=key))
+            seen[key] = ordered[position]
         for s in ordered:
             if s.key in REQUIRED_SECTIONS:
                 s.visible = True

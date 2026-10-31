@@ -20,6 +20,8 @@ from app.routers import (
     line_oa,
     line_webhook,
     member_segments,
+    member_tags,
+    news,
     platform,
     products,
     purchases,
@@ -83,6 +85,8 @@ app.include_router(staff.router, prefix=settings.API_V1_PREFIX)
 app.include_router(staff_notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(coupons.router, prefix=settings.API_V1_PREFIX)
 app.include_router(tenant_profile.router, prefix=settings.API_V1_PREFIX)
+app.include_router(member_tags.router, prefix=settings.API_V1_PREFIX)
+app.include_router(news.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(site.router)
 

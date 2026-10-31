@@ -59,6 +59,8 @@ class UserOut(BaseModel):
     # 同意接收優惠與活動訊息（R31）
     marketing_consent: bool = False
     marketing_consent_at: datetime | None = None
+    # 會員標籤（ADR 0012）：只在後台的會員 API 填入，不給會員自己看
+    tag_ids: list[int] = []
 
 
 def user_out(user, is_coach: bool) -> UserOut:

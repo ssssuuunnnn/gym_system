@@ -25,6 +25,8 @@ class SegmentFilters(BaseModel):
     max_remaining_hours: float | None = Field(default=None, ge=0)
     # 最後一次上課距今至少幾天；None＝不限
     inactive_days: int | None = Field(default=None, ge=1, le=3650)
+    # 有其中任一個會員標籤（ADR 0012）；空＝不限
+    tag_ids: list[int] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def _check_range(self):
@@ -44,6 +46,7 @@ class SegmentMember(BaseModel):
     last_attended: date
     remaining_hours: float
     reach: LineReach
+    tag_ids: list[int] = Field(default_factory=list)
 
 
 class SegmentResult(BaseModel):

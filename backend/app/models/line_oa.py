@@ -56,6 +56,8 @@ class LineMemberEvent(str, enum.Enum):
     booking_cancelled = "預約已取消"
     payment_confirmed = "已收到款項"
     class_reminder = "上課提醒"
+    # 店家發的最新消息（行銷性質：只發給同意優惠訊息的會員，R31／R50）
+    news = "最新消息"
 
 
 # 每種事件對應 line_oa_channels 的開關

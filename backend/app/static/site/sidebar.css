@@ -107,6 +107,9 @@ body.theme-sidebar { background: var(--page); }
 @media (min-width: 900px) {
   body.theme-sidebar { padding-left: var(--side-w); }
   .theme-sidebar .site-header { display: none; }
+  /* 最新消息等單頁沒有左側目錄：用共用頁首 */
+  body.theme-sidebar.subpage { padding-left: 0; }
+  .theme-sidebar.subpage .site-header { display: block; }
   .sb-side {
     display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 20; width: var(--side-w);
     padding: 24px 16px; background: #fff; border-right: 1px solid var(--line);

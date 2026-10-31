@@ -1,7 +1,7 @@
 import { Form, Input } from 'antd';
 import type { SiteContent } from '../../../../../api/website';
 import type { PanelProps } from '../../lib';
-import { ImageUploader } from '../ImageUploader';
+import { SiteImageUploader } from '../../../../../components/SiteImageUploader';
 
 type Hero = SiteContent['hero'];
 
@@ -17,7 +17,7 @@ export function HeroPanel({ value, onChange }: PanelProps<Hero>) {
         <Input.TextArea id="site-hero-2" value={value.description} maxLength={200} showCount autoSize={{ minRows: 3, maxRows: 6 }} onChange={(e) => set({ description: e.target.value })} />
       </Form.Item>
       <Form.Item label="主視覺照片">
-        <ImageUploader value={value.image_url} onChange={(url) => set({ image_url: url })} hint="建議橫式 1600×1000" />
+        <SiteImageUploader value={value.image_url} onChange={(url) => set({ image_url: url })} hint="建議橫式 1600×1000" />
       </Form.Item>
       <Form.Item htmlFor="site-hero-3" label="標語上方小字（選填）" extra="例如地點：TAIPEI · DA'AN">
         <Input id="site-hero-3" value={value.eyebrow} maxLength={40} onChange={(e) => set({ eyebrow: e.target.value })} />

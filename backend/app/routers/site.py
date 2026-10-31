@@ -29,6 +29,7 @@ from app.db.session import TENANT_INFO_KEY
 from app.deps import get_tenant
 from app.models.coach import Coach
 from app.models.inquiry import Inquiry
+from app.models.news import NewsPost
 from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
@@ -39,6 +40,7 @@ from app.services import staff_notifications
 from app.services.schedule import group_sessions
 from app.services.shop import DEFAULT_COMPANY_NAMES, shop_names
 from app.services import branches as branch_service
+from app.services import news as news_service
 
 router = APIRouter(tags=["site"], include_in_schema=False)
 
@@ -64,6 +66,7 @@ def section_nav_label(key: str) -> str | None:
         "pricing": "方案價格",
         "gallery": "環境照片",
         "faq": "常見問題",
+        "news": "最新消息",
         "contact": "交通與聯絡",
     }.get(key)
 
@@ -239,7 +242,33 @@ def _plans(db: Session, content: SiteContent) -> list[dict]:
     return result
 
 
-def render_site(
+def _date_label(value: datetime | None) -> str:
+    """消息日期（店家當地時間）：2026/10/31。"""
+    if value is None:
+        return ""
+    local = clock.to_local(value)
+    return f"{local.year}/{local.month}/{local.day}"
+
+
+def _news_item(post: NewsPost) -> dict:
+    """樣板只拿得到這些欄位（不把 ORM 物件交給樣板，R16）。"""
+    return {
+        "id": post.id,
+        "title": post.title,
+        "summary": post.summary,
+        "body": post.body,
+        "image_url": post.image_url,
+        "date": _date_label(post.published_at),
+        "iso": post.published_at.date().isoformat() if post.published_at else "",
+        "path": news_service.path_of(post),
+    }
+
+
+def _news_items(db: Session, limit: int | None = None) -> list[dict]:
+    return [_news_item(p) for p in news_service.published_posts(db, limit)]
+
+
+def site_context(
     request: Request,
     db: Session,
     tenant: TenantInfo,
@@ -247,7 +276,8 @@ def render_site(
     *,
     preview: bool = False,
     form: FormState | None = None,
-) -> str:
+) -> dict:
+    """形象網站樣板的共用資料（首頁與最新消息頁共用頁首、頁尾、品牌色、版型）。"""
     company = db.query(SystemSettings).first()
     # 店名：簡稱 → 公司名稱 → 平台開通時的名稱（與後台、前台分頁標題同一個來源）
     names = shop_names(db, tenant.id, company)
@@ -265,10 +295,12 @@ def render_site(
         "schedule_days": _schedule_days(db, content.schedule.show_seats) if "schedule" in visible else [],
         "coaches": _coaches(db, content) if "coaches" in visible else [],
         "plans": _plans(db, content) if "pricing" in visible else [],
+        "news": _news_items(db, content.news.count) if "news" in visible else [],
     }
     has_content = {
         "hero": True,
         "about": bool(content.about.text or content.about.features),
+        "news": bool(data["news"]),
         "schedule": any(d["classes"] for d in data["schedule_days"]),
         "coaches": bool(data["coaches"]),
         "pricing": bool(data["plans"]),
@@ -317,7 +349,13 @@ def render_site(
         json_ld["sameAs"] = same_as
 
     theme = content.theme if content.theme in SITE_THEMES else DEFAULT_THEME
-    return templates.get_template(f"site/{SITE_THEMES[theme]['template']}.html").render(
+    layout = SITE_THEMES[theme]["template"]
+    return dict(
+        template=f"site/{layout}.html",
+        # 單篇頁面（不是用版型樣板）要另外載入的樣式：活力＝只有 site.css；清爽／溫暖＝theme-<key>.css；其他＝<版型>.css
+        layout_css=None if theme == "bold" else (f"theme-{theme}.css" if layout == "bold" else f"{layout}.css"),
+        # 頁首選單連到首頁的段落；首頁用 #key，其他頁用 /#key
+        home="",
         next_class=next_class,
         cheapest_plan=cheapest_plan,
         c=content,
@@ -346,6 +384,19 @@ def render_site(
         year=clock.now_local().year,
         **data,
     )
+
+
+def render_site(
+    request: Request,
+    db: Session,
+    tenant: TenantInfo,
+    content: SiteContent,
+    *,
+    preview: bool = False,
+    form: FormState | None = None,
+) -> str:
+    ctx = site_context(request, db, tenant, content, preview=preview, form=form)
+    return templates.get_template(ctx.pop("template")).render(**ctx)
 
 
 def _published(db: Session) -> SiteContent | None:
@@ -383,6 +434,104 @@ async def preview(request: Request, token: str = ""):
             return _message_page("尚未建立網站", "請先在後台編輯形象網站。", 404)
         content = SiteContent.model_validate(site.draft)
         return _html(render_site(request, db, tenant, content, preview=True), noindex=True)
+
+
+# ---------- 最新消息頁（ADR 0012） ----------
+
+
+def _preview_ok(tenant: TenantInfo, token: str) -> bool:
+    payload = decode_access_token(token) if token else None
+    return bool(payload and payload.get("scope") == SITE_PREVIEW_SCOPE and payload.get("tid") == tenant.id)
+
+
+def _news_page(request: Request, db: Session, tenant: TenantInfo, content: SiteContent, preview: bool, **page) -> str:
+    """消息列表／單篇共用：沿用首頁的頁首、頁尾與版型樣式，只換主要內容與標題。"""
+    ctx = site_context(request, db, tenant, content, preview=preview)
+    ctx.pop("template")
+    ctx["home"] = "/"
+    ctx.update(page)
+    full_name = ctx["full_name"]
+    ctx["title"] = f"{page['page_title']}｜{full_name}"
+    ctx["canonical"] = page["canonical"]
+    article = page.get("article")
+    if article:
+        ctx["description"] = (article["summary"] or article["body"].replace("\n", " "))[:150]
+        if page.get("article_image"):
+            ctx["og_image"] = page["article_image"]
+        json_ld = {
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            "headline": article["title"][:110],
+            "datePublished": article["iso"],
+            "publisher": {"@type": "Organization", "name": full_name},
+            "mainEntityOfPage": page["canonical"],
+        }
+        if page.get("article_image"):
+            json_ld["image"] = [page["article_image"]]
+        ctx["json_ld"] = json.dumps(json_ld, ensure_ascii=False).replace("</", "<\\/")
+    return templates.get_template("site/news.html").render(**ctx)
+
+
+async def _news_site(request: Request, token: str):
+    """回傳 (tenant, preview)；預覽時用草稿外觀、看得到未發布的消息；網站未發布又不是預覽 → None。"""
+    tenant = await _resolve_tenant(request)
+    if isinstance(tenant, HTMLResponse):
+        return tenant, False
+    return tenant, _preview_ok(tenant, token)
+
+
+def _site_content(db: Session, preview: bool) -> SiteContent | None:
+    site = db.query(Website).first()
+    if site is None:
+        return None
+    if preview:
+        return SiteContent.model_validate(site.draft)
+    return SiteContent.model_validate(site.published) if site.published else None
+
+
+@router.get("/site/news", response_class=HTMLResponse)
+async def news_index(request: Request, token: str = ""):
+    tenant, preview = await _news_site(request, token)
+    if isinstance(tenant, HTMLResponse):
+        return tenant
+    with _tenant_db(tenant) as db:
+        content = _site_content(db, preview)
+        if content is None:
+            return RedirectResponse("/login", status_code=302)
+        base = _base_url(request)
+        title = content.news.title
+        body = _news_page(
+            request, db, tenant, content, preview,
+            news_list=_news_items(db), article=None,
+            page_title=title,
+            canonical=f"{base}{news_service.NEWS_PATH}",
+        )
+        return _html(body, noindex=preview)
+
+
+@router.get("/site/news/{news_id}", response_class=HTMLResponse)
+async def news_detail(request: Request, news_id: int, token: str = ""):
+    tenant, preview = await _news_site(request, token)
+    if isinstance(tenant, HTMLResponse):
+        return tenant
+    with _tenant_db(tenant) as db:
+        content = _site_content(db, preview)
+        if content is None:
+            return RedirectResponse("/login", status_code=302)
+        post = db.get(NewsPost, news_id)
+        if post is None or not (post.is_published or preview):
+            return _message_page("找不到這則消息", "這則消息可能已經下架，請回到網站首頁看看其他消息。", 404)
+        base = _base_url(request)
+        article = _news_item(post)
+        image = f"{base}{post.image_url}" if post.image_url else None
+        body = _news_page(
+            request, db, tenant, content, preview,
+            news_list=None, article=article,
+            page_title=post.title,
+            canonical=f"{base}{article['path']}",
+            article_image=image,
+        )
+        return _html(body, noindex=preview or not post.is_published)
 
 
 def _validate_inquiry(form: dict, content: SiteContent) -> tuple[dict, dict]:
@@ -471,7 +620,7 @@ async def robots(request: Request):
             return PlainTextResponse("User-agent: *\nDisallow: /\n")
     base = _base_url(request)
     return PlainTextResponse(
-        "User-agent: *\nAllow: /$\nAllow: /site/static/\nAllow: /media/\nDisallow: /\n"
+        "User-agent: *\nAllow: /$\nAllow: /site/static/\nAllow: /site/news\nAllow: /media/\nDisallow: /\n"
         f"Sitemap: {base}/sitemap.xml\n"
     )
 
@@ -486,10 +635,17 @@ async def sitemap(request: Request):
         if site is None or site.published is None:
             return Response(status_code=404)
         lastmod = (site.published_at or site.updated_at).date().isoformat()
+        posts = news_service.published_posts(db)
+        news_urls = [(news_service.path_of(p), p.updated_at.date().isoformat()) for p in posts]
+    base = _base_url(request)
+    urls = [("/", lastmod)]
+    if news_urls:
+        urls.append((news_service.NEWS_PATH, max(d for _, d in news_urls)))
+        urls += news_urls
     body = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"  <url><loc>{_base_url(request)}/</loc><lastmod>{lastmod}</lastmod></url>\n"
-        "</urlset>\n"
+        + "".join(f"  <url><loc>{base}{path}</loc><lastmod>{day}</lastmod></url>\n" for path, day in urls)
+        + "</urlset>\n"
     )
     return Response(body, media_type="application/xml")

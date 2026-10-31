@@ -1,7 +1,8 @@
 """
 從健身房自己的 LINE 官方帳號推播給會員（ADR 0005 第二階段）。
 
-- 事件：預約成功／未成立（審核或櫃台代訂）、櫃台取消預約、確認收款、上課提醒（前一天）
+- 事件：預約成功／未成立（審核或櫃台代訂）、櫃台取消預約、確認收款、上課提醒（前一天）；
+  最新消息（services/news.py 直接寫入，只發給同意優惠訊息的會員）
 - 只發給已綁定 LINE、沒有關閉通知的會員；健身房可逐項關閉、設定每月上限
 - 會員自己的操作（自己送出、自己取消、自己下單）不發，畫面上已經看得到結果
 - 和店家通知（services/line.py）一樣用 outbox：與事件同一個交易寫入，回應後送出；
@@ -210,7 +211,12 @@ def _process(db: Session, m: LineMemberMessage, channel: LineOaChannel | None) -
         _finish(m, LineNotificationStatus.skipped_disabled, "LINE 官方帳號未啟用")
         return
     user = db.get(User, m.user_id)
-    if user is None or not user.line_user_id or not user.line_notify:
+    if m.event == LineMemberEvent.news:
+        # 最新消息算行銷訊息：看「優惠與活動訊息」同意，不看服務通知開關（R31、R51）
+        if user is None or not user.line_user_id or not user.marketing_consent or user.is_blacklisted:
+            _finish(m, LineNotificationStatus.skipped_disabled, "會員已解除 LINE 綁定或取消同意優惠訊息")
+            return
+    elif user is None or not user.line_user_id or not user.line_notify:
         _finish(m, LineNotificationStatus.skipped_disabled, "會員已解除 LINE 綁定或關閉通知")
         return
     cap = channel.member_monthly_cap

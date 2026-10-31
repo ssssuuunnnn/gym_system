@@ -20,33 +20,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700{{ theme_fonts }}&display=swap">
-<link rel="stylesheet" href="/site/static/site.css?v=3">
+<link rel="stylesheet" href="/site/static/site.css?v=4">
 {% block styles %}{% endblock %}
 <style>:root { --accent: {{ accent }}; --accent-light: {{ accent_light }}; }</style>
 <script type="application/ld+json">{{ json_ld | safe }}</script>
 </head>
-<body class="theme-{{ theme }}">
+<body class="theme-{{ theme }}{% block body_class %}{% endblock %}">
 {% if preview %}<div class="preview-banner" role="status">預覽（草稿）・訪客看不到，按「發布到網站」後才會上線</div>{% endif %}
 <a class="skip" href="#main">跳到主要內容</a>
 
 <header class="site-header">
   <div class="wrap header-row">
-    <a class="brand" href="#top">
+    <a class="brand" href="{{ home }}#top">
       {% if logo_url %}<img src="{{ logo_url }}" alt="" width="36" height="36">{% else %}<span class="brand-mark" aria-hidden="true">{{ company_name[:1] }}</span>{% endif %}
       <span>{{ full_name }}</span>
     </a>
     {#- 桌機與手機各一份選單（只會顯示其中一份）：收合的 <details> 在瀏覽器裡一定隱藏內容，不能拿來當桌機選單 -#}
     <nav aria-label="主選單" class="nav nav-desktop">
-      {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+      {% for key, label in nav %}<a href="{{ home }}#{{ key }}">{{ label }}</a>{% endfor %}
       <a href="/login" class="nav-login">會員登入</a>
-      {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
+      {% if 'trial' in sections %}<a href="{{ home }}#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
     </nav>
     <details class="menu">
       <summary aria-label="選單"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
       <nav aria-label="主選單" class="nav nav-mobile">
-        {% for key, label in nav %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+        {% for key, label in nav %}<a href="{{ home }}#{{ key }}">{{ label }}</a>{% endfor %}
         <a href="/login" class="nav-login">會員登入</a>
-        {% if 'trial' in sections %}<a href="#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
+        {% if 'trial' in sections %}<a href="{{ home }}#trial" class="btn btn-accent">預約{{ t.trial }}</a>{% endif %}
       </nav>
     </details>
   </div>
@@ -72,7 +72,7 @@
 {% if 'trial' in sections and not form.sent %}
 <div class="mobile-cta">
   {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">LINE 詢問</a>{% endif %}
-  <a class="btn btn-accent" href="#trial">預約{{ t.trial }}</a>
+  <a class="btn btn-accent" href="{{ home }}#trial">預約{{ t.trial }}</a>
 </div>
 {% endif %}
 </body>

@@ -2,7 +2,7 @@
     右邊每個段落是一張浮起的白色卡片，主視覺下方有三個重點數字（下一堂課、方案起價、教練人數）。
     手機沒有側欄，改用共用的頁首選單；卡片照後台順序由上而下。 -#}
 {% extends 'site/_layout.html' %}
-{% block styles %}<link rel="stylesheet" href="/site/static/sidebar.css?v=1">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/site/static/sidebar.css?v=2">{% endblock %}
 {% macro icon(key) -%}
 <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 {%- if key == 'about' %}<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
@@ -10,6 +10,7 @@
 {%- elif key == 'coaches' %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>
 {%- elif key == 'pricing' %}<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/>
 {%- elif key == 'gallery' %}<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/>
+{%- elif key == 'news' %}<path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/>
 {%- elif key == 'faq' %}<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>
 {%- elif key == 'trial' %}<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>
 {%- elif key == 'contact' %}<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>
@@ -168,6 +169,13 @@
     </figure>
     {% endfor %}
   </div>
+</section>
+
+{% elif key == 'news' %}
+<section id="news" class="card" aria-labelledby="news-title">
+  {{ card_head('news', 'NEWS', c.news.title) }}
+  {% with items=news %}{% include 'site/_news_list.html' %}{% endwith %}
+  <a class="more-link" href="/site/news">看全部消息 →</a>
 </section>
 
 {% elif key == 'faq' %}

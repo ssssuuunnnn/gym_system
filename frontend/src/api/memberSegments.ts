@@ -18,6 +18,8 @@ export interface SegmentFilters {
   max_remaining_hours: number | null;
   /** 最後一次上課距今至少幾天；null＝不限 */
   inactive_days: number | null;
+  /** 有其中任一個會員標籤；空＝不限 */
+  tag_ids?: number[];
 }
 
 export interface SegmentMember {
@@ -29,6 +31,7 @@ export interface SegmentMember {
   last_attended: string;
   remaining_hours: number;
   reach: LineReach;
+  tag_ids: number[];
 }
 
 export interface SegmentResult {
