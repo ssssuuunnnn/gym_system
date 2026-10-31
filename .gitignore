@@ -23,3 +23,6 @@ frontend/*.local
 
 # Root env (local secrets)
 /.env
+
+# 正式環境的 Cloudflare Origin 憑證（只放在主機上）
+deploy/lightsail/certs/
