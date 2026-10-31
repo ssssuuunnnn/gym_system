@@ -6,7 +6,7 @@ import { apiErrorMessage } from '../../api/platformClient';
 import { usePlatformAuthStore } from '../../store/platformAuth';
 import { usePageTitle } from '../../lib/usePageTitle';
 
-/** 平台管理後台登入頁（platform.<主網域>/login），與各家健身房的登入頁分開。 */
+/** 平台管理後台登入頁（platform.<主網域>/login），與各店家的登入頁分開。 */
 export default function PlatformLogin() {
   usePageTitle('平台管理');
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export default function PlatformLogin() {
           平台管理
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ textAlign: 'center' }}>
-          開通與管理各家健身房
+          開通與管理各店家
         </Typography.Paragraph>
         <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
           <Form.Item name="username" label="帳號" rules={[{ required: true, message: '請輸入帳號' }]}>

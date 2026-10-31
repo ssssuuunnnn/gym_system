@@ -37,7 +37,7 @@ router = APIRouter(prefix="/auth/line", tags=["auth"])
 def _enabled_channel(db: Session):
     channel = oa.get_enabled_channel(db)
     if channel is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="這家健身房尚未啟用 LINE 會員")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="這家店尚未啟用 LINE 會員")
     return channel
 
 

@@ -110,14 +110,14 @@ def test_create_tenant_with_first_admin(platform_client, platform_admin, platfor
         "/api/v1/platform/audit-logs", params={"tenant_id": gym["id"]}, headers=platform_auth(platform_admin)
     ).json()
     assert [(log["action"], log["action_label"], log["admin_username"]) for log in logs] == [
-        ("create_tenant", "開通健身房", "ops")
+        ("create_tenant", "開通店家", "ops")
     ]
     assert "boss-pass-1" not in str(logs)  # 紀錄裡不能有密碼
 
 
 @pytest.mark.parametrize(
     "subdomain,reason",
-    [("platform", "保留"), ("www", "保留"), ("-bad", "只能用"), ("有中文", "只能用"), ("alpha", "已經有健身房")],
+    [("platform", "保留"), ("www", "保留"), ("-bad", "只能用"), ("有中文", "只能用"), ("alpha", "已經有店家")],
 )
 def test_subdomain_rules(platform_client, platform_admin, subdomain, reason):
     check = platform_client.get(

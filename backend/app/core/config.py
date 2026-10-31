@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     LINE_CHANNEL_ACCESS_TOKEN: str = ""
     # 官方帳號的 Basic ID（例如 @123abcde），用來產生加好友網址與 QR 碼
     LINE_BOT_BASIC_ID: str = ""
-    LINE_BOT_NAME: str = "健身房小幫手"
+    LINE_BOT_NAME: str = "店家小幫手"
     LINE_API_BASE: str = "https://api.line.me"
     # 平台的 LINE 方案每月額度（只用於平台後台顯示）
     LINE_PLAN_MONTHLY_QUOTA: int = 3000

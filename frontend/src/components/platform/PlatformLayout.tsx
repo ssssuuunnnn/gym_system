@@ -6,11 +6,11 @@ import BackOfficeShell, { type BackOfficeMenuItem } from '../BackOfficeShell';
 import { usePageTitle } from '../../lib/usePageTitle';
 
 /**
- * 平台管理後台版型：共用健身房後台的 BackOfficeShell，只換導覽與登入者。
+ * 平台管理後台版型：共用店家後台的 BackOfficeShell，只換導覽與登入者。
  * 只在 platform.<主網域> 出現（見 docs/adr/0002-platform-console.md）。
  */
 const platformMenuItems: BackOfficeMenuItem[] = [
-  { key: '/tenants', label: '健身房', icon: <ShopOutlined /> },
+  { key: '/tenants', label: '店家', icon: <ShopOutlined /> },
   { key: '/line', label: 'LINE 通知', icon: <MessageOutlined /> },
   { key: '/audit-logs', label: '操作紀錄', icon: <HistoryOutlined /> },
 ];

@@ -1,6 +1,6 @@
 """
 平台管理指令。以資料表擁有者（MIGRATION_DATABASE_URL）連線，不經過 API。
-日常開通／停用健身房請用平台管理後台（http://platform.<BASE_DOMAIN>）；這裡給部署、救援與自動化用。
+日常開通／停用店家請用平台管理後台（http://platform.<BASE_DOMAIN>）；這裡給部署、救援與自動化用。
 
 用法：
     python -m app.cli create-platform-admin --username ops --password '...'
@@ -38,11 +38,11 @@ def ensure_tenant(
     admin_password: str | None = None,
     business_type: str = "fitness",
 ) -> None:
-    """建立健身房（可選同時建立第一位管理員）；已存在則略過（可重複執行）。"""
+    """建立店家（可選同時建立第一位管理員）；已存在則略過（可重複執行）。"""
     sub = tenant_service.normalize_subdomain(subdomain)
     with owner_session() as s:
         if s.query(Tenant.id).filter(Tenant.subdomain == sub).first():
-            print(f"[cli] 健身房已存在，略過：{sub}")
+            print(f"[cli] 店家已存在，略過：{sub}")
             return
         tenant = tenant_service.create_tenant(
             s, subdomain=sub, name=name or sub, timezone=timezone, business_type=BusinessType[business_type]
@@ -60,7 +60,7 @@ def ensure_tenant(
             s, action="create_tenant", admin_id=None, admin_username=CLI_ACTOR, tenant_id=tenant.id, detail=detail
         )
         s.commit()
-        print(f"[cli] 已建立健身房：{sub}（id={tenant.id}）")
+        print(f"[cli] 已建立店家：{sub}（id={tenant.id}）")
 
 
 def ensure_platform_admin(username: str, password: str) -> None:
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> None:
     p_admin.add_argument("--username", required=True)
     p_admin.add_argument("--password", required=True)
 
-    p_create = sub.add_parser("create-tenant", help="開通一家健身房（可重複執行）")
+    p_create = sub.add_parser("create-tenant", help="開通一家店（可重複執行）")
     p_create.add_argument("--subdomain", required=True)
     p_create.add_argument("--name")
     p_create.add_argument("--timezone", default="Asia/Taipei")
@@ -93,9 +93,9 @@ def main(argv: list[str] | None = None) -> None:
     p_create.add_argument("--admin-username")
     p_create.add_argument("--admin-password")
 
-    sub.add_parser("list-tenants", help="列出所有健身房")
+    sub.add_parser("list-tenants", help="列出所有店家")
 
-    p_status = sub.add_parser("set-status", help="變更健身房狀態")
+    p_status = sub.add_parser("set-status", help="變更店家狀態")
     p_status.add_argument("--subdomain", required=True)
     p_status.add_argument("--status", required=True, choices=[s.name for s in TenantStatus])
 
@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> None:
             with owner_session() as s:
                 tenant = s.query(Tenant).filter(Tenant.subdomain == args.subdomain).first()
                 if tenant is None:
-                    sys.exit(f"[cli] 找不到健身房：{args.subdomain}")
+                    sys.exit(f"[cli] 找不到店家：{args.subdomain}")
                 new_status = TenantStatus[args.status]
                 if tenant.status != new_status:
                     tenant_service.audit(

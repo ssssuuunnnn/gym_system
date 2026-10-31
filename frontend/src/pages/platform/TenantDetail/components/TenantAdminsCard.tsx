@@ -30,7 +30,7 @@ export interface TenantAdminsCardProps {
 }
 
 /**
- * 這家健身房的管理員帳號：平台只管理員層級（新增、協助重設密碼），不碰會員與教練帳號。
+ * 這家店的管理員帳號：平台只管理員層級（新增、協助重設密碼），不碰會員與教練帳號。
  * 密碼送出後只在成功對話框顯示一次。
  */
 export function TenantAdminsCard({ tenant }: TenantAdminsCardProps) {
@@ -124,7 +124,7 @@ export function TenantAdminsCard({ tenant }: TenantAdminsCardProps) {
     >
       <Table rowKey="id" size="middle" columns={columns} dataSource={admins} loading={isLoading} pagination={false} />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
-        平台只管理各家的管理員帳號；會員與教練帳號由健身房自己的管理員在後台處理。
+        平台只管理各家的管理員帳號；會員與教練／美容師帳號由店家自己的管理員在後台處理。
       </Typography.Paragraph>
 
       <Modal

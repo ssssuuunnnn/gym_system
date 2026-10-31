@@ -36,7 +36,7 @@ export function ContactPanel({ value, onChange }: PanelProps<Contact>) {
         社群與通訊
       </Divider>
       <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
-        填了才會出現在網站上。這裡是健身房的官方帳號，與教練個人的 LINE 無關。
+        填了才會出現在網站上。這裡是店家的官方帳號，與員工個人的 LINE 無關。
       </Typography.Paragraph>
       <Form.Item htmlFor="site-contact-6" label="LINE 官方帳號" extra={lineUrl ? `加好友連結：${lineUrl}` : '填 @ID，或貼上 lin.ee／line.me 開頭的加好友網址'}>
         <Input id="site-contact-6" value={value.line} maxLength={200} placeholder="@pulsefit" onChange={(e) => set({ line: e.target.value })} />

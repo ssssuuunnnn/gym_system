@@ -78,7 +78,7 @@ def _tenant_out(tenant: Tenant, stats: dict[int, TenantStats]) -> TenantOut:
 def _get_tenant(db: Session, tenant_id: int) -> Tenant:
     tenant = db.get(Tenant, tenant_id)
     if tenant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到這家健身房")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到這家店")
     return tenant
 
 

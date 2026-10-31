@@ -72,7 +72,7 @@ export function TenantStatusCard({ tenant }: TenantStatusCardProps) {
           <Statistic title="會員" value={tenant.stats.member_count} />
         </Col>
         <Col span={12}>
-          <Statistic title="教練" value={tenant.stats.coach_count} />
+          <Statistic title="教練／美容師" value={tenant.stats.coach_count} />
         </Col>
         <Col span={12}>
           <Statistic title="本月預約" value={tenant.stats.reservations_this_month} />
@@ -99,7 +99,7 @@ export function TenantStatusCard({ tenant }: TenantStatusCardProps) {
         <Alert
           type="warning"
           showIcon
-          title="停用後，這家健身房的管理員、教練、會員都無法使用系統（已登入的人也會被擋下，最多約 30 秒內生效）。資料會保留，重新啟用即恢復。"
+          title="停用後，這家店的管理員、教練／美容師、會員都無法使用系統（已登入的人也會被擋下，最多約 30 秒內生效）。資料會保留，重新啟用即恢復。"
           style={{ marginBottom: 16 }}
         />
         <Typography.Text>停用原因（會記在操作紀錄）</Typography.Text>

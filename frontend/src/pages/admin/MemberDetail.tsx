@@ -294,7 +294,7 @@ export default function MemberDetail() {
               <>
                 <Tag>未綁定</Tag>
                 <Text style={{ fontSize: 13 }} type="secondary">
-                  會員可在健身房的 LINE 官方帳號裡用帳號密碼綁定
+                  會員可在店家的 LINE 官方帳號裡用帳號密碼綁定
                 </Text>
               </>
             )}

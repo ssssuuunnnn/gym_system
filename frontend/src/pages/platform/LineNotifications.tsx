@@ -40,7 +40,7 @@ function CapInput({ gym, onSave, saving }: { gym: LineGymUsage; onSave: (cap: nu
 }
 
 /**
- * 平台 › LINE 通知：本月全平台用量（對照 LINE 方案額度）、各健身房用量與每月上限、發送紀錄。
+ * 平台 › LINE 通知：本月全平台用量（對照 LINE 方案額度）、各店家用量與每月上限、發送紀錄。
  * 只有彙總數字與發送結果，看不到收件人與訊息內容。
  */
 export default function LineNotifications() {
@@ -76,7 +76,7 @@ export default function LineNotifications() {
 
   const gymColumns: ColumnsType<LineGymUsage> = [
     {
-      title: '健身房',
+      title: '店家',
       key: 'name',
       render: (_, g) => (
         <div>
@@ -124,7 +124,7 @@ export default function LineNotifications() {
 
   const logColumns: ColumnsType<LineLog> = [
     { title: '時間', dataIndex: 'created_at', width: 150, render: (v: string) => formatServerTime(v, 'MM/DD HH:mm') },
-    { title: '健身房', dataIndex: 'tenant_name', width: 160, render: (v: string | null, r) => v ?? `#${r.tenant_id}` },
+    { title: '店家', dataIndex: 'tenant_name', width: 160, render: (v: string | null, r) => v ?? `#${r.tenant_id}` },
     { title: '事件', dataIndex: 'event', width: 160 },
     {
       title: '則數',
@@ -163,7 +163,7 @@ export default function LineNotifications() {
           type="warning"
           showIcon
           title="尚未設定 LINE 通知帳號"
-          description="在伺服器環境變數設定 LINE_CHANNEL_SECRET、LINE_CHANNEL_ACCESS_TOKEN、LINE_BOT_BASIC_ID 後重新啟動，各健身房才能綁定與收到通知。"
+          description="在伺服器環境變數設定 LINE_CHANNEL_SECRET、LINE_CHANNEL_ACCESS_TOKEN、LINE_BOT_BASIC_ID 後重新啟動，各店家才能綁定與收到通知。"
         />
       )}
 
@@ -176,7 +176,7 @@ export default function LineNotifications() {
           </Typography.Text>
         </Card>
         <Card loading={isLoading}>
-          <Statistic title="使用中的健身房" value={usage?.gyms_with_recipients ?? 0} suffix={`/ ${usage?.gyms.length ?? 0}`} />
+          <Statistic title="使用中的店家" value={usage?.gyms_with_recipients ?? 0} suffix={`/ ${usage?.gyms.length ?? 0}`} />
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             上限合計 {totalCap.toLocaleString()} 則
           </Typography.Text>
@@ -189,7 +189,7 @@ export default function LineNotifications() {
         </Card>
       </div>
 
-      <Card title="各健身房用量">
+      <Card title="各店家用量">
         <Table
           rowKey="tenant_id"
           size="middle"

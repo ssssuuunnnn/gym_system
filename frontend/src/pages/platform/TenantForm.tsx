@@ -35,8 +35,8 @@ const INITIAL_VALUES: Partial<TenantCreatePayload> = {
 };
 
 /**
- * 開通健身房：基本資料＋聯絡資訊＋第一位管理員，一次送出（後端同一個交易，失敗不會留下半套資料）。
- * 成功後顯示登入資訊，讓平台管理員交給健身房老闆。
+ * 開通店家：基本資料＋聯絡資訊＋第一位管理員，一次送出（後端同一個交易，失敗不會留下半套資料）。
+ * 成功後顯示登入資訊，讓平台管理員交給店家負責人。
  */
 export default function TenantForm() {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function TenantForm() {
           password: payload.admin_password,
           mustChangePassword: payload.admin_must_change_password,
         },
-        okText: '查看健身房',
+        okText: '查看店家',
         onOk: () => navigate(`/tenants/${tenant.id}`),
       });
     },
@@ -85,12 +85,12 @@ export default function TenantForm() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%', maxWidth: 960 }}>
-      <Breadcrumb items={[{ title: <Link to="/tenants">健身房</Link> }, { title: '開通健身房' }]} />
+      <Breadcrumb items={[{ title: <Link to="/tenants">店家</Link> }, { title: '開通店家' }]} />
       <div>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          開通健身房
+          開通店家
         </Typography.Title>
-        <Typography.Text type="secondary">建立健身房與第一位管理員帳號，開通後對方即可用自己的網址登入。</Typography.Text>
+        <Typography.Text type="secondary">建立店家與第一位管理員帳號，開通後對方即可用自己的網址登入。</Typography.Text>
       </div>
 
       <Form form={form} layout="vertical" initialValues={INITIAL_VALUES} requiredMark="optional">
@@ -98,8 +98,8 @@ export default function TenantForm() {
           <Card title="基本資料">
             <Row gutter={16}>
               <Col xs={24} md={12}>
-                <Form.Item name="name" label="健身房名稱" rules={[{ required: true, whitespace: true, message: '請輸入名稱' }]}>
-                  <Input maxLength={100} placeholder="例如 PulseFit 健身工作室" />
+                <Form.Item name="name" label="店家名稱" rules={[{ required: true, whitespace: true, message: '請輸入名稱' }]}>
+                  <Input maxLength={100} placeholder="例如 PulseFit 健身工作室、小美美體館" />
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>
@@ -180,7 +180,7 @@ export default function TenantForm() {
             </Row>
           </Card>
 
-          <Card title="第一位管理員" extra={<Typography.Text type="secondary">健身房負責人用這組帳號登入後台</Typography.Text>}>
+          <Card title="第一位管理員" extra={<Typography.Text type="secondary">店家負責人用這組帳號登入後台</Typography.Text>}>
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <Form.Item name="admin_username" label="帳號" rules={[{ required: true, whitespace: true, message: '請輸入帳號' }]}>

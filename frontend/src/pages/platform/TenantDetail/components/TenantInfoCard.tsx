@@ -28,7 +28,7 @@ export interface TenantInfoCardProps {
   tenant: Tenant;
 }
 
-/** 健身房基本資料與聯絡資訊；有修改才能儲存，只送出有變動的欄位。子網域不可修改。 */
+/** 店家基本資料與聯絡資訊；有修改才能儲存，只送出有變動的欄位。子網域不可修改。 */
 export function TenantInfoCard({ tenant }: TenantInfoCardProps) {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
@@ -95,7 +95,7 @@ export function TenantInfoCard({ tenant }: TenantInfoCardProps) {
       <Form form={form} layout="vertical" onValuesChange={recomputeChanges} requiredMark={false}>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <Form.Item name="name" label="健身房名稱" rules={[{ required: true, whitespace: true, message: '請輸入名稱' }]}>
+            <Form.Item name="name" label="店家名稱" rules={[{ required: true, whitespace: true, message: '請輸入名稱' }]}>
               <Input maxLength={100} />
             </Form.Item>
           </Col>
