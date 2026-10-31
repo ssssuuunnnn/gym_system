@@ -100,6 +100,9 @@ export interface SiteContent {
     line: string;
     instagram: string;
     facebook: string;
+    youtube: string;
+    threads: string;
+    tiktok: string;
   };
 }
 

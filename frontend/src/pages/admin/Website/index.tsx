@@ -27,9 +27,11 @@ import { GalleryPanel } from './components/panels/GalleryPanel';
 import { FaqPanel } from './components/panels/FaqPanel';
 import { TrialPanel } from './components/panels/TrialPanel';
 import { ContactPanel } from './components/panels/ContactPanel';
+import { SocialPanel } from './components/panels/SocialPanel';
 
 /** 段落在網站上的 id（預覽時捲到正在編輯的段落） */
-const SECTION_ANCHOR: Partial<Record<EditorTarget, string>> = { hero: 'top' };
+// 社群連結顯示在「交通與聯絡」段落（和頁尾），預覽捲到那裡
+const SECTION_ANCHOR: Partial<Record<EditorTarget, string>> = { hero: 'top', social: 'contact' };
 
 /** 送出前略過沒填完的清單項目（空白的常見問題、特色） */
 function sanitize(content: SiteContent): SiteContent {
@@ -150,6 +152,8 @@ export default function Website() {
     switch (current) {
       case 'settings':
         return <SettingsPanel content={content} onChange={patch} />;
+      case 'social':
+        return <SocialPanel value={content.contact} onChange={(contact) => patch({ contact })} />;
       case 'hero':
         return <HeroPanel value={content.hero} onChange={(hero) => patch({ hero })} />;
       case 'about':
@@ -237,7 +241,7 @@ export default function Website() {
           </Card>
         </Col>
         <Col xs={24} lg={18} xl={11}>
-          <Card title={current === 'settings' ? '網站設定' : SECTION_LABEL[current]}>{panel}</Card>
+          <Card title={current === 'settings' ? '網站設定' : current === 'social' ? '社群連結' : SECTION_LABEL[current]}>{panel}</Card>
         </Col>
         <Col xs={24} xl={8}>
           <PreviewPane

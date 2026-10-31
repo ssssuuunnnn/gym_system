@@ -3,7 +3,8 @@ import { REQUIRED_SECTIONS, SECTION_LABEL, type SectionKey, type SiteContent } f
 import { moveItem } from '../lib';
 import { ListItemActions } from './ListItemActions';
 
-export type EditorTarget = 'settings' | SectionKey;
+/** settings＝網站設定、social＝社群連結（不是段落，整個網站共用） */
+export type EditorTarget = 'settings' | 'social' | SectionKey;
 
 export interface SectionNavProps {
   sections: SiteContent['sections'];
@@ -53,6 +54,7 @@ export function SectionNav({ sections, current, onSelect, onChange }: SectionNav
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {item('settings', '網站設定', null)}
+      {item('social', '社群連結', null)}
       <Typography.Text type="secondary" style={{ fontSize: 12, padding: '12px 8px 4px' }}>
         段落（由上到下就是網站的順序）
       </Typography.Text>

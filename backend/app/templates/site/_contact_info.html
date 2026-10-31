@@ -5,10 +5,11 @@
         {% if c.contact.hours %}<dt>營業時間</dt><dd class="pre">{{ c.contact.hours }}</dd>{% endif %}
         {% if c.contact.phone %}<dt>電話</dt><dd><a href="tel:{{ c.contact.phone | replace(' ', '') }}">{{ c.contact.phone }}</a></dd>{% endif %}
       </dl>
-      {% if line_url or instagram_url or facebook_url %}
+      {% if socials %}
       <div class="social">
-        {% if line_url %}<a class="btn btn-line" href="{{ line_url }}" rel="noopener" target="_blank">加入官方 LINE</a>{% endif %}
-        {% if instagram_url %}<a class="btn btn-outline" href="{{ instagram_url }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
-        {% if facebook_url %}<a class="btn btn-outline" href="{{ facebook_url }}" rel="noopener" target="_blank">Facebook</a>{% endif %}
+        {% for link in socials %}
+        {% if link.key == 'line' %}<a class="btn btn-line" href="{{ link.url }}" rel="noopener" target="_blank">加入官方 LINE</a>
+        {% else %}<a class="btn btn-outline" href="{{ link.url }}" rel="noopener" target="_blank">{{ link.label }}</a>{% endif %}
+        {% endfor %}
       </div>
       {% endif %}
