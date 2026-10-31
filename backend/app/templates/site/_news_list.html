@@ -1,0 +1,15 @@
+{#- 最新消息清單（首頁段落與 /site/news 共用）。items＝render 時給的公開欄位（標題、摘要、日期、圖片、網址）。 -#}
+<ul class="news-list">
+  {% for n in items %}
+  <li class="news-item{% if n.image_url %} has-img{% endif %}">
+    <a href="{{ n.path }}">
+      {% if n.image_url %}<img src="{{ n.image_url }}" alt="" loading="lazy" width="240" height="156">{% endif %}
+      <span class="news-text">
+        <time class="small muted num" datetime="{{ n.iso }}">{{ n.date }}</time>
+        <strong class="news-title">{{ n.title }}</strong>
+        {% if n.summary %}<span class="news-summary">{{ n.summary }}</span>{% endif %}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>

@@ -432,6 +432,31 @@
 
 ---
 
+## 最新消息與會員標籤（ADR 0012）
+
+### R50. 會員標籤只在後台使用
+
+- **確認日期**：2026-10-31
+- **規則**：店家自訂標籤（名稱不可重複、可選顏色），一位會員可有多個標籤；在會員詳情設定，或在會員名單把篩出來的人一次加上。會員列表可依標籤篩選（任一／全部），會員名單的條件可加「有任一個標籤」。會員自己看不到標籤（`/auth/me` 不帶）。刪除標籤只拿掉會員身上的標籤，會員資料不受影響。
+- **實作**：`member_tags`、`member_tag_links`、`routers/member_tags.py`、`PUT /users/{id}/tags`、`SegmentFilters.tag_ids`
+- **測試**：`test_tags_on_members`、`test_segment_filter_by_tag_and_bulk_tagging`
+
+### R51. 最新消息用 LINE 只發給同意優惠訊息的會員，同一則不重複發
+
+- **確認日期**：2026-10-31
+- **規則**：對象是「有勾選標籤的會員」與「符合會員名單條件的會員」的聯集（不含管理員、黑名單）。最新消息算優惠與活動訊息，只發給已綁定 LINE 且同意優惠訊息的會員（R31），送出時再檢查一次（期間取消同意就略過）；不看服務通知開關。同一則消息已經收過的人不會再收到。消息要已發布、形象網站要已發布、LINE 官方帳號要已啟用才能發。由店家的官方帳號推播，每位收件人算一則方案額度，並計入會員推播的每月上限。
+- **實作**：`services/news.py`（`preview`、`broadcast`）、`line_member._process`（event＝最新消息）、dedupe_key `news:<消息>:<會員>`
+- **測試**：`test_broadcast_to_tags_and_segment`、`test_broadcast_requires_published_and_respects_consent_at_send_time`、`test_broadcast_without_line_oa`
+
+### R52. 編輯消息與用 LINE 發送分開授權
+
+- **確認日期**：2026-10-31
+- **規則**：新增、編輯、刪除消息需要「形象網站」權限；用 LINE 發送需要「會員名單」權限（會碰到會員名單與行銷訊息）。消息發布後直接出現在網站上，不必另外按「發布到網站」；刪除消息後已送出的 LINE 訊息收不回來，連結會顯示找不到。
+- **實作**：`routers/news.py`（`require_perm("website")`／`require_perm("segments")`）
+- **測試**：`test_news_permissions`、`test_news_on_website`
+
+---
+
 ## 堂數帳務的共通原則
 
 以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：

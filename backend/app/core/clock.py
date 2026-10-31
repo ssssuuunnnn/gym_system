@@ -7,7 +7,7 @@
 `from app.core.clock import now_local`，否則替換不到。
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from app.core.config import settings
@@ -18,3 +18,10 @@ def now_local() -> datetime:
     tenant = current_tenant.get()
     tz = tenant.timezone if tenant else settings.STUDIO_TIMEZONE
     return datetime.now(ZoneInfo(tz)).replace(tzinfo=None)
+
+
+def to_local(utc_naive: datetime) -> datetime:
+    """伺服器存的 UTC 時間（不帶時區）換成店家當地時間（不帶時區）。"""
+    tenant = current_tenant.get()
+    tz = tenant.timezone if tenant else settings.STUDIO_TIMEZONE
+    return utc_naive.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz)).replace(tzinfo=None)

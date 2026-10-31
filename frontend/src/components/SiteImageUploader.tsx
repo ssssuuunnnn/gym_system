@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { App, Button, Space, Typography, Upload, theme } from 'antd';
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
-import { uploadWebsiteImage } from '../../../../api/website';
-import { apiErrorMessage } from '../../../../api/errors';
+import { uploadWebsiteImage } from '../api/website';
+import { apiErrorMessage } from '../api/errors';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
-export interface ImageUploaderProps {
+export interface SiteImageUploaderProps {
   value: string | null;
   onChange: (url: string | null) => void;
   /** 建議尺寸等提示 */
@@ -15,8 +15,8 @@ export interface ImageUploaderProps {
   height?: number;
 }
 
-/** 形象網站圖片上傳：jpg／png、5MB 以內，上傳後回填 /media 網址（存草稿時才會寫入網站內容）。 */
-export function ImageUploader({ value, onChange, hint, height = 160 }: ImageUploaderProps) {
+/** 形象網站與最新消息共用的圖片上傳：jpg／png、5MB 以內，上傳後回填 /media 網址（存草稿時才會寫入網站內容）。 */
+export function SiteImageUploader({ value, onChange, hint, height = 160 }: SiteImageUploaderProps) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
   const [uploading, setUploading] = useState(false);

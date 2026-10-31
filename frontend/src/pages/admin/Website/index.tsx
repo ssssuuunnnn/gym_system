@@ -28,6 +28,7 @@ import { FaqPanel } from './components/panels/FaqPanel';
 import { TrialPanel } from './components/panels/TrialPanel';
 import { ContactPanel } from './components/panels/ContactPanel';
 import { SocialPanel } from './components/panels/SocialPanel';
+import { NewsPanel } from './components/panels/NewsPanel';
 
 /** 段落在網站上的 id（預覽時捲到正在編輯的段落） */
 // 社群連結顯示在「交通與聯絡」段落（和頁尾），預覽捲到那裡
@@ -158,6 +159,8 @@ export default function Website() {
         return <HeroPanel value={content.hero} onChange={(hero) => patch({ hero })} />;
       case 'about':
         return <AboutPanel value={content.about} onChange={(about) => patch({ about })} />;
+      case 'news':
+        return <NewsPanel value={content.news} onChange={(news) => patch({ news })} />;
       case 'schedule':
         return <SchedulePanel value={content.schedule} onChange={(schedule) => patch({ schedule })} />;
       case 'coaches':

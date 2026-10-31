@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 
 /** 對應 backend/app/schemas/website.py 的 SiteContent（見 docs/adr/0003-gym-website.md） */
-export type SectionKey = 'hero' | 'about' | 'schedule' | 'coaches' | 'pricing' | 'gallery' | 'faq' | 'trial' | 'contact';
+export type SectionKey = 'hero' | 'about' | 'news' | 'schedule' | 'coaches' | 'pricing' | 'gallery' | 'faq' | 'trial' | 'contact';
 
 /** 一定會顯示、不能關閉的段落（與後端 REQUIRED_SECTIONS 一致） */
 export const REQUIRED_SECTIONS: SectionKey[] = ['hero', 'about', 'contact'];
@@ -9,6 +9,7 @@ export const REQUIRED_SECTIONS: SectionKey[] = ['hero', 'about', 'contact'];
 export const SECTION_LABEL: Record<SectionKey, string> = {
   hero: '主視覺',
   about: '關於我們',
+  news: '最新消息',
   schedule: '團體課表',
   coaches: '教練團隊',
   pricing: '方案價格',
@@ -89,6 +90,7 @@ export interface SiteContent {
   coaches: { title: string; items: { coach_id: number; bio: string }[] };
   pricing: { title: string; items: { product_id: number; description: string }[]; note: string };
   gallery: { title: string; images: { url: string; caption: string }[] };
+  news: { title: string; count: number };
   faq: { title: string; items: { q: string; a: string }[] };
   trial: { title: string; intro: string; interests: string[]; slots: string[]; privacy_notice: string };
   contact: {

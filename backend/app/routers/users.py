@@ -5,6 +5,9 @@ from app.core.security import hash_password
 from app.deps import get_db
 from app.deps import require_admin, require_perm
 from app.models.coach import Coach
+from app.models.member_tag import MemberTag, MemberTagLink
+from app.schemas.member_tag import UserTagsIn
+from app.services.member_segments import tag_ids_by_user
 from app.models.user import User, UserRole
 from app.services.members import clear_line_link, normalize_phone
 from app.schemas.user import (
@@ -34,7 +37,8 @@ def _member(db: Session, user_id: int) -> User:
 
 def _to_out(member: User, db: Session) -> UserOut:
     coach = db.query(Coach).filter(Coach.user_id == member.id).first()
-    return user_out(member, coach is not None)
+    out = user_out(member, coach is not None)
+    return out.model_copy(update={"tag_ids": tag_ids_by_user(db, [member.id]).get(member.id, [])})
 
 
 @router.get("", response_model=list[UserOut], dependencies=[Depends(require_read)])
@@ -45,7 +49,8 @@ def list_members(db: Session = Depends(get_db)):
     """
     members = db.query(User).filter(User.role == UserRole.member).all()
     coach_user_ids = {c.user_id for c in db.query(Coach.user_id).all()}
-    return [user_out(m, m.id in coach_user_ids) for m in members]
+    tags = tag_ids_by_user(db, [m.id for m in members])
+    return [user_out(m, m.id in coach_user_ids).model_copy(update={"tag_ids": tags.get(m.id, [])}) for m in members]
 
 
 @router.get("/{user_id}", response_model=UserOut, dependencies=[Depends(require_read)])
@@ -105,3 +110,26 @@ def reset_password(user_id: int, payload: UserResetPassword, db: Session = Depen
     member.password_hash = hash_password(payload.new_password)
     member.must_change_password = payload.must_change_password
     db.commit()
+
+
+@router.put("/{user_id}/tags", response_model=UserOut)
+def set_member_tags(
+    user_id: int,
+    payload: UserTagsIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_perm("members", "segments")),
+):
+    """設定會員的標籤（整組取代）；標籤由「會員標籤」管理（ADR 0012）。"""
+    member = _member(db, user_id)
+    wanted = set(payload.tag_ids)
+    if wanted and db.query(MemberTag.id).filter(MemberTag.id.in_(wanted)).count() != len(wanted):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="有標籤已經被刪除，請重新整理")
+    current = {link.tag_id: link for link in db.query(MemberTagLink).filter(MemberTagLink.user_id == member.id)}
+    for tag_id, link in current.items():
+        if tag_id not in wanted:
+            db.delete(link)
+    actor = current_user.display_name or current_user.username
+    for tag_id in wanted - set(current):
+        db.add(MemberTagLink(tag_id=tag_id, user_id=member.id, added_by_name=actor))
+    db.commit()
+    return _to_out(member, db)

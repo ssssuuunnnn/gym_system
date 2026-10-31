@@ -185,8 +185,9 @@ def test_sections_order_visibility_and_empty_sections(client, admin, gym, coach,
     ]
     res = save(client, admin, content)
     keys = [(s["key"], s["visible"]) for s in res.json()["draft"]["sections"]]
-    assert keys[:3] == [("contact", True), ("hero", True), ("faq", False)]
-    assert len(keys) == 9
+    # 沒列到的段落補在預設順序的前一個段落後面（about、news 接在 hero 後面）
+    assert keys[:4] == [("contact", True), ("hero", True), ("about", True), ("news", True)]
+    assert ("faq", False) in keys and len(keys) == 10
     publish(client, admin)
     html = client.get("/").text
     assert 'id="faq"' not in html

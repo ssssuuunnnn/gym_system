@@ -1,7 +1,7 @@
 import { Button, Form, Input, Space, Typography, theme } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import { BRAND_COLORS, type SiteContent } from '../../../../../api/website';
-import { ImageUploader } from '../ImageUploader';
+import { SiteImageUploader } from '../../../../../components/SiteImageUploader';
 import { ThemePicker } from '../ThemePicker';
 
 export interface SettingsPanelProps {
@@ -61,7 +61,7 @@ export function SettingsPanel({ content, onChange }: SettingsPanelProps) {
         />
       </Form.Item>
       <Form.Item label="分享預覽圖" extra="未設定時使用主視覺照片">
-        <ImageUploader value={seo.og_image_url} onChange={(url) => setSeo({ og_image_url: url })} hint="建議 1200×630" height={140} />
+        <SiteImageUploader value={seo.og_image_url} onChange={(url) => setSeo({ og_image_url: url })} hint="建議 1200×630" height={140} />
       </Form.Item>
 
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>

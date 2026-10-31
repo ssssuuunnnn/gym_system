@@ -1,7 +1,7 @@
 import { Card, Col, Form, Input, Row, Typography, theme } from 'antd';
 import type { SiteContent } from '../../../../../api/website';
 import { moveItem, removeItem, replaceItem, type PanelProps } from '../../lib';
-import { ImageUploader } from '../ImageUploader';
+import { SiteImageUploader } from '../../../../../components/SiteImageUploader';
 import { ListItemActions } from '../ListItemActions';
 
 type Gallery = SiteContent['gallery'];
@@ -48,7 +48,7 @@ export function GalleryPanel({ value, onChange }: PanelProps<Gallery>) {
         ))}
         {value.images.length < MAX_IMAGES && (
           <Col xs={24} md={12}>
-            <ImageUploader value={null} onChange={(url) => url && set([...value.images, { url, caption: '' }])} height={140} />
+            <SiteImageUploader value={null} onChange={(url) => url && set([...value.images, { url, caption: '' }])} height={140} />
           </Col>
         )}
       </Row>

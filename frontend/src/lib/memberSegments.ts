@@ -1,5 +1,6 @@
+/** 會員名單的條件與工具（會員名單頁與最新消息的 LINE 發送共用，ADR 0006／0012） */
 import dayjs from 'dayjs';
-import type { SegmentFilters, SegmentMember } from '../../../api/memberSegments';
+import type { SegmentFilters, SegmentMember } from '../api/memberSegments';
 
 const DATE = 'YYYY-MM-DD';
 
@@ -14,6 +15,7 @@ export function defaultFilters(): SegmentFilters {
     min_attended: 1,
     max_remaining_hours: null,
     inactive_days: null,
+    tag_ids: [],
   };
 }
 
@@ -39,11 +41,12 @@ export const PRESETS: { key: string; label: string; hint: string; filters: () =>
   },
 ];
 
-/** 把篩選條件寫成一行人看得懂的文字（受眾紀錄用） */
+/** 把篩選條件寫成一行人看得懂的文字（受眾紀錄、最新消息發送用） */
 export function describeFilters(
   f: SegmentFilters,
   coachName?: (id: number) => string | undefined,
   branchName?: (id: number) => string,
+  tagName?: (id: number) => string | undefined,
 ): string {
   const parts = [`${f.start} ～ ${f.end}`];
   if (f.branch_id != null) parts.push(branchName?.(f.branch_id) ?? `分店 #${f.branch_id}`);
@@ -52,6 +55,7 @@ export function describeFilters(
   parts.push(`出席 ≥ ${f.min_attended} 次`);
   if (f.max_remaining_hours != null) parts.push(`剩餘 ≤ ${f.max_remaining_hours} 堂`);
   if (f.inactive_days != null) parts.push(`超過 ${f.inactive_days} 天沒來`);
+  if (f.tag_ids?.length) parts.push(`標籤：${f.tag_ids.map((id) => tagName?.(id) ?? `#${id}`).join('、')}`);
   return parts.join('・');
 }
 

@@ -1,8 +1,9 @@
 import { Button, Card, DatePicker, Flex, InputNumber, Segmented, Select, Tooltip, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { SegmentFilters, SegmentKind } from '../../../../api/memberSegments';
-import { PRESETS } from '../lib';
+import type { SegmentFilters, SegmentKind } from '../api/memberSegments';
+import { PRESETS } from '../lib/memberSegments';
+import { MemberTagSelect } from './MemberTagSelect';
 
 export interface SegmentFilterCardProps {
   value: SegmentFilters;
@@ -12,12 +13,25 @@ export interface SegmentFilterCardProps {
   coachOptions: { value: number; label: string }[];
   branchOptions: { value: number; label: string }[];
   loading?: boolean;
+  /** 卡片標題（嵌在別的畫面時可改），預設「篩選條件」 */
+  title?: React.ReactNode;
+  /** 查詢按鈕文字；嵌在發送視窗時是「試算人數」 */
+  searchLabel?: string;
 }
 
 const KINDS: SegmentKind[] = ['全部', '團體課', '私人課'];
 
-/** 會員名單的篩選條件：常用名單一鍵帶入，或自己調整條件後查詢 */
-export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, branchOptions, loading }: SegmentFilterCardProps) {
+/** 會員名單的篩選條件：常用名單一鍵帶入，或自己調整條件後查詢（會員名單頁、最新消息的 LINE 發送共用） */
+export function SegmentFilterCard({
+  value,
+  onChange,
+  onSearch,
+  coachOptions,
+  branchOptions,
+  loading,
+  title = '篩選條件',
+  searchLabel = '查詢',
+}: SegmentFilterCardProps) {
   const set = (patch: Partial<SegmentFilters>) => onChange({ ...value, ...patch });
   const field = (label: string, htmlFor: string, control: React.ReactNode, width: number | 'auto' = 200) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width }}>
@@ -29,7 +43,7 @@ export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, bra
   );
 
   return (
-    <Card title="篩選條件">
+    <Card title={title}>
       <Flex vertical gap={20}>
         <Flex gap={8} wrap align="center">
           <Typography.Text type="secondary">常用名單：</Typography.Text>
@@ -148,8 +162,14 @@ export function SegmentFilterCard({ value, onChange, onSearch, coachOptions, bra
             />,
             180,
           )}
+          {field(
+            '會員標籤（有任一個）',
+            'seg-tags',
+            <MemberTagSelect id="seg-tags" value={value.tag_ids ?? []} onChange={(ids) => set({ tag_ids: ids })} placeholder="不限" />,
+            240,
+          )}
           <Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={() => onSearch(value)}>
-            查詢
+            {searchLabel}
           </Button>
         </Flex>
       </Flex>

@@ -134,6 +134,15 @@
   </div>
 </section>
 
+{% elif key == 'news' %}
+<section id="news" class="wrap chapter" aria-labelledby="news-title">
+  {{ head(no, 'news', 'NEWS', c.news.title) }}
+  <div class="ch-body">
+    {% with items=news %}{% include 'site/_news_list.html' %}{% endwith %}
+    <a class="more-link" href="/site/news">看全部消息 →</a>
+  </div>
+</section>
+
 {% elif key == 'faq' %}
 <section id="faq" class="wrap chapter" aria-labelledby="faq-title">
   {{ head(no, 'faq', 'FAQ', c.faq.title) }}

@@ -132,6 +132,16 @@
 {% endfor %}
 </section>
 
+{% elif key == 'news' %}
+<section id="news" class="band" aria-labelledby="news-title">
+<div class="tile t-news c4">
+  <span class="eyebrow">NEWS</span>
+  <h2 id="news-title">{{ c.news.title }}</h2>
+  {% with items=news %}{% include 'site/_news_list.html' %}{% endwith %}
+  <a class="more-link" href="/site/news">看全部消息 →</a>
+</div>
+</section>
+
 {% elif key == 'faq' %}
 <section id="faq" class="band" aria-labelledby="faq-title">
 <div class="tile t-faq c4">

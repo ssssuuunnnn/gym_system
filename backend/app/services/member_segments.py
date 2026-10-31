@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.course import Course
+from app.models.member_tag import MemberTagLink
 from app.models.product import Product, ProductCategory
 from app.models.purchase import PaymentStatus, Purchase
 from app.models.reservation import Attendance, Reservation, ReservationStatus
@@ -25,6 +26,19 @@ def reach_of(user: User) -> str:
     if not user.marketing_consent:
         return "未同意優惠訊息"
     return "可發送"
+
+
+def tag_ids_by_user(db: Session, user_ids: list[int]) -> dict[int, list[int]]:
+    result: dict[int, list[int]] = {}
+    if not user_ids:
+        return result
+    for user_id, tag_id in (
+        db.query(MemberTagLink.user_id, MemberTagLink.tag_id)
+        .filter(MemberTagLink.user_id.in_(user_ids))
+        .order_by(MemberTagLink.tag_id)
+    ):
+        result.setdefault(user_id, []).append(tag_id)
+    return result
 
 
 def find_members(db: Session, f: SegmentFilters) -> list[tuple[User, SegmentMember]]:
@@ -70,6 +84,10 @@ def find_members(db: Session, f: SegmentFilters) -> list[tuple[User, SegmentMemb
     )
     today = clock.now_local().date()
     users = db.query(User).filter(User.id.in_(ids), User.role == UserRole.member, User.is_blacklisted.is_(False))
+    if f.tag_ids:
+        tagged = db.query(MemberTagLink.user_id).filter(MemberTagLink.tag_id.in_(f.tag_ids))
+        users = users.filter(User.id.in_(tagged))
+    tags_by_user = tag_ids_by_user(db, ids)
 
     rows = []
     for user in users:
@@ -91,6 +109,7 @@ def find_members(db: Session, f: SegmentFilters) -> list[tuple[User, SegmentMemb
                     last_attended=last_day,
                     remaining_hours=hours,
                     reach=reach_of(user),
+                    tag_ids=tags_by_user.get(user.id, []),
                 ),
             )
         )

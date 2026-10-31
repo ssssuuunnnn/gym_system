@@ -22,6 +22,8 @@ export interface Member {
   /** 同意接收優惠與活動訊息（行銷，和服務通知分開） */
   marketing_consent: boolean;
   marketing_consent_at: string | null;
+  /** 會員標籤（只在後台的會員 API 有值，ADR 0012） */
+  tag_ids?: number[];
   is_active: boolean;
   /** 後台帳號的身分與可用功能；會員帳號為 null */
   staff: { level: StaffLevel; permissions: PermissionCode[] } | null;
@@ -66,4 +68,10 @@ export async function resetMemberPassword(
   payload: { new_password: string; must_change_password: boolean },
 ) {
   await apiClient.post(`/users/${userId}/reset-password`, payload);
+}
+
+/** 設定會員的標籤（整組取代） */
+export async function setMemberTags(userId: number, tagIds: number[]) {
+  const { data } = await apiClient.put<Member>(`/users/${userId}/tags`, { tag_ids: tagIds });
+  return data;
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { App, Alert, Button, Card, Empty, Flex, Segmented, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
-import { DownloadOutlined, UsergroupAddOutlined } from '@ant-design/icons';
+import { App, Alert, Button, Card, Empty, Flex, Modal, Segmented, Select, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
+import { DownloadOutlined, TagsOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -18,9 +18,12 @@ import {
 } from '../../../api/memberSegments';
 import { formatServerTime } from '../../../lib/datetime';
 import { CreateAudienceModal } from './components/CreateAudienceModal';
-import { SegmentFilterCard } from './components/SegmentFilterCard';
-import { defaultFilters, describeFilters, downloadCsv } from './lib';
+import { SegmentFilterCard } from '../../../components/SegmentFilterCard';
+import { defaultFilters, describeFilters, downloadCsv } from '../../../lib/memberSegments';
 import { useBranches } from '../../../lib/useBranches';
+import { useMemberTags } from '../../../lib/useMemberTags';
+import { addMembersToTag } from '../../../api/memberTags';
+import { MemberTagList } from '../../../components/MemberTagList';
 
 const REACH_COLOR: Record<LineReach, string> = { 可發送: 'success', '未綁定 LINE': 'default', 未同意優惠訊息: 'warning' };
 type ReachFilter = LineReach | '全部';
@@ -37,6 +40,10 @@ export default function MemberSegments() {
   const [applied, setApplied] = useState<SegmentFilters>(defaultFilters);
   const [reach, setReach] = useState<ReachFilter>('全部');
   const [modalOpen, setModalOpen] = useState(false);
+  // 把目前名單（含上方 LINE 篩選）加上某個標籤
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagToAdd, setTagToAdd] = useState<number | null>(null);
+  const memberTags = useMemberTags();
 
   const { data: coaches = [] } = useQuery({ queryKey: ['coaches'], queryFn: listCoaches });
   const coachName = useMemo(() => {
@@ -65,7 +72,20 @@ export default function MemberSegments() {
 
   const members = result?.members ?? [];
   const rows = reach === '全部' ? members : members.filter((m) => m.reach === reach);
-  const summary = describeFilters(applied, coachName, branchList.nameOf);
+  const summary = describeFilters(applied, coachName, branchList.nameOf, (id) => memberTags.byId.get(id)?.name);
+
+  const tagMutation = useMutation({
+    mutationFn: (tagId: number) => addMembersToTag(tagId, rows.map((m) => m.id)),
+    onSuccess: (tag) => {
+      message.success(`已把 ${rows.length} 位會員加上「${tag.name}」（原本就有的略過）`);
+      setTagModalOpen(false);
+      setTagToAdd(null);
+      queryClient.invalidateQueries({ queryKey: ['member-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['member-segments'] });
+    },
+    onError: (err) => message.error(apiErrorMessage(err)),
+  });
 
   const columns: ColumnsType<SegmentMember> = [
     {
@@ -84,6 +104,7 @@ export default function MemberSegments() {
     { title: '期間出席', dataIndex: 'attended_count', align: 'right', render: (v: number) => `${v} 次`, sorter: (a, b) => a.attended_count - b.attended_count },
     { title: '最後上課', dataIndex: 'last_attended', sorter: (a, b) => a.last_attended.localeCompare(b.last_attended) },
     { title: '剩餘堂數', dataIndex: 'remaining_hours', align: 'right', render: (v: number) => `${v} 堂`, sorter: (a, b) => a.remaining_hours - b.remaining_hours },
+    { title: '標籤', dataIndex: 'tag_ids', render: (ids: number[]) => <MemberTagList ids={ids} /> },
     { title: 'LINE', dataIndex: 'reach', render: (v: LineReach) => <Tag color={REACH_COLOR[v]}>{v}</Tag> },
   ];
 
@@ -141,6 +162,9 @@ export default function MemberSegments() {
             <Button icon={<DownloadOutlined />} disabled={!members.length} onClick={() => downloadCsv(members)}>
               匯出 CSV
             </Button>
+            <Button icon={<TagsOutlined />} disabled={!rows.length} onClick={() => setTagModalOpen(true)}>
+              加上標籤
+            </Button>
             <Tooltip title={createDisabledReason}>
               <Button type="primary" icon={<UsergroupAddOutlined />} disabled={!!createDisabledReason} onClick={() => setModalOpen(true)}>
                 建立 LINE 受眾
@@ -192,6 +216,33 @@ export default function MemberSegments() {
           locale={{ emptyText: <Empty description="還沒有建立受眾" /> }}
         />
       </Card>
+
+      <Modal
+        open={tagModalOpen}
+        title={`幫名單上的 ${rows.length} 位會員加上標籤`}
+        okText="加上標籤"
+        cancelText="取消"
+        okButtonProps={{ disabled: tagToAdd === null }}
+        confirmLoading={tagMutation.isPending}
+        onOk={() => tagToAdd !== null && tagMutation.mutate(tagToAdd)}
+        onCancel={() => setTagModalOpen(false)}
+        destroyOnHidden
+      >
+        <Flex vertical gap={12}>
+          <Typography.Text type="secondary">
+            {reach === '全部' ? '目前名單上的所有會員' : `目前名單上「${reach}」的會員`}
+            都會加上這個標籤，原本就有的略過。之後可以在會員列表、會員名單依標籤篩選，或發最新消息給這群人。
+          </Typography.Text>
+          <Select
+            aria-label="選擇標籤"
+            placeholder="選擇標籤"
+            value={tagToAdd ?? undefined}
+            onChange={setTagToAdd}
+            options={memberTags.tags.map((t) => ({ value: t.id, label: `${t.name}（目前 ${t.member_count} 人）` }))}
+            notFoundContent={<Link to="/admin/member-tags">先到「會員標籤」新增標籤</Link>}
+          />
+        </Flex>
+      </Modal>
 
       <CreateAudienceModal
         open={modalOpen}
