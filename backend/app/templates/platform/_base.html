@@ -1,0 +1,57 @@
+{#- 平台形象頁共用骨架（ADR 0013）：頁首、頁尾、聯絡方式。只用後端給的公開資料；autoescape 開啟。 -#}
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ brand }}｜健身房、美容美體店的預約管理・免費試用 {{ trial_days }} 天{% endblock %}</title>
+<meta name="description" content="給健身工作室、美容美體店的線上預約與會員管理系統：預約審核、堂數方案、LINE 會員、形象網站、優惠券。免費試用 {{ trial_days }} 天，填完資料馬上開通。">
+<link rel="canonical" href="{{ canonical }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ brand }}｜免費試用 {{ trial_days }} 天">
+<meta property="og:url" content="{{ canonical }}">
+<meta name="theme-color" content="#0b3d6e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="/site/static/platform.css?v=3">
+{% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">{{ brand[:1] }}</span>{{ brand }}</a>
+    <nav aria-label="主選單" class="top-nav">
+      <a href="/#features">功能</a>
+      <a href="/#who">適合誰</a>
+      <a href="/#faq">常見問題</a>
+      {% if contact.any %}<a href="/#contact">聯絡我們</a>{% endif %}
+      {% if signup_enabled %}<a class="btn btn-primary btn-sm" href="/#signup">免費試用</a>{% endif %}
+    </nav>
+  </div>
+</header>
+
+{% block main %}{% endblock %}
+
+{% if contact.any %}
+<section id="contact" class="section contact-band">
+  <div class="wrap">
+    <h2>有問題？歡迎聯絡我們</h2>
+    <ul class="contact-list">
+      {% if contact.line_url %}<li><span class="label">LINE 官方帳號</span><a class="btn btn-line" href="{{ contact.line_url }}" rel="noopener" target="_blank">加入 {{ contact.line }}</a></li>{% endif %}
+      {% if contact.email %}<li><span class="label">Email</span><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></li>{% endif %}
+      {% if contact.phone %}<li><span class="label">電話</span><a href="tel:{{ contact.phone | replace(' ', '') | replace('-', '') }}">{{ contact.phone }}</a></li>{% endif %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <span>© {{ year }} {{ brand }}</span>
+    <a href="/site/terms">服務條款與個資告知</a>
+  </div>
+</footer>
+</body>
+</html>

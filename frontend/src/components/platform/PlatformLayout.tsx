@@ -1,4 +1,4 @@
-import { ShopOutlined, HistoryOutlined, UserOutlined, MessageOutlined } from '@ant-design/icons';
+import { ShopOutlined, HistoryOutlined, UserOutlined, MessageOutlined, GlobalOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { usePlatformAuthStore } from '../../store/platformAuth';
@@ -12,6 +12,7 @@ import { usePageTitle } from '../../lib/usePageTitle';
 const platformMenuItems: BackOfficeMenuItem[] = [
   { key: '/tenants', label: '店家', icon: <ShopOutlined /> },
   { key: '/line', label: 'LINE 通知', icon: <MessageOutlined /> },
+  { key: '/landing', label: '形象頁設定', icon: <GlobalOutlined /> },
   { key: '/audit-logs', label: '操作紀錄', icon: <HistoryOutlined /> },
 ];
 

@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth';
 
+// 與 api/tenant.ts 的 TRIAL_EXPIRED_DETAIL／TRIAL_EXPIRED_EVENT 相同（這裡不 import，避免循環引用）
+const TRIAL_EXPIRED_DETAIL = '試用已到期';
+const TRIAL_EXPIRED_EVENT = 'trial-expired';
+
 /**
  * API 基底設定。對應「技術棧與系統架構」章節：前端透過 REST API 呼叫 FastAPI 後端，
  * 後端路由前綴為 /api/v1（見 backend/app/core/config.py 的 API_V1_PREFIX）。
@@ -20,6 +24,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 403 && error.response.data?.detail === TRIAL_EXPIRED_DETAIL) {
+      // 試用到期（ADR 0013）：交給 TrialGate 換成「請聯絡我們」頁
+      window.dispatchEvent(new Event(TRIAL_EXPIRED_EVENT));
+    }
     if (error.response?.status === 401) {
       const { inLine, token } = useAuthStore.getState();
       useAuthStore.getState().logout();

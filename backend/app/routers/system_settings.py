@@ -7,7 +7,10 @@ from app.deps import get_db
 from app.deps import get_current_user, require_perm
 from app.models.system_settings import SystemSettings
 from app.schemas.system_settings import SystemSettingsLogoOut, SystemSettingsOut, SystemSettingsUpdate
+from pydantic import BaseModel
+
 from app.services import terms
+from app.services import trial as trial_service
 
 router = APIRouter(prefix="/system-settings", tags=["system-settings"])
 
@@ -69,3 +72,16 @@ async def upload_logo(file: UploadFile = File(...)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="檔案超過 2MB，請壓縮後再上傳")
 
     return SystemSettingsLogoOut(url=save_tenant_media("system", data, ext))
+
+
+class SampleDataCleared(BaseModel):
+    removed: int
+    kept: int
+
+
+@router.post("/clear-sample-data", response_model=SampleDataCleared, dependencies=[Depends(require_access)])
+def clear_sample_data(db: Session = Depends(get_db)):
+    """清除自助試用開通時建立的範例資料（ADR 0013、R56）；已被預約或購買用到的改成下架保留。"""
+    result = trial_service.clear_sample_data(db)
+    db.commit()
+    return SampleDataCleared(**result)

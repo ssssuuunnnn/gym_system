@@ -8,7 +8,7 @@
 - 每個會改變狀態的操作都寫一筆 platform_audit_logs。
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -20,7 +20,7 @@ from app.core.config import settings
 from app.core.security import create_platform_token, hash_password, verify_password
 from app.deps import clear_tenant_cache, get_current_platform_admin, get_platform_db, require_platform_host
 from app.models.platform import PlatformAdmin, PlatformAuditLog
-from app.models.tenant import Tenant, TenantStatus
+from app.models.tenant import Tenant, TenantStatus, trial_expired
 from app.schemas.platform import (
     AuditLogOut,
     LineGymUsage,
@@ -39,10 +39,14 @@ from app.schemas.platform import (
     TenantStats,
     TenantStatusUpdate,
     TenantUpdate,
+    TrialExtend,
+    PlatformSettingsOut,
+    PlatformSettingsUpdate,
 )
 from app.models.line import LineEvent, LineNotificationStatus
 from app.services import line as line_service
 from app.services import tenants as tenant_service
+from app.services import trial as trial_service
 from app.services.tenants import AUDIT_ACTIONS, TenantError
 
 router = APIRouter(prefix="/platform", tags=["platform"], dependencies=[Depends(require_platform_host)])
@@ -72,6 +76,10 @@ def _stats_by_tenant(db: Session) -> dict[int, TenantStats]:
 def _tenant_out(tenant: Tenant, stats: dict[int, TenantStats]) -> TenantOut:
     out = TenantOut.model_validate(tenant)
     out.stats = stats.get(tenant.id, TenantStats())
+    if tenant.status != TenantStatus.trial:
+        out.trial_ends_at = None  # 轉為啟用／停用後到期日不再有意義
+    out.trial_days_left = trial_service.days_left(tenant.status, tenant.trial_ends_at)
+    out.trial_expired = trial_expired(tenant.status, tenant.trial_ends_at)
     return out
 
 
@@ -274,6 +282,81 @@ def set_tenant_status(
         clear_tenant_cache()
         db.refresh(tenant)
     return _tenant_out(tenant, _stats_by_tenant(db))
+
+
+@router.post("/tenants/{tenant_id}/trial", response_model=TenantOut)
+def extend_trial(
+    tenant_id: int,
+    payload: TrialExtend,
+    admin: PlatformAdmin = Depends(get_current_platform_admin),
+    db: Session = Depends(get_platform_db),
+):
+    """延長試用（ADR 0013）：從今天或原到期日（較晚者）起加天數；已到期的店家延長後馬上恢復使用。"""
+    tenant = _get_tenant(db, tenant_id)
+    if tenant.status != TenantStatus.trial:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="只有試用中的店家可以延長試用")
+    now = datetime.utcnow()
+    old = tenant.trial_ends_at
+    tenant.trial_ends_at = max(old or now, now) + timedelta(days=payload.days)
+    _audit(
+        db,
+        admin,
+        "extend_trial",
+        tenant.id,
+        {"from": old.isoformat() if old else None, "to": tenant.trial_ends_at.isoformat(), "days": payload.days},
+    )
+    db.commit()
+    clear_tenant_cache()
+    db.refresh(tenant)
+    return _tenant_out(tenant, _stats_by_tenant(db))
+
+
+# ---------- 形象頁設定（ADR 0013） ----------
+
+
+@router.get("/settings", response_model=PlatformSettingsOut)
+def get_platform_settings(
+    _: PlatformAdmin = Depends(get_current_platform_admin), db: Session = Depends(get_platform_db)
+):
+    row = trial_service.get_platform_settings(db)
+    db.commit()
+    return row
+
+
+@router.put("/settings", response_model=PlatformSettingsOut)
+def update_platform_settings(
+    payload: PlatformSettingsUpdate,
+    admin: PlatformAdmin = Depends(get_current_platform_admin),
+    db: Session = Depends(get_platform_db),
+):
+    """品牌名稱、是否開放自助申請、聯絡方式與各自的顯示開關。"""
+    row = trial_service.get_platform_settings(db)
+    changed = {}
+    for field, value in payload.model_dump().items():
+        if getattr(row, field) != value:
+            changed[field] = value
+            setattr(row, field, value)
+    row.updated_by = admin.username
+    if changed:
+        tenant_service.audit(
+            db,
+            action="update_platform_settings",
+            admin_id=admin.id,
+            admin_username=admin.username,
+            tenant_id=None,
+            detail={"changed": sorted(changed)},
+        )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.get("/public/check-subdomain", response_model=SubdomainCheck)
+def public_check_subdomain(subdomain: str, db: Session = Depends(get_platform_db)):
+    """形象頁申請表單的即時檢查（不需登入；只回答能不能用）。"""
+    sub = tenant_service.normalize_subdomain(subdomain)[:63]
+    problem = tenant_service.subdomain_problem(db, sub)
+    return SubdomainCheck(subdomain=sub, available=problem is None, reason=problem)
 
 
 # ---------- 健身房的管理員帳號 ----------

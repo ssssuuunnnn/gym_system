@@ -1,0 +1,185 @@
+{% extends 'platform/_base.html' %}
+{% macro err(name) %}{% if errors.get(name) %}<span class="field-error" id="{{ name }}-error">{{ errors[name] }}</span>{% endif %}{% endmacro %}
+{% macro invalid(name) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}{% endmacro %}
+{% block main %}
+<main id="main">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <span class="eyebrow">健身工作室・美容美體店</span>
+      <h1>預約、方案、會員<br>一個後台全搞定</h1>
+      <p class="lead">會員線上預約、堂數自動扣抵、LINE 通知與會員入口、自己的形象網站。免費試用 {{ trial_days }} 天，填完資料馬上開通，不用信用卡。</p>
+      <div class="actions">
+        {% if signup_enabled %}<a class="btn btn-primary btn-lg" href="#signup">免費試用 {{ trial_days }} 天</a>{% endif %}
+        <a class="btn btn-ghost btn-lg" href="#features">看看有哪些功能</a>
+      </div>
+      <ul class="hero-points">
+        <li>開通後立即可用，附範例資料</li>
+        <li>每家店一個專屬網址</li>
+        <li>手機、電腦都能用</li>
+      </ul>
+    </div>
+    <div class="hero-card" aria-hidden="true">
+      <div class="mock-head"><span></span><span></span><span></span></div>
+      <div class="mock-row"><b>19:00</b><span>晚間燃脂團課</span><em>剩 3 位</em></div>
+      <div class="mock-row"><b>20:00</b><span>私人課・Alex 教練</span><em class="ok">已確認</em></div>
+      <div class="mock-row"><b>14:00</b><span>臉部保養・Amy</span><em>待確認</em></div>
+      <div class="mock-stat"><div><small>本月預約</small><strong>128</strong></div><div><small>新會員</small><strong>17</strong></div><div><small>待付款</small><strong>3</strong></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="who" class="section">
+  <div class="wrap">
+    <span class="eyebrow">適合誰</span>
+    <h2>健身房、美容美體店都能用</h2>
+    <p class="section-lead">申請時選行業類型，前後台的用詞會自動切換（教練／美容師、課程／療程、堂／次）。</p>
+    <div class="who-grid">
+      <article class="who-card">
+        <h3>健身工作室</h3>
+        <ul>
+          <li>私人課與團體課表，每堂人數上限</li>
+          <li>堂數方案、自動扣抵與退回</li>
+          <li>教練簽到、每月鐘點自動結算</li>
+        </ul>
+      </article>
+      <article class="who-card">
+        <h3>美容美體、按摩 SPA</h3>
+        <ul>
+          <li>美容師個人療程預約</li>
+          <li>次數方案、體驗療程券</li>
+          <li>顧客報到、服務費結算</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section tint">
+  <div class="wrap">
+    <span class="eyebrow">功能</span>
+    <h2>開店需要的，都準備好了</h2>
+    <div class="feature-grid">
+      <article><h3>線上預約與審核</h3><p>會員自己挑時段，後台一鍵確認；公休時段不開放，晚取消自動判斷。</p></article>
+      <article><h3>方案與付款</h3><p>堂數／次數方案、用品販售，會員下單後確認收款就入帳。</p></article>
+      <article><h3>LINE 會員入口</h3><p>串接你自己的 LINE 官方帳號，會員在 LINE 裡加入、預約、收到提醒。</p></article>
+      <article><h3>形象網站</h3><p>六種版型，放上課表、方案、團隊、最新消息與體驗申請表單。</p></article>
+      <article><h3>優惠券與體驗券</h3><p>公開代碼、新會員自動發券、購買時自動折抵。</p></article>
+      <article><h3>會員標籤與名單</h3><p>依標籤或上課紀錄篩出會員，用 LINE 發消息。</p></article>
+      <article><h3>多分店</h3><p>同一個帳號管理多間分店，課表與公休各自設定。</p></article>
+      <article><h3>員工權限</h3><p>櫃台、店長、會計各自只看得到該看的功能。</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="steps" class="section">
+  <div class="wrap">
+    <span class="eyebrow">開通流程</span>
+    <h2>三步驟，現在就開始</h2>
+    <ol class="steps">
+      <li><b>1</b><h3>填寫申請資料</h3><p>店名、行業、想要的網址與管理員帳號。</p></li>
+      <li><b>2</b><h3>馬上開通</h3><p>送出後立即建立你的店家與範例資料。</p></li>
+      <li><b>3</b><h3>登入開始用</h3><p>試用 {{ trial_days }} 天，期間所有功能都能用。</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="signup" class="section tint">
+  <div class="wrap signup-wrap">
+    <div class="signup-intro">
+      <span class="eyebrow">免費試用 {{ trial_days }} 天</span>
+      <h2>申請試用</h2>
+      <p>填完必填欄位就會馬上開通，不需要信用卡。試用到期後資料會保留 60 天，想繼續使用請聯絡我們。</p>
+    </div>
+    {% if not signup_enabled %}
+    <div class="notice"><strong>目前暫停開放線上申請</strong><p>{% if contact.any %}請透過下方的聯絡方式與我們聯繫。{% else %}請稍後再試。{% endif %}</p></div>
+    {% else %}
+    <form class="signup-form" method="post" action="/site/signup" novalidate>
+      {% if errors.get('form') %}<p class="form-error" role="alert">{{ errors['form'] }}</p>{% elif errors %}<p class="form-error" role="alert">請修正標示的欄位後再送出</p>{% endif %}
+      <label class="full">店名 <span class="req">*</span>
+        <input type="text" name="store_name" maxlength="100" value="{{ form.store_name }}" required autocomplete="organization"{{ invalid('store_name') }}>
+        {{ err('store_name') }}
+      </label>
+      <fieldset class="full">
+        <legend>行業類型 <span class="req">*</span></legend>
+        <label class="radio"><input type="radio" name="business_type" value="fitness"{% if form.business_type != 'beauty' %} checked{% endif %}> 健身房／運動工作室</label>
+        <label class="radio"><input type="radio" name="business_type" value="beauty"{% if form.business_type == 'beauty' %} checked{% endif %}> 美容美體／按摩 SPA</label>
+        {{ err('business_type') }}
+      </fieldset>
+      <label class="full">店家網址 <span class="req">*</span>
+        <span class="domain-input"><input type="text" name="subdomain" id="subdomain" maxlength="63" value="{{ form.subdomain }}" required placeholder="例如 pulsefit" autocapitalize="off" spellcheck="false" pattern="[a-z0-9-]+"{{ invalid('subdomain') }}><span class="suffix">.{{ base_domain }}</span></span>
+        <span class="hint" id="subdomain-hint" aria-live="polite">小寫英文、數字與連字號；之後不能更改</span>
+        {{ err('subdomain') }}
+      </label>
+      <label>聯絡人姓名 <span class="req">*</span>
+        <input type="text" name="contact_name" maxlength="100" value="{{ form.contact_name }}" required autocomplete="name"{{ invalid('contact_name') }}>
+        {{ err('contact_name') }}
+      </label>
+      <label>手機 <span class="req">*</span>
+        <input type="tel" name="phone" maxlength="30" value="{{ form.phone }}" required autocomplete="tel" inputmode="tel"{{ invalid('phone') }}>
+        {{ err('phone') }}
+      </label>
+      <label class="full">Email <span class="req">*</span>
+        <input type="email" name="email" maxlength="255" value="{{ form.email }}" required autocomplete="email"{{ invalid('email') }}>
+        {{ err('email') }}
+      </label>
+      <label>管理員帳號 <span class="req">*</span>
+        <input type="text" name="admin_username" maxlength="30" value="{{ form.admin_username }}" required autocomplete="username" autocapitalize="off"{{ invalid('admin_username') }}>
+        <span class="hint">登入後台用，3–30 個英文、數字或 . _ -</span>
+        {{ err('admin_username') }}
+      </label>
+      <label>密碼 <span class="req">*</span>
+        <input type="password" name="admin_password" minlength="8" required autocomplete="new-password"{{ invalid('admin_password') }}>
+        <span class="hint">至少 8 碼</span>
+        {{ err('admin_password') }}
+      </label>
+      <label class="hp" aria-hidden="true">網站<input type="text" name="{{ honeypot }}" tabindex="-1" autocomplete="off"></label>
+      <label class="check full"><input type="checkbox" name="consent"{% if form.consent %} checked{% endif %}{{ invalid('consent') }}> 我已閱讀並同意 <a href="/site/terms" target="_blank" rel="noopener">服務條款與個人資料蒐集告知</a></label>
+      <span class="full">{{ err('consent') }}</span>
+      <button class="btn btn-primary btn-lg full" type="submit">送出並開通試用</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section id="faq" class="section">
+  <div class="wrap narrow">
+    <span class="eyebrow">常見問題</span>
+    <h2>常見問題</h2>
+    <div class="faq">
+      <details open><summary>試用需要付費或綁信用卡嗎？</summary><p>不需要。試用 {{ trial_days }} 天內所有功能都能使用，不會自動扣款。</p></details>
+      <details><summary>試用到期後會怎樣？</summary><p>到期後後台與會員預約會暫停，形象網站也會暫停顯示；資料保留 60 天，期間聯絡我們轉為正式即可繼續使用，資料都還在。</p></details>
+      <details><summary>開通後裡面是空的嗎？</summary><p>會先放好範例的服務人員、方案與網站草稿，讓你馬上看得到效果；不需要時可在後台一鍵清除。</p></details>
+      <details><summary>可以用自己的網址嗎？</summary><p>目前每家店使用 <code>你的網址.{{ base_domain }}</code>；自訂網域將於之後開放。</p></details>
+      <details><summary>會員要下載 App 嗎？</summary><p>不用。會員用手機瀏覽器或 LINE 就能預約、查看方案與預約紀錄。</p></details>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+/* 店家網址即時檢查（沒有 JavaScript 也能送出，送出時後端會再檢查一次） */
+(function () {
+  var input = document.getElementById('subdomain');
+  var hint = document.getElementById('subdomain-hint');
+  if (!input || !hint || !window.fetch) return;
+  var defaultText = hint.textContent, timer = null;
+  input.addEventListener('input', function () {
+    input.value = input.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    clearTimeout(timer);
+    var value = input.value;
+    if (!value) { hint.textContent = defaultText; hint.className = 'hint'; return; }
+    timer = setTimeout(function () {
+      fetch('/api/v1/platform/public/check-subdomain?subdomain=' + encodeURIComponent(value))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (input.value !== value) return;
+          hint.textContent = d.available ? '可以使用：' + value + '.{{ base_domain }}' : d.reason;
+          hint.className = d.available ? 'hint ok' : 'hint bad';
+        })
+        .catch(function () {});
+    }, 350);
+  });
+})();
+</script>
+{% endblock %}

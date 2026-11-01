@@ -41,6 +41,7 @@ from app.services.schedule import group_sessions
 from app.services.shop import DEFAULT_COMPANY_NAMES, shop_names
 from app.services import branches as branch_service
 from app.services import news as news_service
+from app.routers import platform_site
 
 router = APIRouter(tags=["site"], include_in_schema=False)
 
@@ -409,6 +410,9 @@ def _published(db: Session) -> SiteContent | None:
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, sent: int | None = None):
+    # 平台網址的首頁是平台形象頁（ADR 0013）
+    if platform_site.is_platform_host(request):
+        return platform_site.render_landing(request)
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return tenant
@@ -612,6 +616,12 @@ async def submit_inquiry(request: Request, background_tasks: BackgroundTasks):
 
 @router.get("/robots.txt", response_class=PlainTextResponse)
 async def robots(request: Request):
+    if platform_site.is_platform_host(request):
+        # 平台網址只開放形象頁與服務條款，管理後台不給搜尋引擎
+        return PlainTextResponse(
+            "User-agent: *\nAllow: /$\nAllow: /site/static/\nAllow: /site/terms\nDisallow: /\n"
+            f"Sitemap: {_base_url(request)}/sitemap.xml\n"
+        )
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return PlainTextResponse("User-agent: *\nDisallow: /\n")
@@ -627,6 +637,15 @@ async def robots(request: Request):
 
 @router.get("/sitemap.xml")
 async def sitemap(request: Request):
+    if platform_site.is_platform_host(request):
+        base = _base_url(request)
+        body = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f"  <url><loc>{base}/</loc></url>\n  <url><loc>{base}/site/terms</loc></url>\n"
+            "</urlset>\n"
+        )
+        return Response(body, media_type="application/xml")
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return tenant

@@ -44,6 +44,10 @@ class Tenant(Base):
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="聯絡 Email")
     contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="聯絡電話")
     note: Mapped[str | None] = mapped_column(String(1000), nullable=True, comment="平台內部備註")
+    # 試用到期時間（UTC）：只在狀態為「試用」時生效；NULL＝不限期（ADR 0013）
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, comment="試用到期時間（UTC）")
+    # self＝形象頁自助申請；平台或 CLI 開通的是 NULL
+    signup_source: Mapped[str | None] = mapped_column(String(20), nullable=True, comment="self＝形象頁自助申請")
     line_monthly_cap: Mapped[int] = mapped_column(
         Integer, nullable=False, default=300, server_default="300", comment="LINE 通知每月上限（則）"
     )
@@ -51,6 +55,12 @@ class Tenant(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False, server_default=func.now()
     )
+
+
+def trial_expired(status: TenantStatus | str, trial_ends_at: datetime | None, now: datetime | None = None) -> bool:
+    """試用中且已過到期時間（ADR 0013）。轉為啟用或停用後不看到期時間。"""
+    is_trial = status == TenantStatus.trial or status == "trial"
+    return bool(is_trial and trial_ends_at is not None and (now or datetime.utcnow()) >= trial_ends_at)
 
 
 class TenantMixin:

@@ -11,6 +11,8 @@ export interface Settings {
   payment_instructions: string | null;
   /** 團體課程功能（美體店預設關閉，ADR 0011） */
   group_classes_enabled: boolean;
+  /** 開通時自動建立的範例資料還在（ADR 0013） */
+  has_sample_data: boolean;
   updated_at: string;
 }
 
@@ -39,4 +41,10 @@ export async function uploadSettingsLogo(file: File) {
   form.append('file', file);
   const { data } = await apiClient.post<{ url: string }>('/system-settings/upload-logo', form);
   return data.url;
+}
+
+/** 清除開通時建立的範例資料：沒被用過的刪除，已經有人買過／預約過的改為下架或封存 */
+export async function clearSampleData() {
+  const { data } = await apiClient.post<{ removed: number; kept: number }>('/system-settings/clear-sample-data');
+  return data;
 }

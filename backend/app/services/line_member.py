@@ -296,6 +296,8 @@ def dispatch_tenant(tenant_id: int, message_ids: list[int] | None = None, *, wit
 
 def run_due() -> int:
     """背景工作：逐家產生上課提醒並發送到期的訊息。"""
+    from app.services.trial import running_tenant_ids  # 避免循環匯入
+
     with db_session.SessionLocal() as s:
-        tenant_ids = [tid for (tid,) in s.query(Tenant.id).order_by(Tenant.id)]
+        tenant_ids = running_tenant_ids(s)  # 試用已到期的店家不發提醒（R55）
     return sum(dispatch_tenant(tid, with_reminders=True) for tid in tenant_ids)

@@ -423,8 +423,10 @@ def dispatch_tenant(tenant_id: int, notification_ids: list[int] | None = None) -
 
 def dispatch_all_due() -> int:
     """背景重試：逐家處理到期的通知。"""
+    from app.services.trial import running_tenant_ids  # 避免循環匯入
+
     with db_session.SessionLocal() as s:
-        tenant_ids = [tid for (tid,) in s.query(Tenant.id).order_by(Tenant.id)]
+        tenant_ids = running_tenant_ids(s)  # 試用已到期的店家不處理（R55）
     return sum(dispatch_tenant(tid) for tid in tenant_ids)
 
 
