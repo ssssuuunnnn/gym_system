@@ -2,17 +2,17 @@
 {% block title %}開通完成｜{{ brand }}{% endblock %}
 {% block head %}<meta name="robots" content="noindex">{% endblock %}
 {% block main %}
-<main id="main" class="section">
+<main id="main" class="page">
   <div class="wrap narrow done">
     {% if shop %}
-    <span class="eyebrow">開通完成</span>
+    <span class="tag green"><i>✓</i>開通完成</span><br>
     <h1>「{{ shop.name }}」已經可以使用了</h1>
     <p class="lead dark">試用到 <strong>{{ shop.ends }}</strong>。請用剛剛設定的管理員帳號與密碼登入後台。</p>
     <dl class="done-info">
       <dt>後台登入</dt><dd><a href="{{ shop.login_url }}">{{ shop.login_url }}</a></dd>
       <dt>你的店家網址</dt><dd>{{ shop.url }}</dd>
     </dl>
-    <div class="actions"><a class="btn btn-primary btn-lg" href="{{ shop.login_url }}">前往登入</a></div>
+    <div class="actions"><a class="btn btn-dark btn-lg" href="{{ shop.login_url }}">前往登入</a></div>
     <ol class="next">
       <li>到「系統設定」填寫店名、LOGO 與付款方式說明</li>
       <li>看看範例的服務人員、方案與形象網站草稿，不需要時可以在儀表板一鍵清除</li>

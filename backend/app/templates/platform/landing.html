@@ -3,37 +3,253 @@
 {% macro invalid(name) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}{% endmacro %}
 {% block main %}
 <main id="main">
+
+{# ---------- 首屏 ---------- #}
 <section class="hero">
-  <div class="wrap hero-grid">
-    <div class="hero-text">
-      <span class="eyebrow">健身工作室・美容美體店</span>
-      <h1>預約、方案、會員<br>一個後台全搞定</h1>
-      <p class="lead">會員線上預約、堂數自動扣抵、LINE 通知與會員入口、自己的形象網站。免費試用 {{ trial_days }} 天，填完資料馬上開通，不用信用卡。</p>
-      <div class="actions">
-        {% if signup_enabled %}<a class="btn btn-primary btn-lg" href="#signup">免費試用 {{ trial_days }} 天</a>{% endif %}
-        <a class="btn btn-ghost btn-lg" href="#features">看看有哪些功能</a>
-      </div>
-      <ul class="hero-points">
-        <li>開通後立即可用，附範例資料</li>
-        <li>每家店一個專屬網址</li>
-        <li>手機、電腦都能用</li>
-      </ul>
+  <div class="wrap">
+    <span class="pill"><b>免費</b>試用 {{ trial_days }} 天・不用信用卡</span>
+    <h1>預約、方案、會員<br>一個後台全搞定</h1>
+    <p class="lead">給健身工作室與美容美體店的預約管理系統。會員線上預約、堂數自動扣抵、LINE 通知，還有自己的形象網站。</p>
+    <div class="actions">
+      {% if signup_enabled %}<a class="btn btn-dark btn-lg" href="#signup">免費試用 {{ trial_days }} 天</a>{% endif %}
+      <a class="btn btn-text btn-lg" href="#features">看看有哪些功能 <span class="chev">›</span></a>
     </div>
-    <div class="hero-card" aria-hidden="true">
-      <div class="mock-head"><span></span><span></span><span></span></div>
-      <div class="mock-row"><b>19:00</b><span>晚間燃脂團課</span><em>剩 3 位</em></div>
-      <div class="mock-row"><b>20:00</b><span>私人課・Alex 教練</span><em class="ok">已確認</em></div>
-      <div class="mock-row"><b>14:00</b><span>臉部保養・Amy</span><em>待確認</em></div>
-      <div class="mock-stat"><div><small>本月預約</small><strong>128</strong></div><div><small>新會員</small><strong>17</strong></div><div><small>待付款</small><strong>3</strong></div></div>
+
+    <div class="glow" aria-hidden="true">
+      <div class="glow-inner">
+        <div class="app">
+          <aside class="app-side">
+            <div class="app-brand"><span></span>晨光運動工作室</div>
+            <div class="app-item on"><i></i>儀表板</div>
+            <div class="app-item"><i></i>預約審核<em>3</em></div>
+            <div class="app-item"><i></i>課程管理</div>
+            <div class="app-item"><i></i>會員管理</div>
+            <div class="app-item"><i></i>購買紀錄</div>
+            <div class="app-group">行銷</div>
+            <div class="app-item"><i></i>優惠券</div>
+            <div class="app-item"><i></i>形象網站</div>
+            <div class="app-group">財務</div>
+            <div class="app-item"><i></i>收支報表</div>
+            <div class="app-user"><span class="avatar">林</span><div>林店長<small>主要管理者</small></div></div>
+          </aside>
+          <div class="app-main">
+            <div class="app-top">
+              <div><h4>早安，今天有 12 堂預約</h4><p>週四・總店</p></div>
+              <span class="chip">總店 ▾</span>
+            </div>
+            <div class="stats">
+              <div class="stat"><small>本月預約</small><strong>128</strong><span class="up">+12%</span></div>
+              <div class="stat"><small>新會員</small><strong>17</strong><span class="up">+4</span></div>
+              <div class="stat"><small>待付款</small><strong>3</strong></div>
+            </div>
+            <div class="rows">
+              <div class="row"><b>10:00</b><span>私人課・陳小姐</span><small>Alex</small><span class="st ok">已確認</span></div>
+              <div class="row"><b>14:00</b><span>臉部保養・王先生</span><small>Amy</small><span class="st wait">待確認</span></div>
+              <div class="row"><b>19:00</b><span>晚間燃脂團課 9/12</span><small>Ken</small><span class="st ok">已確認</span></div>
+              <div class="row"><b>20:00</b><span>私人課・林小姐</span><small>Alex</small><span class="st">已簽到</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="who" class="section">
+<section class="fits" aria-label="適合的店家">
   <div class="wrap">
-    <span class="eyebrow">適合誰</span>
-    <h2>健身房、美容美體店都能用</h2>
-    <p class="section-lead">申請時選行業類型，前後台的用詞會自動切換（教練／美容師、課程／療程、堂／次）。</p>
+    <p>適合這些店家</p>
+    <ul>
+      <li>健身工作室</li><li>瑜珈教室</li><li>皮拉提斯</li><li>拳擊有氧</li><li>美容美體</li><li>按摩 SPA</li>
+    </ul>
+  </div>
+</section>
+
+{# ---------- 三張卡 ---------- #}
+<section class="section">
+  <div class="wrap">
+    <h2 class="split-title">為小店的日常而設計。<span>從預約、收款到行銷，櫃台、教練與老闆各自只看該看的。</span></h2>
+    <div class="cards-3">
+      <article class="card">
+        <div class="card-stage" aria-hidden="true">
+          <div class="widget">
+            <div class="w-search">⌕ 選擇方案</div>
+            <div class="w-opt on"><span class="dot"></span>私人課 10 堂<span class="r">剩 7 堂</span></div>
+            <div class="w-opt"><span class="dot"></span>燃脂團課 8 堂<span class="r">剩 2 堂</span></div>
+            <div class="w-opt"><span class="dot"></span>體驗課<span class="r">可用 1 次</span></div>
+          </div>
+        </div>
+        <h3>方案與堂數自動扣抵</h3>
+        <p>會員預約就扣一堂，取消或被拒絕自動退回，每一筆都有紀錄。</p>
+      </article>
+      <article class="card">
+        <div class="card-stage" aria-hidden="true">
+          <div class="widget">
+            <div class="w-line"><span class="badge">LINE</span><div><strong>預約成功</strong><span>週四 19:00 晚間燃脂團課</span></div></div>
+            <span class="w-btn">查看我的預約 ›</span>
+          </div>
+        </div>
+        <h3>LINE 會員入口與通知</h3>
+        <p>串接你自己的 LINE 官方帳號，會員在 LINE 裡加入、預約、收到上課提醒。</p>
+      </article>
+      <article class="card">
+        <div class="card-stage" aria-hidden="true">
+          <div class="widget">
+            <div class="w-person"><span class="avatar">美</span><div><strong>小美</strong><span>櫃台</span></div></div>
+            <div class="w-toggle">預約審核<span class="sw on"></span></div>
+            <div class="w-toggle">購買紀錄<span class="sw on"></span></div>
+            <div class="w-toggle">收支報表<span class="sw"></span></div>
+          </div>
+        </div>
+        <h3>員工各自的權限</h3>
+        <p>櫃台、店長、會計各自只看得到該看的功能，帳號停用立即生效。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+{# ---------- 左右交錯 ---------- #}
+<section id="features" class="section tight">
+  <div class="wrap">
+    <div class="feature">
+      <div class="feature-text">
+        <span class="tag blue"><i>◎</i>形象網站</span>
+        <h2>每家店都有自己的形象網站</h2>
+        <p>六種版型可以挑，課表、方案、團隊、最新消息會自動帶入；訪客可以直接填體驗申請，名單進到後台追蹤。</p>
+        {% if signup_enabled %}
+        <a class="cta-media" href="#signup"><span class="thumb">▶</span><span><strong>免費試用</strong><span>開通就有一份網站草稿</span></span></a>
+        {% endif %}
+      </div>
+      <div class="feature-stage" aria-hidden="true">
+        <div class="site">
+          <div class="site-bar"><span></span><span></span><span></span><em>你的網址.{{ base_domain }}</em></div>
+          <div class="site-hero"><strong>晨光運動工作室</strong><span>一對一私人課・小班團課</span><br><span class="w-btn">預約體驗課</span></div>
+          <div class="site-body"><div></div><div></div><div></div></div>
+          <div class="swatches">版型<i style="background:#1c1917"></i><i style="background:#93c5fd"></i><i style="background:#fdba74"></i><i style="background:#d6d3d1"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature flip">
+      <div class="feature-text">
+        <span class="tag green"><i>↗</i>收支報表</span>
+        <h2>每個月賺多少，一眼看清楚</h2>
+        <p>方案銷售與人員費用自動計入，房租水電隨手記一筆，收入、支出、淨額都算好。</p>
+        <ul class="checks">
+          <li>可以依分店拆開看</li>
+          <li>近 12 個月的趨勢</li>
+          <li>明細匯出給會計</li>
+        </ul>
+        <a class="btn btn-light btn-sm" href="#signup">了解更多</a>
+      </div>
+      <div class="feature-stage" aria-hidden="true">
+        <div class="metric">
+          <div class="metric-top">
+            <div><strong>$186k</strong><span>本月收入</span></div>
+            <div><strong>$121k</strong><span>本月支出</span></div>
+            <div><strong>92%</strong><span>出席率</span></div>
+          </div>
+          <svg viewBox="0 0 320 140" role="presentation">
+            <g stroke="#ebebeb" stroke-dasharray="2 4"><line x1="0" y1="20" x2="320" y2="20"/><line x1="0" y1="60" x2="320" y2="60"/><line x1="0" y1="100" x2="320" y2="100"/></g>
+            <line x1="0" y1="138" x2="320" y2="138" stroke="#e2e2e2"/>
+            <path d="M0,110 C30,104 45,92 70,95 S110,70 135,74 S175,52 200,58 S245,36 270,40 S305,26 320,22 L320,138 L0,138 Z" fill="#16a34a" opacity=".10"/>
+            <path d="M0,110 C30,104 45,92 70,95 S110,70 135,74 S175,52 200,58 S245,36 270,40 S305,26 320,22" fill="none" stroke="#16a34a" stroke-width="2"/>
+            <circle cx="270" cy="40" r="4" fill="#fff" stroke="#16a34a" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---------- 方格 ---------- #}
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>開店需要的，都準備好了</h2>
+      <p>從第一位會員預約，到每個月結算，日常會用到的功能都在同一個後台。</p>
+    </div>
+    <div class="bento">
+      <article class="wide">
+        <div class="card-stage" aria-hidden="true">
+          <div class="stack">
+            <div class="bubble">我想預約週四晚上的團課</div>
+            <div class="bubble me">已為你保留 19:00 晚間燃脂團課，剩 3 個名額</div>
+            <div class="input-mock">選擇日期與時段…<span class="send">↑</span></div>
+          </div>
+        </div>
+        <h3>線上預約與審核</h3>
+        <p>會員自己挑時段，後台一鍵確認；公休時段不開放，晚取消自動判斷。</p>
+      </article>
+      <article class="wide">
+        <div class="card-stage" aria-hidden="true">
+          <div class="week">
+            <span class="t"></span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span>
+            <span class="t">10</span><span class="ev a">私人課</span><span class="gap"></span><span class="ev a">私人課</span><span class="gap"></span><span class="ev c">場租</span>
+            <span class="t">14</span><span class="gap"></span><span class="ev b">皮拉提斯</span><span class="gap"></span><span class="ev b">皮拉提斯</span><span class="gap"></span>
+            <span class="t">19</span><span class="ev a">燃脂團課</span><span class="gap"></span><span class="ev a">燃脂團課</span><span class="gap"></span><span class="ev a">燃脂團課</span>
+          </div>
+        </div>
+        <h3>團體課表與私人課</h3>
+        <p>每週排程自動展開，每堂人數上限、停課與加開都能調整。</p>
+      </article>
+      <article>
+        <div class="card-stage" aria-hidden="true">
+          <div>
+            <div class="coupon"><b>85折</b><div><strong>新會員優惠</strong><small>WELCOME85</small></div></div>
+            <div class="coupon"><b>體驗</b><div><strong>免費體驗一堂</strong><small>LINE 加入自動發送</small></div></div>
+          </div>
+        </div>
+        <h3>優惠券與體驗券</h3>
+        <p>公開代碼、新會員自動發券，購買時自動折抵。</p>
+      </article>
+      <article>
+        <div class="card-stage" aria-hidden="true">
+          <div class="tags"><span>VIP</span><span>續約提醒</span><span>產後恢復</span><span>老會員</span><span>學生方案</span></div>
+        </div>
+        <h3>會員標籤與名單</h3>
+        <p>依標籤或上課紀錄篩出會員，用 LINE 發最新消息。</p>
+      </article>
+      <article>
+        <div class="card-stage" aria-hidden="true">
+          <div class="branches">
+            <div>總店<small>12 堂</small></div>
+            <div>信義店<small>8 堂</small></div>
+            <div>板橋店<small>5 堂</small></div>
+          </div>
+        </div>
+        <h3>多分店</h3>
+        <p>同一個帳號管理多間分店，課表、公休、報表各自分開。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+{# ---------- LINE 串接（散落圖示） ---------- #}
+<section class="orbit" aria-labelledby="orbit-title">
+  <span class="ico" style="left:12%;top:16%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#06c755" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+  <span class="ico s" style="left:24%;top:46%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+  <span class="ico" style="left:8%;top:70%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z"/></svg></span>
+  <span class="ico s" style="left:30%;top:12%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span>
+  <span class="ico" style="right:12%;top:14%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span>
+  <span class="ico s" style="right:26%;top:30%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#be185d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
+  <span class="ico" style="right:8%;top:56%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
+  <span class="ico s" style="right:22%;top:76%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></span>
+  <span class="ico s" style="left:40%;top:84%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+  <div class="wrap">
+    <span class="tag green"><i>✓</i>LINE 官方帳號</span>
+    <h2 id="orbit-title">和你的 LINE 官方帳號串在一起</h2>
+    <p>會員從圖文選單進來預約、購買、查紀錄；店家收到新預約、新訂單也會收到 LINE 通知。</p>
+    {% if signup_enabled %}<a class="btn btn-dark" href="#signup">免費試用</a>{% endif %}
+  </div>
+</section>
+
+{# ---------- 適合誰 ---------- #}
+<section id="who" class="section tight">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>健身房、美容美體店都能用</h2>
+      <p>申請時選行業類型，前後台的用詞會自動切換（教練／美容師、課程／療程、堂／次）。</p>
+    </div>
     <div class="who-grid">
       <article class="who-card">
         <h3>健身工作室</h3>
@@ -55,103 +271,111 @@
   </div>
 </section>
 
-<section id="features" class="section tint">
+{# ---------- 開通流程 ---------- #}
+<section id="steps" class="section tight">
   <div class="wrap">
-    <span class="eyebrow">功能</span>
-    <h2>開店需要的，都準備好了</h2>
-    <div class="feature-grid">
-      <article><h3>線上預約與審核</h3><p>會員自己挑時段，後台一鍵確認；公休時段不開放，晚取消自動判斷。</p></article>
-      <article><h3>方案與付款</h3><p>堂數／次數方案、用品販售，會員下單後確認收款就入帳。</p></article>
-      <article><h3>LINE 會員入口</h3><p>串接你自己的 LINE 官方帳號，會員在 LINE 裡加入、預約、收到提醒。</p></article>
-      <article><h3>形象網站</h3><p>六種版型，放上課表、方案、團隊、最新消息與體驗申請表單。</p></article>
-      <article><h3>優惠券與體驗券</h3><p>公開代碼、新會員自動發券、購買時自動折抵。</p></article>
-      <article><h3>會員標籤與名單</h3><p>依標籤或上課紀錄篩出會員，用 LINE 發消息。</p></article>
-      <article><h3>多分店</h3><p>同一個帳號管理多間分店，課表與公休各自設定。</p></article>
-      <article><h3>員工權限</h3><p>櫃台、店長、會計各自只看得到該看的功能。</p></article>
+    <div class="section-head">
+      <h2>三步驟，現在就開始</h2>
     </div>
-  </div>
-</section>
-
-<section id="steps" class="section">
-  <div class="wrap">
-    <span class="eyebrow">開通流程</span>
-    <h2>三步驟，現在就開始</h2>
     <ol class="steps">
-      <li><b>1</b><h3>填寫申請資料</h3><p>店名、行業、想要的網址與管理員帳號。</p></li>
-      <li><b>2</b><h3>馬上開通</h3><p>送出後立即建立你的店家與範例資料。</p></li>
-      <li><b>3</b><h3>登入開始用</h3><p>試用 {{ trial_days }} 天，期間所有功能都能用。</p></li>
+      <li><b>01</b><h3>填寫申請資料</h3><p>店名、行業、想要的網址與管理員帳號。</p></li>
+      <li><b>02</b><h3>馬上開通</h3><p>送出後立即建立你的店家與範例資料。</p></li>
+      <li><b>03</b><h3>登入開始用</h3><p>試用 {{ trial_days }} 天，期間所有功能都能用。</p></li>
     </ol>
   </div>
 </section>
 
-<section id="signup" class="section tint">
-  <div class="wrap signup-wrap">
-    <div class="signup-intro">
-      <span class="eyebrow">免費試用 {{ trial_days }} 天</span>
-      <h2>申請試用</h2>
-      <p>填完必填欄位就會馬上開通，不需要信用卡。試用到期後資料會保留 60 天，想繼續使用請聯絡我們。</p>
+{# ---------- 資料安全 ---------- #}
+<section id="security" class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="tag orange"><i>◆</i>資料安全</span>
+      <h2>每家店的資料，彼此完全隔開</h2>
+      <p>會員、預約與購買資料屬於店家自己；資料庫層就把每家店分開，全站加密連線，每天自動備份。</p>
     </div>
-    {% if not signup_enabled %}
-    <div class="notice"><strong>目前暫停開放線上申請</strong><p>{% if contact.any %}請透過下方的聯絡方式與我們聯繫。{% else %}請稍後再試。{% endif %}</p></div>
-    {% else %}
-    <form class="signup-form" method="post" action="/site/signup" novalidate>
-      {% if errors.get('form') %}<p class="form-error" role="alert">{{ errors['form'] }}</p>{% elif errors %}<p class="form-error" role="alert">請修正標示的欄位後再送出</p>{% endif %}
-      <label class="full">店名 <span class="req">*</span>
-        <input type="text" name="store_name" maxlength="100" value="{{ form.store_name }}" required autocomplete="organization"{{ invalid('store_name') }}>
-        {{ err('store_name') }}
-      </label>
-      <fieldset class="full">
-        <legend>行業類型 <span class="req">*</span></legend>
-        <label class="radio"><input type="radio" name="business_type" value="fitness"{% if form.business_type != 'beauty' %} checked{% endif %}> 健身房／運動工作室</label>
-        <label class="radio"><input type="radio" name="business_type" value="beauty"{% if form.business_type == 'beauty' %} checked{% endif %}> 美容美體／按摩 SPA</label>
-        {{ err('business_type') }}
-      </fieldset>
-      <label class="full">店家網址 <span class="req">*</span>
-        <span class="domain-input"><input type="text" name="subdomain" id="subdomain" maxlength="63" value="{{ form.subdomain }}" required placeholder="例如 pulsefit" autocapitalize="off" spellcheck="false" pattern="[a-z0-9-]+"{{ invalid('subdomain') }}><span class="suffix">.{{ base_domain }}</span></span>
-        <span class="hint" id="subdomain-hint" aria-live="polite">小寫英文、數字與連字號；之後不能更改</span>
-        {{ err('subdomain') }}
-      </label>
-      <label>聯絡人姓名 <span class="req">*</span>
-        <input type="text" name="contact_name" maxlength="100" value="{{ form.contact_name }}" required autocomplete="name"{{ invalid('contact_name') }}>
-        {{ err('contact_name') }}
-      </label>
-      <label>手機 <span class="req">*</span>
-        <input type="tel" name="phone" maxlength="30" value="{{ form.phone }}" required autocomplete="tel" inputmode="tel"{{ invalid('phone') }}>
-        {{ err('phone') }}
-      </label>
-      <label class="full">Email <span class="req">*</span>
-        <input type="email" name="email" maxlength="255" value="{{ form.email }}" required autocomplete="email"{{ invalid('email') }}>
-        {{ err('email') }}
-      </label>
-      <label>管理員帳號 <span class="req">*</span>
-        <input type="text" name="admin_username" maxlength="30" value="{{ form.admin_username }}" required autocomplete="username" autocapitalize="off"{{ invalid('admin_username') }}>
-        <span class="hint">登入後台用，3–30 個英文、數字或 . _ -</span>
-        {{ err('admin_username') }}
-      </label>
-      <label>密碼 <span class="req">*</span>
-        <input type="password" name="admin_password" minlength="8" required autocomplete="new-password"{{ invalid('admin_password') }}>
-        <span class="hint">至少 8 碼</span>
-        {{ err('admin_password') }}
-      </label>
-      <label class="hp" aria-hidden="true">網站<input type="text" name="{{ honeypot }}" tabindex="-1" autocomplete="off"></label>
-      <label class="check full"><input type="checkbox" name="consent"{% if form.consent %} checked{% endif %}{{ invalid('consent') }}> 我已閱讀並同意 <a href="/site/terms" target="_blank" rel="noopener">服務條款與個人資料蒐集告知</a></label>
-      <span class="full">{{ err('consent') }}</span>
-      <button class="btn btn-primary btn-lg full" type="submit">送出並開通試用</button>
-    </form>
-    {% endif %}
+    <div class="badges">
+      <div><i><svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></i>資料隔離</div>
+      <div><i><svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i>全站 HTTPS</div>
+      <div><i><svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i>每日備份</div>
+    </div>
   </div>
 </section>
 
-<section id="faq" class="section">
+{# ---------- 常見問題 ---------- #}
+<section id="faq" class="section tight">
   <div class="wrap narrow">
-    <span class="eyebrow">常見問題</span>
-    <h2>常見問題</h2>
+    <div class="section-head">
+      <h2>常見問題</h2>
+    </div>
     <div class="faq">
       <details open><summary>試用需要付費或綁信用卡嗎？</summary><p>不需要。試用 {{ trial_days }} 天內所有功能都能使用，不會自動扣款。</p></details>
       <details><summary>試用到期後會怎樣？</summary><p>到期後後台與會員預約會暫停，形象網站也會暫停顯示；資料保留 60 天，期間聯絡我們轉為正式即可繼續使用，資料都還在。</p></details>
       <details><summary>開通後裡面是空的嗎？</summary><p>會先放好範例的服務人員、方案與網站草稿，讓你馬上看得到效果；不需要時可在後台一鍵清除。</p></details>
       <details><summary>可以用自己的網址嗎？</summary><p>目前每家店使用 <code>你的網址.{{ base_domain }}</code>；自訂網域將於之後開放。</p></details>
       <details><summary>會員要下載 App 嗎？</summary><p>不用。會員用手機瀏覽器或 LINE 就能預約、查看方案與預約紀錄。</p></details>
+    </div>
+  </div>
+</section>
+
+{# ---------- 申請試用 ---------- #}
+<section id="signup" class="signup-band">
+  <div class="wrap">
+    <div class="signup-head">
+      <span class="pill"><b>免費</b>試用 {{ trial_days }} 天</span>
+      <h2>申請試用</h2>
+      <p>填完必填欄位就會馬上開通，不需要信用卡。試用到期後資料會保留 60 天，想繼續使用請聯絡我們。</p>
+    </div>
+    <div class="signup-card glow">
+      <div class="glow-inner">
+        {% if not signup_enabled %}
+        <div class="notice"><strong>目前暫停開放線上申請</strong><p>{% if contact.any %}請透過下方的聯絡方式與我們聯繫。{% else %}請稍後再試。{% endif %}</p></div>
+        {% else %}
+        <form class="signup-form" method="post" action="/site/signup" novalidate>
+          {% if errors.get('form') %}<p class="form-error" role="alert">{{ errors['form'] }}</p>{% elif errors %}<p class="form-error" role="alert">請修正標示的欄位後再送出</p>{% endif %}
+          <label class="full">店名 <span class="req">*</span>
+            <input type="text" name="store_name" maxlength="100" value="{{ form.store_name }}" required autocomplete="organization"{{ invalid('store_name') }}>
+            {{ err('store_name') }}
+          </label>
+          <fieldset class="full">
+            <legend>行業類型 <span class="req">*</span></legend>
+            <label class="radio"><input type="radio" name="business_type" value="fitness"{% if form.business_type != 'beauty' %} checked{% endif %}> 健身房／運動工作室</label>
+            <label class="radio"><input type="radio" name="business_type" value="beauty"{% if form.business_type == 'beauty' %} checked{% endif %}> 美容美體／按摩 SPA</label>
+            {{ err('business_type') }}
+          </fieldset>
+          <label class="full">店家網址 <span class="req">*</span>
+            <span class="domain-input"><input type="text" name="subdomain" id="subdomain" maxlength="63" value="{{ form.subdomain }}" required placeholder="例如 pulsefit" autocapitalize="off" spellcheck="false" pattern="[a-z0-9-]+"{{ invalid('subdomain') }}><span class="suffix">.{{ base_domain }}</span></span>
+            <span class="hint" id="subdomain-hint" aria-live="polite">小寫英文、數字與連字號；之後不能更改</span>
+            {{ err('subdomain') }}
+          </label>
+          <label>聯絡人姓名 <span class="req">*</span>
+            <input type="text" name="contact_name" maxlength="100" value="{{ form.contact_name }}" required autocomplete="name"{{ invalid('contact_name') }}>
+            {{ err('contact_name') }}
+          </label>
+          <label>手機 <span class="req">*</span>
+            <input type="tel" name="phone" maxlength="30" value="{{ form.phone }}" required autocomplete="tel" inputmode="tel"{{ invalid('phone') }}>
+            {{ err('phone') }}
+          </label>
+          <label class="full">Email <span class="req">*</span>
+            <input type="email" name="email" maxlength="255" value="{{ form.email }}" required autocomplete="email"{{ invalid('email') }}>
+            {{ err('email') }}
+          </label>
+          <label>管理員帳號 <span class="req">*</span>
+            <input type="text" name="admin_username" maxlength="30" value="{{ form.admin_username }}" required autocomplete="username" autocapitalize="off"{{ invalid('admin_username') }}>
+            <span class="hint">登入後台用，3–30 個英文、數字或 . _ -</span>
+            {{ err('admin_username') }}
+          </label>
+          <label>密碼 <span class="req">*</span>
+            <input type="password" name="admin_password" minlength="8" required autocomplete="new-password"{{ invalid('admin_password') }}>
+            <span class="hint">至少 8 碼</span>
+            {{ err('admin_password') }}
+          </label>
+          <label class="hp" aria-hidden="true">網站<input type="text" name="{{ honeypot }}" tabindex="-1" autocomplete="off"></label>
+          <label class="check full"><input type="checkbox" name="consent"{% if form.consent %} checked{% endif %}{{ invalid('consent') }}> 我已閱讀並同意 <a href="/site/terms" target="_blank" rel="noopener">服務條款與個人資料蒐集告知</a></label>
+          <span class="full">{{ err('consent') }}</span>
+          <button class="btn btn-dark btn-lg full" type="submit">送出並開通試用</button>
+        </form>
+        {% endif %}
+      </div>
     </div>
   </div>
 </section>
