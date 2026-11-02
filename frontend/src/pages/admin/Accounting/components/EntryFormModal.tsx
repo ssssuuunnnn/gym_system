@@ -18,6 +18,8 @@ export interface EntryFormModalProps {
   entry: AccountingEntry | null;
   categories: AccountingCategory[];
   branches: Branch[];
+  /** 已關帳的月份（YYYY-MM）：日期不能選在這些月份（R63） */
+  closedMonths: Set<string>;
   /** 新增時預設的分店（報表目前選的分店） */
   defaultBranchId: number | null;
   saving: boolean;
@@ -44,6 +46,7 @@ export function EntryFormModal({
   entry,
   categories,
   branches,
+  closedMonths,
   defaultBranchId,
   saving,
   onSubmit,
@@ -123,7 +126,7 @@ export function EntryFormModal({
           <Select options={categoryOptions} placeholder="選擇分類" />
         </Form.Item>
         <Form.Item name="entry_date" label="日期" rules={[{ required: true, message: '請選擇日期' }]}>
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker style={{ width: '100%' }} disabledDate={(d) => closedMonths.has(d.format('YYYY-MM'))} />
         </Form.Item>
         <Form.Item name="amount" label="金額" rules={[{ required: true, message: '請輸入金額' }]}>
           <InputNumber min={1} max={99999999} precision={0} prefix="NT$" style={{ width: '100%' }} />

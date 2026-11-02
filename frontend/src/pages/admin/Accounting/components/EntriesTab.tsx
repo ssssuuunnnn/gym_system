@@ -15,7 +15,9 @@ import {
 import { apiErrorMessage } from '../../../../api/errors';
 import type { Branch } from '../../../../api/branches';
 import { formatServerTime } from '../../../../lib/datetime';
-import { ACCOUNTING_KEYS, money, type Range } from '../lib';
+import { ACCOUNTING_KEYS, isClosedDay, money, type Range } from '../lib';
+import { ReceiptActions } from './ReceiptActions';
+import { useClosedMonths } from './useClosedMonths';
 import { EntryFormModal } from './EntryFormModal';
 
 export interface EntriesTabProps {
@@ -41,6 +43,7 @@ export function EntriesTab({ range, branchId, branches, branchName }: EntriesTab
   };
   const entries = useQuery({ queryKey: ['accounting-entries', period], queryFn: () => listEntries(period) });
   const categories = useQuery({ queryKey: ['accounting-categories'], queryFn: listCategories });
+  const closed = useClosedMonths();
 
   const refresh = () => ACCOUNTING_KEYS.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
 
@@ -82,6 +85,11 @@ export function EntriesTab({ range, branchId, branches, branchName }: EntriesTab
     },
     { title: '備註', dataIndex: 'note', ellipsis: true, render: (n: string | null) => n ?? '—' },
     {
+      title: '收據',
+      key: 'receipt',
+      render: (_, e) => <ReceiptActions entry={e} locked={!!e.deleted_at || isClosedDay(closed, e.entry_date)} />,
+    },
+    {
       title: '記錄者',
       key: 'by',
       render: (_, e) => (
@@ -100,6 +108,8 @@ export function EntriesTab({ range, branchId, branches, branchName }: EntriesTab
       render: (_, e) =>
         e.deleted_at ? (
           <Tag>已刪除</Tag>
+        ) : isClosedDay(closed, e.entry_date) ? (
+          <Tag>已關帳</Tag>
         ) : (
           <Space size={4}>
             <Button
@@ -126,7 +136,7 @@ export function EntriesTab({ range, branchId, branches, branchName }: EntriesTab
     <>
       <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }} wrap>
         <Typography.Text type="secondary">
-          系統沒有記錄的收入與支出，例如房租、水電、場租收入。方案銷售與鐘點撥款會自動計入，不用重複記。
+          系統沒有記錄的收入與支出，例如房租、水電、場租收入。方案銷售與鐘點撥款會自動計入，不用重複記；已關帳的月份不能再修改。
         </Typography.Text>
         <Space>
           <Space size={6}>
@@ -162,6 +172,7 @@ export function EntriesTab({ range, branchId, branches, branchName }: EntriesTab
         entry={editing}
         categories={categories.data ?? []}
         branches={branches}
+        closedMonths={closed}
         defaultBranchId={branchId}
         saving={save.isPending}
         onSubmit={(payload) => save.mutate(payload)}

@@ -53,6 +53,7 @@ services:
       # 前端與 API 同網址（nginx 反向代理），不需要跨網域
       BACKEND_CORS_ORIGINS: "[]"
       MEDIA_DIR: /app/media
+      PRIVATE_MEDIA_DIR: /app/private_media
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
       LINE_BOT_BASIC_ID: ${LINE_BOT_BASIC_ID:-}
@@ -65,6 +66,7 @@ services:
         condition: service_healthy
     volumes:
       - coach_media:/app/media
+      - private_media:/app/private_media
     logging: *logging
 
   frontend:
@@ -91,3 +93,5 @@ services:
 volumes:
   postgres_data:
   coach_media:
+  # 收據等不公開的上傳檔（ADR 0015），不經過 /media
+  private_media:

@@ -4,12 +4,15 @@ import { ArrowDownOutlined, ArrowUpOutlined, DownloadOutlined } from '@ant-desig
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery } from '@tanstack/react-query';
 import {
+  BASIS_LABEL,
   getReport,
   getTrend,
   listTransactions,
+  type Basis,
   type ReportLine,
   type Transaction,
 } from '../../../../api/accounting';
+import { useTerms } from '../../../../lib/terms';
 import { exportTransactions, money, signedMoney, SOURCE_LABEL, type Range } from '../lib';
 import { TrendChart } from './TrendChart';
 
@@ -18,6 +21,8 @@ export interface ReportTabProps {
   /** null＝全部分店 */
   branchId: number | null;
   branchName: (id: number | null) => string;
+  /** 現金制／權責制 */
+  basis: Basis;
 }
 
 const TREND_MONTHS = 12;
@@ -60,15 +65,21 @@ function LinesTable({ lines, total, empty }: { lines: ReportLine[]; total: numbe
 }
 
 /** 報表：期間的收入、支出、淨額，收支組成，近 12 個月趨勢，以及可匯出的明細 */
-export function ReportTab({ range, branchId, branchName }: ReportTabProps) {
+export function ReportTab({ range, branchId, branchName, basis }: ReportTabProps) {
   const { token } = theme.useToken();
-  const period = { start: range[0].format('YYYY-MM-DD'), end: range[1].format('YYYY-MM-DD'), branch_id: branchId };
+  const { t } = useTerms();
+  const period = {
+    start: range[0].format('YYYY-MM-DD'),
+    end: range[1].format('YYYY-MM-DD'),
+    branch_id: branchId,
+    basis,
+  };
   const [kindFilter, setKindFilter] = useState<KindFilter>('全部');
 
   const report = useQuery({ queryKey: ['accounting-report', period], queryFn: () => getReport(period) });
   const trend = useQuery({
-    queryKey: ['accounting-trend', TREND_MONTHS, branchId],
-    queryFn: () => getTrend(TREND_MONTHS, branchId),
+    queryKey: ['accounting-trend', TREND_MONTHS, branchId, basis],
+    queryFn: () => getTrend(TREND_MONTHS, branchId, basis),
   });
   const txns = useQuery({ queryKey: ['accounting-transactions', period], queryFn: () => listTransactions(period) });
 
@@ -133,6 +144,18 @@ export function ReportTab({ range, branchId, branchName }: ReportTabProps) {
       </Row>
 
       {sharedNote && <Alert type="info" showIcon message={sharedNote} />}
+      {r && r.basis === 'accrual' && r.months_without_payouts.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          message={`${r.months_without_payouts.join('、')} 還沒有結算${t.staffPay}，權責制的支出暫時不含這幾個月的${t.staffPay}。`}
+        />
+      )}
+      {r && r.closed_months.length > 0 && (
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          已關帳：{r.closed_months.join('、')}
+        </Typography.Text>
+      )}
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
@@ -201,7 +224,7 @@ export function ReportTab({ range, branchId, branchName }: ReportTabProps) {
               size="small"
               icon={<DownloadOutlined />}
               disabled={!txns.data?.length}
-              onClick={() => exportTransactions(txns.data ?? [], range, branchName)}
+              onClick={() => exportTransactions(txns.data ?? [], range, branchName, BASIS_LABEL[basis])}
             >
               匯出 CSV
             </Button>
