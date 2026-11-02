@@ -25,3 +25,10 @@ def to_local(utc_naive: datetime) -> datetime:
     tenant = current_tenant.get()
     tz = tenant.timezone if tenant else settings.STUDIO_TIMEZONE
     return utc_naive.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz)).replace(tzinfo=None)
+
+
+def to_utc(local_naive: datetime) -> datetime:
+    """店家當地時間（不帶時區）換成伺服器存的 UTC 時間（不帶時區）；用來把當地日期範圍換成查詢條件。"""
+    tenant = current_tenant.get()
+    tz = tenant.timezone if tenant else settings.STUDIO_TIMEZONE
+    return local_naive.replace(tzinfo=ZoneInfo(tz)).astimezone(timezone.utc).replace(tzinfo=None)

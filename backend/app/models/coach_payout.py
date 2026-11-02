@@ -61,6 +61,8 @@ class CoachPayoutItem(TenantMixin, Base):
     )
     kind: Mapped[PayoutItemKind] = mapped_column(Enum(PayoutItemKind), nullable=False)
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    # 這一堂在哪間分店（ADR 0014：鐘點支出依分店分攤）
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False, comment="課程或商品名稱（快照）")
     session_date: Mapped[date] = mapped_column(Date, nullable=False)
     start_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False)

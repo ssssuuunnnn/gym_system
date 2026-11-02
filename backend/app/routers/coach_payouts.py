@@ -131,6 +131,7 @@ def settle(payload: CoachPayoutCreate, admin: User = Depends(require_access), db
             CoachPayoutItem(
                 kind=u.kind,
                 course_id=u.course_id,
+                branch_id=u.branch_id,
                 title=u.title[:100],
                 session_date=u.session_date,
                 start_hour=u.start_hour,

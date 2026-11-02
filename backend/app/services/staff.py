@@ -22,6 +22,7 @@ PERMISSIONS: list[dict] = [
     {"code": "payouts", "label": "教練鐘點", "sensitive": True, "hint": "鐘點費、結算與撥款"},
     {"code": "products", "label": "商品管理", "sensitive": False, "hint": "方案與商品、價格、庫存"},
     {"code": "purchases", "label": "購買紀錄", "sensitive": False, "hint": "登錄購買、確認收款、調整堂數"},
+    {"code": "accounting", "label": "收支報表", "sensitive": True, "hint": "收入、支出、淨額與手動記帳"},
     {"code": "courses", "label": "課程管理", "sensitive": False, "hint": "團體課程與排程"},
     {"code": "availability", "label": "公休設定", "sensitive": False, "hint": "各分店的公休時段"},
     {"code": "members", "label": "會員管理", "sensitive": True, "hint": "會員資料（含手機）、密碼、黑名單"},
@@ -69,7 +70,7 @@ TEMPLATES: list[dict] = [
             "availability", "members", "segments", "coupons", "website", "inquiries", "branches",
         ],
     },
-    {"key": "accountant", "label": "會計", "codes": ["dashboard", "purchases", "payouts"]},
+    {"key": "accountant", "label": "會計", "codes": ["dashboard", "purchases", "payouts", "accounting"]},
 ]
 
 

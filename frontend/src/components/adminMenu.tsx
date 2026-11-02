@@ -7,9 +7,11 @@ import {
   ControlOutlined,
   DashboardOutlined,
   DollarOutlined,
+  FundOutlined,
   GiftOutlined,
   GlobalOutlined,
   IdcardOutlined,
+  LineChartOutlined,
   MessageOutlined,
   NotificationOutlined,
   ReadOutlined,
@@ -31,7 +33,7 @@ import type { Terms } from '../lib/terms';
 export type MenuPermission = PermissionCode | 'owner';
 
 /** 側欄分類（可收合）；null＝不分類，放在分類上方（儀表板） */
-export type AdminMenuGroupKey = 'booking' | 'sales' | 'marketing' | 'coaching' | 'setup';
+export type AdminMenuGroupKey = 'booking' | 'sales' | 'marketing' | 'coaching' | 'finance' | 'setup';
 
 export interface AdminMenuGroup {
   key: AdminMenuGroupKey;
@@ -53,6 +55,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { key: 'sales', label: '會員與銷售', icon: <ShoppingCartOutlined /> },
   { key: 'marketing', label: '行銷', icon: <SoundOutlined /> },
   { key: 'coaching', label: '教練', icon: <IdcardOutlined /> },
+  { key: 'finance', label: '財務', icon: <FundOutlined /> },
   { key: 'setup', label: '設定', icon: <ControlOutlined /> },
 ];
 
@@ -77,6 +80,7 @@ export const ADMIN_MENU: AdminMenuEntry[] = [
   { key: '/admin/website', label: '形象網站', icon: <GlobalOutlined />, perm: 'website', group: 'marketing' },
   { key: '/admin/coaches', label: '教練管理', icon: <UserSwitchOutlined />, perm: 'coaches', group: 'coaching' },
   { key: '/admin/coach-payouts', label: '教練鐘點', icon: <AccountBookOutlined />, perm: 'payouts', group: 'coaching' },
+  { key: '/admin/accounting', label: '收支報表', icon: <LineChartOutlined />, perm: 'accounting', group: 'finance' },
   { key: '/admin/branches', label: '分店管理', icon: <ShopOutlined />, perm: 'branches', group: 'setup' },
   { key: '/admin/settings', label: '系統設定', icon: <SettingOutlined />, perm: 'settings', group: 'setup' },
   { key: '/admin/staff', label: '後台帳號', icon: <SafetyOutlined />, perm: 'owner', group: 'setup' },

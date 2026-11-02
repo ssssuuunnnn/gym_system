@@ -32,6 +32,8 @@ import { listProducts } from '../../api/products';
 import StatusTag from '../../components/StatusTag';
 import { formatServerTime } from '../../lib/datetime';
 import { useTerms } from '../../lib/terms';
+import { useBranches } from '../../lib/useBranches';
+import { BranchPicker } from '../../components/BranchPicker';
 
 type StatusFilter = PaymentStatus | '全部';
 const STATUS_FILTERS: StatusFilter[] = ['待付款', '已付款', '已取消', '全部'];
@@ -55,6 +57,8 @@ export default function PurchaseList() {
   const queryClient = useQueryClient();
   const { t } = useTerms();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('待付款');
+  const [branchFilter, setBranchFilter] = useState<number | null>(null);
+  const { branches, nameOf: branchName } = useBranches();
   const [confirming, setConfirming] = useState<Purchase | null>(null);
   const [form] = Form.useForm<ConfirmValues>();
 
@@ -65,14 +69,18 @@ export default function PurchaseList() {
   const memberNameById = new Map((members ?? []).map((m) => [m.id, m.username]));
   const productNameById = new Map((products ?? []).map((p) => [p.id, p.name]));
 
+  const inBranch = (purchases ?? []).filter((p) => branchFilter == null || p.branch_id === branchFilter);
   const countByStatus = (status: StatusFilter) =>
-    status === '全部' ? (purchases ?? []).length : (purchases ?? []).filter((p) => p.payment_status === status).length;
-  const rows = statusFilter === '全部' ? purchases : (purchases ?? []).filter((p) => p.payment_status === statusFilter);
+    status === '全部' ? inBranch.length : inBranch.filter((p) => p.payment_status === status).length;
+  const rows = statusFilter === '全部' ? inBranch : inBranch.filter((p) => p.payment_status === statusFilter);
   // 從鈴鐺通知點進來：跳到那一筆並加底色；那一筆不在目前的付款狀態篩選裡就切到它的狀態
   const highlight = useHighlightRow(rows, 10);
   const target = (purchases ?? []).find((p) => p.id === highlight.highlightId);
   useEffect(() => {
-    if (target) setStatusFilter(target.payment_status);
+    if (target) {
+      setStatusFilter(target.payment_status);
+      setBranchFilter(null);
+    }
   }, [target?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const invalidate = () => {
@@ -119,6 +127,7 @@ export default function PurchaseList() {
       dataIndex: 'product_id',
       render: (id: number) => productNameById.get(id) ?? `#${id}`,
     },
+    { title: '分店', dataIndex: 'branch_id', render: (id: number) => branchName(id) },
     { title: '數量', dataIndex: 'quantity' },
     {
       title: '金額',
@@ -191,12 +200,14 @@ export default function PurchaseList() {
         <Button onClick={() => navigate('/admin/products/purchase-entry')}>登錄購買</Button>
       </Space>
 
-      <Segmented<StatusFilter>
-        style={{ marginBottom: 16 }}
-        value={statusFilter}
-        onChange={setStatusFilter}
-        options={STATUS_FILTERS.map((s) => ({ value: s, label: `${s}（${countByStatus(s)}）` }))}
-      />
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Segmented<StatusFilter>
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={STATUS_FILTERS.map((s) => ({ value: s, label: `${s}（${countByStatus(s)}）` }))}
+        />
+        <BranchPicker branches={branches} value={branchFilter} onChange={setBranchFilter} allowAll />
+      </Space>
 
       <Table
         rowKey="id"

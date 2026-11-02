@@ -19,7 +19,7 @@ import {
 import { formatServerTime } from '../../../lib/datetime';
 import { CreateAudienceModal } from './components/CreateAudienceModal';
 import { SegmentFilterCard } from '../../../components/SegmentFilterCard';
-import { defaultFilters, describeFilters, downloadCsv } from '../../../lib/memberSegments';
+import { defaultFilters, describeFilters, downloadMembersCsv } from '../../../lib/memberSegments';
 import { useBranches } from '../../../lib/useBranches';
 import { useMemberTags } from '../../../lib/useMemberTags';
 import { addMembersToTag } from '../../../api/memberTags';
@@ -159,7 +159,7 @@ export default function MemberSegments() {
         title="名單"
         extra={
           <Flex gap={8} wrap>
-            <Button icon={<DownloadOutlined />} disabled={!members.length} onClick={() => downloadCsv(members)}>
+            <Button icon={<DownloadOutlined />} disabled={!members.length} onClick={() => downloadMembersCsv(members)}>
               匯出 CSV
             </Button>
             <Button icon={<TagsOutlined />} disabled={!rows.length} onClick={() => setTagModalOpen(true)}>

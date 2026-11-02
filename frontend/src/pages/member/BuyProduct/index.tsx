@@ -14,6 +14,8 @@ import { PlanCard } from './components/PlanCard';
 import { OrderSheet } from './components/OrderSheet';
 import { memberCategoryLabel, fitsIntent } from './lib';
 import { useTerms } from '../../../lib/terms';
+import { useBranches } from '../../../lib/useBranches';
+import { loadMemberBranch } from '../../../lib/memberBranch';
 
 type Filter = '全部' | ProductCategory;
 const CATEGORY_ORDER: ProductCategory[] = ['團體課程', '課程', '用品'];
@@ -31,6 +33,10 @@ export default function BuyProduct() {
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const intent = params.get('from') === 'book' ? loadBookIntent() : null;
+  // 收入歸屬的分店（R58）：要預約的那堂課的分店，否則預約頁上次選的；已停用的不送（後端用預設分店）
+  const { active: activeBranches } = useBranches();
+  const wantedBranch = intent?.branchId ?? loadMemberBranch();
+  const purchaseBranchId = activeBranches.some((b) => b.id === wantedBranch) ? wantedBranch : null;
 
   const [filter, setFilter] = useState<Filter>('全部');
   const [selected, setSelected] = useState<Product | null>(null);
@@ -67,7 +73,7 @@ export default function BuyProduct() {
       product: Product;
       quantity: number;
       coupon: { member_coupon_id?: number; coupon_code?: string };
-    }) => createSelfPurchase({ product_id: product.id, quantity, ...coupon }),
+    }) => createSelfPurchase({ product_id: product.id, quantity, branch_id: purchaseBranchId, ...coupon }),
     onSuccess: (created) => {
       setOrder(created);
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });

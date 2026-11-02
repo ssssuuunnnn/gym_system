@@ -11,6 +11,8 @@ export interface Purchase {
   id: number;
   user_id: number;
   product_id: number;
+  /** 收入歸屬的分店（R58） */
+  branch_id: number;
   quantity: number;
   purchase_date: string;
   /** 應付金額（使用優惠券時為折後金額） */
@@ -33,11 +35,12 @@ export interface Purchase {
   created_at: string;
 }
 
-/** 管理員可依 userId／付款狀態篩選；會員一律只會拿到自己的紀錄 */
-export async function listPurchases(userId?: number, paymentStatus?: PaymentStatus) {
+/** 管理員可依 userId／付款狀態／分店篩選；會員一律只會拿到自己的紀錄 */
+export async function listPurchases(userId?: number, paymentStatus?: PaymentStatus, branchId?: number | null) {
   const params: Record<string, string | number> = {};
   if (userId !== undefined) params.user_id = userId;
   if (paymentStatus !== undefined) params.payment_status = paymentStatus;
+  if (branchId != null) params.branch_id = branchId;
   const { data } = await apiClient.get<Purchase[]>('/purchases', { params });
   return data;
 }
@@ -53,6 +56,8 @@ export interface PurchaseCreatePayload {
   /** 使用會員手上的優惠券：金額改由後端計算 */
   member_coupon_id?: number | null;
   coupon_code?: string | null;
+  /** 收入歸屬的分店；方案本身決定分店時後端忽略 */
+  branch_id?: number | null;
 }
 
 /** 管理員登錄購買：視為已收款，建立即為「已付款」並入帳堂數 */
@@ -67,6 +72,8 @@ export interface SelfPurchasePayload {
   /** 輸入公開代碼，或從「我的優惠券」挑一張（擇一） */
   coupon_code?: string | null;
   member_coupon_id?: number | null;
+  /** 會員在預約頁選的分店（R58）；方案本身決定分店時後端忽略 */
+  branch_id?: number | null;
 }
 
 /** 會員自助購買：歸屬對象、金額、購買日期一律由後端帶入；建立為「待付款」 */

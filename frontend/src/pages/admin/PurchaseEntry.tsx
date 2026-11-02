@@ -9,6 +9,7 @@ import { listUsableCoupons, quoteCoupon } from '../../api/coupons';
 import { apiErrorMessage } from '../../api/errors';
 import { listMembers } from '../../api/users';
 import { listProducts } from '../../api/products';
+import { useBranches } from '../../lib/useBranches';
 
 interface FormValues {
   user_id: number;
@@ -20,6 +21,8 @@ interface FormValues {
   payment_note?: string;
   /** 會員手上的折價券（ADR 0010） */
   member_coupon_id?: number;
+  /** 收入歸屬的分店（R58）；方案本身決定分店時不送 */
+  branch_id?: number;
 }
 
 /**
@@ -44,6 +47,23 @@ export default function PurchaseEntry() {
   const { data: products, isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: listProducts });
 
   const selectedProduct = products?.find((p) => p.id === productId);
+
+  // 分店（R58）：團體課程方案跟著課程、只限一間分店的方案固定那間，其他由櫃台選
+  const { active: activeBranches, defaultId: defaultBranchId, nameOf: branchName } = useBranches();
+  const productBranchIds = selectedProduct?.branch_ids ?? [];
+  const branchFixed = selectedProduct?.course_id != null || productBranchIds.length === 1;
+  const branchOptions = activeBranches
+    .filter((b) => !productBranchIds.length || productBranchIds.includes(b.id))
+    .map((b) => ({ value: b.id, label: b.name }));
+  const showBranch = activeBranches.length > 1;
+  const branchId = Form.useWatch('branch_id', form);
+  useEffect(() => {
+    if (!showBranch || branchFixed) return;
+    if (branchId == null || !branchOptions.some((o) => o.value === branchId)) {
+      const fallback = branchOptions.find((o) => o.value === defaultBranchId) ?? branchOptions[0];
+      form.setFieldValue('branch_id', fallback?.value);
+    }
+  }, [showBranch, branchFixed, branchId, branchOptions, defaultBranchId, form]);
   const ready = !!userId && !!productId && !!quantity;
 
   // 優惠券：會員手上可用的折價券，以及選了券／代碼之後由伺服器試算的金額
@@ -89,6 +109,7 @@ export default function PurchaseEntry() {
         payment_note: values.payment_note || null,
         member_coupon_id: values.member_coupon_id ?? null,
         coupon_code: values.member_coupon_id ? null : code,
+        branch_id: showBranch && !branchFixed ? (values.branch_id ?? null) : null,
       }),
     onSuccess: () => {
       message.success('已登錄購買紀錄');
@@ -150,6 +171,27 @@ export default function PurchaseEntry() {
         <Form.Item name="purchase_date" label="購買日期" rules={[{ required: true, message: '請選擇日期' }]}>
           <DatePicker style={{ width: '100%' }} />
         </Form.Item>
+
+        {showBranch &&
+          (branchFixed ? (
+            <Form.Item label="分店" extra="收支報表依分店計算收入">
+              <Input
+                disabled
+                value={
+                  selectedProduct?.course_id != null ? '依課程所在分店' : branchName(productBranchIds[0])
+                }
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item
+              name="branch_id"
+              label="分店"
+              extra="收支報表依分店計算收入"
+              rules={[{ required: true, message: '請選擇分店' }]}
+            >
+              <Select options={branchOptions} placeholder="選擇分店" />
+            </Form.Item>
+          ))}
 
         <Form.Item
           name="member_coupon_id"
