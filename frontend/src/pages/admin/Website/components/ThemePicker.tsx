@@ -66,6 +66,8 @@ function Thumb({ swatch, accent }: { swatch: Swatch; accent: string }) {
       return <EditorialThumb swatch={swatch} accent={accent} />;
     case 'sidebar':
       return <SidebarThumb swatch={swatch} accent={accent} />;
+    case 'studio':
+      return <StudioThumb swatch={swatch} accent={accent} />;
     default:
       return <StackThumb swatch={swatch} accent={accent} />;
   }
@@ -184,6 +186,39 @@ function SidebarThumb({ swatch: s, accent }: { swatch: Swatch; accent: string })
           <div style={card({ flex: 1 })} />
           <div style={card({ flex: 1 })} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** 沉穩版型的縮圖：米色主視覺（深藍標題、品牌色按鈕、右邊瀏覽器框照片）與下方深藍色帶 */
+function StudioThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
+  const { token } = theme.useToken();
+  return (
+    <div aria-hidden="true" style={{ background: s.page, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+      <div style={{ padding: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ height: 6, width: 30, background: s.block, borderRadius: 999 }} />
+          <div style={{ height: 8, width: '95%', background: s.heroText, borderRadius: 2 }} />
+          <div style={{ height: 8, width: '70%', background: s.heroText, borderRadius: 2 }} />
+          <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+            <div style={{ height: 9, width: 26, background: accent, borderRadius: 999 }} />
+            <div style={{ height: 9, width: 22, border: `1px solid ${s.heroText}`, borderRadius: 999 }} />
+          </div>
+        </div>
+        <div style={{ width: 54, background: s.block, borderRadius: 6, overflow: 'hidden', boxShadow: '0 2px 6px rgba(19,41,75,0.15)' }}>
+          <div style={{ height: 6, display: 'flex', gap: 2, alignItems: 'center', padding: '0 3px' }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ width: 3, height: 3, borderRadius: '50%', background: s.heroText, opacity: 0.4 }} />
+            ))}
+          </div>
+          <div style={{ height: 34, background: `linear-gradient(135deg, ${accent}55, ${accent}22)` }} />
+        </div>
+      </div>
+      <div style={{ background: s.heroText, padding: '6px 8px', display: 'flex', gap: 4 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{ flex: 1, height: 12, borderRadius: 4, background: i === 1 ? s.block : 'rgba(255,255,255,0.15)' }} />
+        ))}
       </div>
     </div>
   );

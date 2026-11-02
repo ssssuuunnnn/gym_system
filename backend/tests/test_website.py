@@ -247,6 +247,7 @@ def test_text_is_escaped(client, admin, gym, coach, plans, course, db):
         ("bento", "bento.css", "#eef0f3"),
         ("editorial", "editorial.css", "#fbf9f4"),
         ("sidebar", "sidebar.css", "#f3f4f6"),
+        ("studio", "studio.css", "#f4eee3"),
     ],
 )
 def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, theme_color):
@@ -282,6 +283,13 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert heads == [f"{i:02d}" for i in range(1, len(heads) + 1)] and len(heads) >= 5
         assert 'class="menu-list"' in html and "十年肌力訓練經驗" in html
         assert html.count('name="consent"') == 1
+    assert ('class="studio"' in html) == (theme == "studio")
+    if theme == "studio":
+        # 主視覺下的重點數字、七天時間軸、共用表單
+        facts = html.split('class="st-facts"')[1].split("</div>")[0]
+        assert "明天 19:00" in facts and "壺鈴循環" in facts and "位教練" in facts
+        assert html.count('class="st-pill"') == 7 and "is-today" in html
+        assert "十年肌力訓練經驗" in html and html.count('name="consent"') == 1
     assert ('class="sb-side"' in html) == (theme == "sidebar")
     if theme == "sidebar":
         side = html.split('class="sb-side"')[1].split("</aside>")[0]
@@ -292,7 +300,7 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert html.count('name="consent"') == 1
 
 
-@pytest.mark.parametrize("theme", ["bento", "sidebar"])
+@pytest.mark.parametrize("theme", ["bento", "sidebar", "studio"])
 def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plans, course, theme):
     """「方案起價」取最便宜的方案，不是後台排在第一個的。"""
     cheap = Product(name="體驗月票", category=ProductCategory.single_course, session_hours=4, price=3600)
@@ -304,7 +312,11 @@ def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plan
     assert save(client, admin, content).status_code == 200
     publish(client, admin)
     html = client.get("/").text
-    marker = 'class="tile t-plan-teaser"' if theme == "bento" else 'class="card stat" href="#pricing"'
+    marker = {
+        "bento": 'class="tile t-plan-teaser"',
+        "sidebar": 'class="card stat" href="#pricing"',
+        "studio": 'class="st-fact" href="#pricing"',
+    }[theme]
     teaser = html.split(marker)[1].split("</a>")[0]
     assert "3,600" in teaser and "12,000" not in teaser
 

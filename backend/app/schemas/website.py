@@ -34,7 +34,8 @@ DEFAULT_BRAND_COLOR = "#C3400D"
 
 # 版型：同一份內容、不同外觀。template 是排版（templates/site/<template>.html）：
 # bold＝由上而下段落（活力／清爽／溫暖共用，後兩者再載入 theme-<key>.css 覆寫顏色與形狀）、bento＝方格、
-# editorial＝雜誌（編號章節、不對稱雙欄）、sidebar＝側欄（左邊固定目錄、右邊卡片）。
+# editorial＝雜誌（編號章節、不對稱雙欄）、sidebar＝側欄（左邊固定目錄、右邊卡片）、
+# studio＝沉穩（米色底、深藍粗體字、白色圓角卡片、課表時間軸、深藍色帶）。
 # theme_color 用於手機瀏覽器網址列；fonts 是額外載入的 Google Fonts。
 SITE_THEMES: dict[str, dict[str, str]] = {
     "bold": {"name": "活力", "template": "bold", "theme_color": "#15181d", "fonts": ""},
@@ -43,8 +44,9 @@ SITE_THEMES: dict[str, dict[str, str]] = {
     "bento": {"name": "方格", "template": "bento", "theme_color": "#eef0f3", "fonts": ""},
     "editorial": {"name": "雜誌", "template": "editorial", "theme_color": "#fbf9f4", "fonts": "&family=Noto+Serif+TC:wght@600;700;900"},
     "sidebar": {"name": "側欄", "template": "sidebar", "theme_color": "#f3f4f6", "fonts": ""},
+    "studio": {"name": "沉穩", "template": "studio", "theme_color": "#f4eee3", "fonts": ""},
 }
-SiteTheme = Literal["bold", "airy", "warm", "bento", "editorial", "sidebar"]
+SiteTheme = Literal["bold", "airy", "warm", "bento", "editorial", "sidebar", "studio"]
 DEFAULT_THEME = "bold"
 
 # 網站圖片只能是本站上傳的檔案：/media/<子網域>/site/<uuid>.<jpg|png>（子網域由路由再比對）
