@@ -8,6 +8,7 @@ export type PermissionCode =
   | 'payouts'
   | 'products'
   | 'purchases'
+  | 'accounting'
   | 'courses'
   | 'availability'
   | 'members'

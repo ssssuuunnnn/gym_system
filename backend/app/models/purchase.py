@@ -40,6 +40,8 @@ class Purchase(TenantMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, comment="購買歸屬會員")
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
+    # 收入歸屬的分店（ADR 0014、R58）；沒指定時由 db/session._fill_branch_id 依方案推定
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(nullable=False)
     purchase_date: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
@@ -66,6 +68,7 @@ class Purchase(TenantMixin, Base):
 
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     product: Mapped["Product"] = relationship("Product")
+    branch: Mapped["Branch"] = relationship("Branch")
     member_coupon: Mapped["MemberCoupon | None"] = relationship(
         "MemberCoupon",
         primaryjoin="Purchase.id == foreign(MemberCoupon.purchase_id)",

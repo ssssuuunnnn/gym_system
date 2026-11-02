@@ -18,6 +18,8 @@ class PurchaseCreate(BaseModel):
     # 管理員登錄即視為已收款；付款方式選填
     payment_method: PaymentMethod | None = None
     payment_note: str | None = Field(default=None, max_length=255)
+    # 收入歸屬的分店（R58）：方案本身決定分店時忽略；不填用預設分店
+    branch_id: int | None = None
     # 使用優惠券（ADR 0010）：有指定時金額改由後端以 商品單價 × 數量 − 折抵 計算，不採用 amount
     coupon_code: str | None = Field(default=None, max_length=30)
     member_coupon_id: int | None = None
@@ -28,6 +30,8 @@ class PurchaseSelfCreate(BaseModel):
 
     product_id: int
     quantity: int = Field(default=1, ge=1)
+    # 會員在預約頁選的分店（R58）；方案本身決定分店時忽略
+    branch_id: int | None = None
     # 使用優惠券：輸入公開代碼，或從「我的優惠券」挑一張（擇一）
     coupon_code: str | None = Field(default=None, max_length=30)
     member_coupon_id: int | None = None
@@ -39,6 +43,7 @@ class PurchaseOut(BaseModel):
     id: int
     user_id: int
     product_id: int
+    branch_id: int
     quantity: int
     purchase_date: date
     amount: float

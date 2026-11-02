@@ -53,11 +53,12 @@ def _fill_tenant_id(session: Session, flush_context, instances) -> None:
 def _fill_branch_id(session: Session, flush_context, instances) -> None:
     """
     課程、預約、公休時段新增時沒指定分店 → 用預設分店；新教練沒選授課分店 → 預設分店
-    （ADR 0007；單一分店與既有呼叫端不用改）。
+    （ADR 0007；單一分店與既有呼叫端不用改）。購買紀錄沒指定分店 → 依方案推定（ADR 0014、R58）。
     """
     from app.models.branch import CoachBranch  # 避免循環匯入
     from app.models.coach import Coach
     from app.models.course import Course
+    from app.models.purchase import Purchase
     from app.models.reservation import Reservation
     from app.models.time_slot import TimeSlot
     from app.services.branches import default_branch
@@ -67,6 +68,15 @@ def _fill_branch_id(session: Session, flush_context, instances) -> None:
         if isinstance(obj, (Course, Reservation, TimeSlot)) and obj.branch_id is None and obj.branch is None:
             branch = branch or default_branch(session)
             obj.branch = branch
+        elif isinstance(obj, Purchase) and obj.branch_id is None and obj.branch is None:
+            from app.services.branches import product_branch_id
+
+            fixed = product_branch_id(session, obj.product_id)
+            if fixed is not None:
+                obj.branch_id = fixed
+            else:
+                branch = branch or default_branch(session)
+                obj.branch = branch
         elif isinstance(obj, Coach) and not obj.branch_rows:
             branch = branch or default_branch(session)
             obj.branch_rows.append(CoachBranch(branch=branch, tenant_id=obj.tenant_id or session.info.get("tenant_id")))

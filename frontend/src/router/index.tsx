@@ -10,6 +10,7 @@ import CoachList from '../pages/admin/CoachList';
 import CoachForm from '../pages/admin/CoachForm';
 import CoachCourses from '../pages/admin/CoachCourses';
 import CoachPayouts from '../pages/admin/CoachPayouts';
+import Accounting from '../pages/admin/Accounting';
 import ProductList from '../pages/admin/ProductList';
 import ProductForm from '../pages/admin/ProductForm';
 import PurchaseEntry from '../pages/admin/PurchaseEntry';
@@ -81,6 +82,7 @@ export const createAppRouter = () => createBrowserRouter([
           { path: 'coaches/:id/courses', element: <RequirePerm perm="coaches"><CoachCourses /></RequirePerm> },
           { path: 'coaches/purchases', element: <RequirePerm perm="coaches"><CoachPurchaseQuery /></RequirePerm> },
           { path: 'coach-payouts', element: <RequirePerm perm="payouts"><CoachPayouts /></RequirePerm> },
+          { path: 'accounting', element: <RequirePerm perm="accounting"><Accounting /></RequirePerm> },
           { path: 'products', element: <RequirePerm perm="products"><ProductList /></RequirePerm> },
           { path: 'products/new', element: <RequirePerm perm="products"><ProductForm /></RequirePerm> },
           { path: 'products/:id/edit', element: <RequirePerm perm="products"><ProductForm /></RequirePerm> },

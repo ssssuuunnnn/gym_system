@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.services import line as line_service
 from app.routers import (
+    accounting,
     auth,
     branches,
     coach_payouts,
@@ -88,6 +89,7 @@ app.include_router(coupons.router, prefix=settings.API_V1_PREFIX)
 app.include_router(tenant_profile.router, prefix=settings.API_V1_PREFIX)
 app.include_router(member_tags.router, prefix=settings.API_V1_PREFIX)
 app.include_router(news.router, prefix=settings.API_V1_PREFIX)
+app.include_router(accounting.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
 app.include_router(platform_site.router)
 app.include_router(site.router)

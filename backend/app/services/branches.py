@@ -59,3 +59,39 @@ def label_for(db: Session, branch_id: int | None) -> str | None:
         return None
     branch = db.get(Branch, branch_id)
     return branch.name if branch else None
+
+
+def product_branch_id(db: Session, product_id: int) -> int | None:
+    """方案本身決定的分店（R58）：團體課程方案 → 課程的分店；只限一間分店的方案 → 那間。其他回 None。"""
+    from app.models.product import Product
+
+    with db.no_autoflush:
+        product = db.get(Product, product_id)
+        if product is None:
+            return None
+        if product.course is not None:
+            return product.course.branch_id
+        ids = product.branch_ids
+        return ids[0] if len(ids) == 1 else None
+
+
+def purchase_branch_id(db: Session, product_id: int, requested: int | None = None) -> int:
+    """
+    購買紀錄的分店（R58）：方案決定的分店優先；否則用指定的分店（必須存在、啟用，且在方案適用分店內）；
+    都沒有就用預設分店。
+    """
+    from app.models.product import Product
+
+    fixed = product_branch_id(db, product_id)
+    if fixed is not None:
+        return fixed
+    if requested is not None:
+        branch = active_branch(db, requested)
+        product = db.get(Product, product_id)
+        if product is not None and product.branch_ids and branch.id not in product.branch_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"此方案不適用「{branch.name}」")
+        return branch.id
+    branch = default_branch(db)
+    if branch.id is None:
+        db.flush([branch])
+    return branch.id

@@ -1,6 +1,7 @@
 /** 會員名單的條件與工具（會員名單頁與最新消息的 LINE 發送共用，ADR 0006／0012） */
 import dayjs from 'dayjs';
 import type { SegmentFilters, SegmentMember } from '../api/memberSegments';
+import { downloadCsv } from './csv';
 
 const DATE = 'YYYY-MM-DD';
 
@@ -59,23 +60,10 @@ export function describeFilters(
   return parts.join('・');
 }
 
-function csvCell(value: string | number | null): string {
-  const s = value == null ? '' : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/** 下載名單 CSV（加 BOM，Excel 開啟中文不會亂碼） */
-export function downloadCsv(members: SegmentMember[]) {
-  const header = ['姓名', '帳號', '手機', '期間出席次數', '最後上課', '剩餘堂數', 'LINE'];
-  const lines = [
-    header,
+/** 下載名單 CSV */
+export function downloadMembersCsv(members: SegmentMember[]) {
+  downloadCsv(`會員名單_${dayjs().format('YYYYMMDD')}.csv`, [
+    ['姓名', '帳號', '手機', '期間出席次數', '最後上課', '剩餘堂數', 'LINE'],
     ...members.map((m) => [m.name, m.username, m.phone, m.attended_count, m.last_attended, m.remaining_hours, m.reach]),
-  ].map((row) => row.map(csvCell).join(','));
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `會員名單_${dayjs().format('YYYYMMDD')}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  ]);
 }

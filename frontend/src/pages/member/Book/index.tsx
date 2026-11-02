@@ -24,6 +24,7 @@ import { SessionCard } from './components/SessionCard';
 import { ConfirmSheet } from './components/ConfirmSheet';
 import { PrivatePanel } from './components/PrivatePanel';
 import { useTerms } from '../../../lib/terms';
+import { loadMemberBranch, saveMemberBranch } from '../../../lib/memberBranch';
 
 type Tab = '團體課' | '私人課';
 
@@ -35,18 +36,6 @@ const PRIVATE_HOURS = Array.from({ length: 12 }, (_, i) => 10 + i);
 type Pending =
   | { kind: 'group'; session: ScheduleSession; start: Dayjs; end: Dayjs }
   | { kind: 'private'; hour: number; start: Dayjs; end: Dayjs };
-
-/** 這台裝置上次選的分店 */
-const BRANCH_KEY = 'bookBranchId';
-
-function loadBranch(): number | null {
-  try {
-    const v = Number(localStorage.getItem(BRANCH_KEY));
-    return Number.isInteger(v) && v > 0 ? v : null;
-  } catch {
-    return null;
-  }
-}
 
 function errorDetail(error: unknown, fallback: string) {
   const detail = isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
@@ -93,18 +82,14 @@ export default function Book() {
 
   // 分店（ADR 0007）：記住這台裝置上次選的；不存在或已停用就用第一間
   const branchList = useBranches();
-  const [pickedBranch, setPickedBranch] = useState<number | null>(loadBranch);
+  const [pickedBranch, setPickedBranch] = useState<number | null>(loadMemberBranch);
   const branchId = branchList.active.some((b) => b.id === pickedBranch) ? pickedBranch : branchList.defaultId;
   const branchName = branchList.nameOf(branchId);
   const pickBranch = (id: number | null) => {
     if (id == null) return;
     setPickedBranch(id);
     setPending(null);
-    try {
-      localStorage.setItem(BRANCH_KEY, String(id));
-    } catch {
-      // 無痕模式等無法寫入時只是不記住
-    }
+    saveMemberBranch(id);
   };
 
   const schedule = useQuery({

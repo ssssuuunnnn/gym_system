@@ -35,6 +35,8 @@ class BillableUnit:
     attended_count: int = 0
     no_show_count: int = 0
     members: list[str] = field(default_factory=list)
+    # 這一堂所在的分店（收支報表依分店分攤鐘點，ADR 0014）
+    branch_id: int | None = None
 
     @property
     def key(self) -> tuple:
@@ -84,7 +86,7 @@ def billable_units(db: Session, coach: Coach, period: date) -> list[BillableUnit
             if unit is None:
                 unit = units[key] = BillableUnit(
                     PayoutItemKind.group, course.id, course.name, r.booking_date, r.start_hour,
-                    fee=money(course.coach_fee),
+                    fee=money(course.coach_fee), branch_id=course.branch_id,
                 )
         else:
             if r.coach_id != coach.id or not coach.is_private_coach:
@@ -92,7 +94,7 @@ def billable_units(db: Session, coach: Coach, period: date) -> list[BillableUnit
             key = ("private", r.id)
             unit = units[key] = BillableUnit(
                 PayoutItemKind.private, None, r.product.name, r.booking_date, r.start_hour,
-                fee=money(coach.session_rate),
+                fee=money(coach.session_rate), branch_id=r.branch_id,
             )
         if r.attendance == Attendance.attended:
             unit.attended_count += 1

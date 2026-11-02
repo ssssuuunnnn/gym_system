@@ -42,6 +42,13 @@ GUARDED = [
     "pages/admin/PurchaseList.tsx",
     "pages/admin/MemberList.tsx",
     "pages/admin/Dashboard.tsx",
+    "pages/admin/Accounting/index.tsx",
+    "pages/admin/Accounting/lib.ts",
+    "pages/admin/Accounting/components/ReportTab.tsx",
+    "pages/admin/Accounting/components/TrendChart.tsx",
+    "pages/admin/Accounting/components/EntriesTab.tsx",
+    "pages/admin/Accounting/components/EntryFormModal.tsx",
+    "pages/admin/Accounting/components/CategoriesTab.tsx",
 ]
 
 # 健身專用的說法（美體店不該看到）

@@ -22,7 +22,7 @@ from app.schemas.purchase import (
 )
 from app.services.staff import has_perm
 from app.services import coupons as coupon_service
-from app.services import hours
+from app.services import branches, hours
 from app.services.coupons import CouponError
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
@@ -43,12 +43,14 @@ def _build_purchase(
     paid: bool,
     payment_method: PaymentMethod | None = None,
     payment_note: str | None = None,
+    branch_id: int | None = None,
 ) -> Purchase:
     """
     共用購買建立邏輯（「購買紀錄登錄」與會員「購買商品」皆走這裡）：
     - total_hours＝商品堂數 × 數量（用品為 0）；用品下單即扣減 products.stock（保留庫存）。
     - paid=True（管理員登錄）：狀態「已付款」並立即入帳堂數。
     - paid=False（會員自助購買）：狀態「待付款」，remaining_hours 為 0，待管理員確認收款才入帳。
+    - 分店（R58）：方案決定的分店 → 指定的分店 → 預設分店。
     """
     member = db.get(User, user_id)
     if not member:
@@ -69,6 +71,7 @@ def _build_purchase(
     purchase = Purchase(
         user_id=user_id,
         product_id=product_id,
+        branch_id=branches.purchase_branch_id(db, product_id, branch_id),
         quantity=quantity,
         purchase_date=purchase_date,
         amount=amount,
@@ -122,6 +125,7 @@ def _get_locked_purchase(db: Session, purchase_id: int) -> Purchase:
 def list_purchases(
     user_id: int | None = None,
     payment_status: PaymentStatus | None = None,
+    branch_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -136,6 +140,8 @@ def list_purchases(
         query = query.filter(Purchase.user_id == user_id)
     if payment_status is not None:
         query = query.filter(Purchase.payment_status == payment_status)
+    if branch_id is not None:
+        query = query.filter(Purchase.branch_id == branch_id)
     return query.order_by(Purchase.created_at.desc(), Purchase.id.desc()).all()
 
 
@@ -161,6 +167,7 @@ def create_purchase(payload: PurchaseCreate, admin: User = Depends(require_acces
         paid=True,
         payment_method=payload.payment_method,
         payment_note=payload.payment_note,
+        branch_id=payload.branch_id,
     )
     _apply_coupon(db, member, quote, purchase)
     db.commit()
@@ -198,6 +205,7 @@ def create_self_purchase(
         amount=float(quote.final) if quote else float(product.price) * payload.quantity,
         created_by=current_user.id,
         paid=False,
+        branch_id=payload.branch_id,
     )
     # 優惠券（ADR 0010）：同一筆交易標成已使用；訂單取消時退回
     _apply_coupon(db, current_user, quote, purchase)
