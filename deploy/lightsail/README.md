@@ -25,7 +25,8 @@
 - `nginx.conf`：取代 `frontend/nginx.conf` 的 server 設定（443 ＋ Origin 憑證 ＋ Cloudflare 真實 IP），路由規則與本機共用 `frontend/nginx/routes.conf`。
 - `setup-server.sh`：主機首次開機的初始化（Docker、swap、`/opt/gym-system`）。Lightsail 會把它接在自己的 `/bin/sh` 腳本後執行，只能寫 POSIX sh。
 - `init-env.sh`：第一次部署時用隨機值產生 `.env`，並顯示一次平台管理員密碼。
-- `deploy.sh`：從本機部署目前的 commit。
+- `deploy.sh`：從本機部署目前的 commit（GitHub Actions 的自動部署也是跑這支）。
+- `.github/workflows/deploy.yml`：main 的 CI 通過後自動部署，見下方「自動部署」。
 
 ## Cloudflare 設定（一次）
 
@@ -41,6 +42,90 @@ deploy/lightsail/deploy.sh ubuntu@<固定 IP>   # 或 export GYM_DEPLOY_HOST=ubu
 ```
 
 第一次部署會產生 `.env` 並印出平台管理員 `ops` 的密碼（只顯示一次）。之後到 `https://platform.sunkuo.cc` 登入、改密碼、開通健身房。後續更新：commit 後再跑一次 `deploy.sh`（啟動時自動跑 migration）。
+
+## 自動部署（GitHub Actions）
+
+`.github/workflows/deploy.yml`：main 的 CI 全部通過後，自動把那個 commit 部署到主機；也可以在 GitHub → Actions → Deploy → Run workflow 手動執行。
+
+流程：GitHub OIDC 換 AWS 臨時權限（**不存 AWS 金鑰**）→ 讀出 Lightsail 防火牆規則，暫時把 22 埠開給這次的 runner IP → 執行 `deploy.sh` → 不論成敗都把防火牆原樣還原 → 確認 `https://platform.sunkuo.cc/robots.txt` 有回應。
+
+### 一次性設定
+
+**1. 部署專用的 SSH 金鑰**（不要用你自己的 `gym-lightsail.pem`，之後要停用自動部署時，刪掉這把就好）
+
+```bash
+ssh-keygen -t ed25519 -N "" -C github-deploy -f ~/.ssh/gym-github-deploy
+# 把公鑰加到主機
+cat ~/.ssh/gym-github-deploy.pub | ssh -i ~/.ssh/gym-lightsail.pem ubuntu@<固定 IP> 'cat >> ~/.ssh/authorized_keys'
+# 主機指紋（給 DEPLOY_KNOWN_HOSTS 用）
+ssh-keyscan -t ed25519 <固定 IP>
+```
+
+**2. AWS：讓 GitHub 能扮演一個只能改防火牆的角色**（用你自己的 AWS 帳號登入後，在 CloudShell 或本機執行）
+
+```bash
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+
+# GitHub 的 OIDC 身分提供者（帳號裡已經有就會報錯，略過即可）
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com
+
+# 只信任這個 repo 的 production 環境
+cat > trust.json <<JSON
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"Federated": "arn:aws:iam::$ACCOUNT:oidc-provider/token.actions.githubusercontent.com"},
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": "repo:ssssuuunnnn/gym_system:environment:production"
+      }
+    }
+  }]
+}
+JSON
+aws iam create-role --role-name gym-system-github-deploy --assume-role-policy-document file://trust.json
+
+# 只能讀／改 Lightsail 執行個體的防火牆
+cat > policy.json <<JSON
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["lightsail:GetInstancePortStates", "lightsail:PutInstancePublicPorts"],
+    "Resource": "*"
+  }]
+}
+JSON
+aws iam put-role-policy --role-name gym-system-github-deploy --policy-name lightsail-firewall --policy-document file://policy.json
+
+echo "arn:aws:iam::$ACCOUNT:role/gym-system-github-deploy"   # 這就是 AWS_DEPLOY_ROLE_ARN
+```
+
+**3. GitHub：Settings → Environments → New environment，名稱 `production`**，在裡面新增：
+
+| 種類 | 名稱 | 值 |
+|---|---|---|
+| Secret | `DEPLOY_HOST` | `ubuntu@<固定 IP>` |
+| Secret | `DEPLOY_SSH_KEY` | `~/.ssh/gym-github-deploy` 的完整內容（含 BEGIN／END 兩行） |
+| Secret | `DEPLOY_KNOWN_HOSTS` | 步驟 1 `ssh-keyscan` 印出的那一行（建議設定；沒設定就第一次連線時直接接受） |
+| Variable | `AWS_DEPLOY_ROLE_ARN` | 步驟 2 最後印出的 ARN |
+
+選用的 Variable：`LIGHTSAIL_INSTANCE`（預設 `gym-system`）、`AWS_REGION`（預設 `ap-southeast-2`）、`HEALTHCHECK_URL`（預設 `https://platform.sunkuo.cc/robots.txt`）。
+
+想要部署前先人工按「核准」：在 `production` 環境勾 **Required reviewers** 並加上自己。
+
+**4. 測試**：Actions → Deploy → Run workflow。之後每次 PR 合併進 main，CI 通過就會自動部署。
+
+### 注意
+
+- 自動部署只會部署 git 裡的東西；`.env` 與 Origin 憑證仍然只在主機上（第一次部署請先用本機的 `deploy.sh`）。
+- 部署中斷時，「還原防火牆」步驟仍會執行；萬一還是沒還原（例如 GitHub 整個掛掉），到 Lightsail 主控台把 22 埠多出來的 IP 刪掉即可。
+- 要停用：Actions → Deploy → `...` → Disable workflow，或刪掉主機 `~/.ssh/authorized_keys` 裡 `github-deploy` 那一行。
 
 ## 維運
 
