@@ -66,8 +66,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: 暫時開放 SSH 給這台 runner
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
           echo "runner IP：$ip"
           # 先存下目前的防火牆規則，結束時原樣還原

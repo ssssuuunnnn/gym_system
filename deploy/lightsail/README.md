@@ -68,14 +68,15 @@ ssh-keyscan -t ed25519 <固定 IP>
 ```bash
 aws iam create-user --user-name gym-system-github-deploy
 
-ARN=$(aws lightsail get-instance --instance-name gym-system --query instance.arn --output text)
+# GetInstancePortStates 檢查的是區域層級 ARN（不是個別主機），所以範圍是「這個帳號＋區域的 Lightsail」
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 cat > policy.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [{
     "Effect": "Allow",
     "Action": ["lightsail:GetInstancePortStates", "lightsail:PutInstancePublicPorts"],
-    "Resource": "$ARN"
+    "Resource": "arn:aws:lightsail:ap-southeast-2:$ACCOUNT:*"
   }]
 }
 JSON
