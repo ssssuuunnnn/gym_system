@@ -1,0 +1,120 @@
+# 自動部署到 AWS Lightsail（見 deploy/lightsail/README.md「自動部署」）
+#
+# main 的 CI 全部通過後自動部署那個 commit；也可以在 Actions 頁手動執行（Run workflow）。
+# 流程：用 GitHub OIDC 取得 AWS 臨時權限（不存 AWS 金鑰）→ 暫時在 Lightsail 防火牆開 22 給這台 runner 的 IP
+#       → 執行 deploy/lightsail/deploy.sh → 不論成敗都把防火牆還原 → 確認網站有回應。
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# 同一時間只跑一個部署；後到的排隊，不取消正在跑的
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # OIDC
+
+jobs:
+  deploy:
+    # 只部署「push 到 main 且 CI 成功」的 commit（PR 的 CI 不會觸發）
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://platform.sunkuo.cc
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
+      LIGHTSAIL_INSTANCE: ${{ vars.LIGHTSAIL_INSTANCE || 'gym-system' }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://platform.sunkuo.cc/robots.txt' }}
+    steps:
+      - name: 檢查設定
+        env:
+          ROLE: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          missing=""
+          [ -n "$ROLE" ] || missing="$missing 變數 AWS_DEPLOY_ROLE_ARN"
+          [ -n "$HOST" ] || missing="$missing 密鑰 DEPLOY_HOST"
+          [ -n "$KEY" ] || missing="$missing 密鑰 DEPLOY_SSH_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::production 環境還沒設定：$missing（見 deploy/lightsail/README.md「自動部署」）"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          # CI 觸發時部署 CI 跑過的那個 commit；手動執行時部署 main 最新
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gym-system-deploy-${{ github.run_id }}
+
+      - name: 暫時開放 SSH 給這台 runner
+        run: |
+          set -eu
+          ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
+          echo "runner IP：$ip"
+          # 先存下目前的防火牆規則，結束時原樣還原
+          aws lightsail get-instance-port-states --instance-name "$LIGHTSAIL_INSTANCE" \
+            | jq '[.portStates[] | {fromPort, toPort, protocol, cidrs, ipv6Cidrs, cidrListAliases} | with_entries(select(.value != null))]' > "$RUNNER_TEMP/ports-original.json"
+          # 22 已有規則就把 runner IP 加進去，沒有就新增一條
+          jq --arg cidr "$ip/32" '
+            if any(.[]; .fromPort == 22 and .toPort == 22 and .protocol == "tcp")
+            then map(if .fromPort == 22 and .toPort == 22 and .protocol == "tcp" then .cidrs = ((.cidrs // []) + [$cidr] | unique) else . end)
+            else . + [{fromPort: 22, toPort: 22, protocol: "tcp", cidrs: [$cidr]}]
+            end' "$RUNNER_TEMP/ports-original.json" > "$RUNNER_TEMP/ports-deploy.json"
+          aws lightsail put-instance-public-ports --instance-name "$LIGHTSAIL_INSTANCE" \
+            --port-infos "file://$RUNNER_TEMP/ports-deploy.json" > /dev/null
+          echo "PORTS_CHANGED=1" >> "$GITHUB_ENV"
+          sleep 10 # 等防火牆生效
+
+      - name: 準備 SSH 金鑰
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # 有設定 DEPLOY_KNOWN_HOSTS 就驗證主機指紋；沒有的話 deploy.sh 會在第一次連線時接受（accept-new）
+          if [ -n "$KNOWN_HOSTS" ]; then printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts; chmod 600 ~/.ssh/known_hosts; fi
+
+      - name: 部署
+        env:
+          GYM_DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          GYM_DEPLOY_KEY: /home/runner/.ssh/deploy_key
+        run: sh deploy/lightsail/deploy.sh
+
+      - name: 還原防火牆
+        if: always() && env.PORTS_CHANGED == '1'
+        run: |
+          aws lightsail put-instance-public-ports --instance-name "$LIGHTSAIL_INSTANCE" \
+            --port-infos "file://$RUNNER_TEMP/ports-original.json" > /dev/null
+          echo "已還原 Lightsail 防火牆規則"
+
+      - name: 確認網站有回應
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS -o /dev/null "$HEALTHCHECK_URL"; then echo "OK：$HEALTHCHECK_URL"; exit 0; fi
+            sleep 6
+          done
+          echo "::error::部署後 2 分鐘內 $HEALTHCHECK_URL 沒有正常回應，請到主機看 docker compose logs"
+          exit 1
+
+      - name: 清除金鑰
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
