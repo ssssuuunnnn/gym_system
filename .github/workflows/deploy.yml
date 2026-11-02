@@ -1,7 +1,7 @@
 # 自動部署到 AWS Lightsail（見 deploy/lightsail/README.md「自動部署」）
 #
 # main 的 CI 全部通過後自動部署那個 commit；也可以在 Actions 頁手動執行（Run workflow）。
-# 流程：用 GitHub OIDC 取得 AWS 臨時權限（不存 AWS 金鑰）→ 暫時在 Lightsail 防火牆開 22 給這台 runner 的 IP
+# 流程：用部署專用 IAM 使用者的金鑰（只能讀／改這台主機的防火牆）→ 暫時在 Lightsail 防火牆開 22 給這台 runner 的 IP
 #       → 執行 deploy/lightsail/deploy.sh → 不論成敗都把防火牆還原 → 確認網站有回應。
 name: Deploy
 
@@ -19,7 +19,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write # OIDC
 
 jobs:
   deploy:
@@ -39,12 +38,14 @@ jobs:
     steps:
       - name: 檢查設定
         env:
-          ROLE: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          AWS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_KEY_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           HOST: ${{ secrets.DEPLOY_HOST }}
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           missing=""
-          [ -n "$ROLE" ] || missing="$missing 變數 AWS_DEPLOY_ROLE_ARN"
+          [ -n "$AWS_KEY_ID" ] || missing="$missing 密鑰 AWS_ACCESS_KEY_ID"
+          [ -n "$AWS_KEY_SECRET" ] || missing="$missing 密鑰 AWS_SECRET_ACCESS_KEY"
           [ -n "$HOST" ] || missing="$missing 密鑰 DEPLOY_HOST"
           [ -n "$KEY" ] || missing="$missing 密鑰 DEPLOY_SSH_KEY"
           if [ -n "$missing" ]; then
@@ -59,13 +60,15 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          # 這個 AWS 項目的受管 SCP 禁止 iam:*Provider*，無法用 GitHub OIDC，只能用 IAM 使用者金鑰
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: gym-system-deploy-${{ github.run_id }}
 
       - name: 暫時開放 SSH 給這台 runner
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
           echo "runner IP：$ip"
           # 先存下目前的防火牆規則，結束時原樣還原
