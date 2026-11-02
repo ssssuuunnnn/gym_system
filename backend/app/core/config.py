@@ -62,6 +62,8 @@ class Settings(BaseSettings):
 
     # 教練照片等上傳檔案的存放目錄，透過 /media 靜態路徑對外提供；每個租戶一個子資料夾。
     MEDIA_DIR: str = "media"
+    # 不對外公開的上傳檔（收據等，ADR 0015）：只能透過需要權限的 API 讀取，不可放在 MEDIA_DIR 底下
+    PRIVATE_MEDIA_DIR: str = "private_media"
 
 
 settings = Settings()

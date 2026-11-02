@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -92,6 +93,7 @@ class EntryOut(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None
     deleted_by_name: str | None
+    has_receipt: bool = False
 
 
 class ReportLine(BaseModel):
@@ -127,6 +129,11 @@ class ReportOut(BaseModel):
     zero_amount_count: int
     # 看單一分店時：全店共同（沒有指定分店）的手動帳目金額
     shared: SharedTotals | None
+    basis: Literal["cash", "accrual"] = "cash"
+    # 權責制：期間內還沒有已結算鐘點的月份（人員費用尚未計入）
+    months_without_payouts: list[str] = []
+    # 期間內已關帳的月份
+    closed_months: list[str] = []
 
 
 class TrendPoint(BaseModel):
@@ -147,3 +154,38 @@ class TransactionOut(BaseModel):
     payment_method: str | None
     branch_id: int | None
     ref_id: int
+
+
+class DeferredLine(BaseModel):
+    product_id: int
+    label: str
+    category: str
+    count: int
+    hours: float
+    amount: float
+
+
+class DeferredOut(BaseModel):
+    """預收款（R62）：as_of 當天結束時已收款、還沒認列的課程類方案金額。"""
+
+    as_of: date
+    branch_id: int | None
+    total: float
+    hours: float
+    lines: list[DeferredLine]
+
+
+class CloseCreate(BaseModel):
+    month: str = Field(pattern=r"^\d{4}-\d{2}$")
+
+
+class CloseOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    period: date
+    is_closed: bool
+    closed_at: datetime
+    closed_by_name: str | None
+    reopened_at: datetime | None
+    reopened_by_name: str | None
+    snapshot: dict

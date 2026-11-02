@@ -48,6 +48,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MEDIA_DIR: /app/media
+      PRIVATE_MEDIA_DIR: /app/private_media
       # LINE 通知店家（docs/adr/0004-line-notifications.md）：平台共用一個 LINE 官方帳號（Messaging API）。
       # 三個都留空＝不發送；Webhook 設為 https://platform.<BASE_DOMAIN>/api/v1/line/webhook
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
@@ -66,6 +67,7 @@ services:
       - "8000:8000"
     volumes:
       - coach_media:/app/media
+      - private_media:/app/private_media
 
   frontend:
     build:
@@ -92,3 +94,5 @@ services:
 volumes:
   postgres_data:
   coach_media:
+  # 收據等不公開的上傳檔（ADR 0015），不經過 /media
+  private_media:

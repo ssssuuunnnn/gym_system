@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Numeric, SmallInteger, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Numeric, SmallInteger, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -53,9 +53,34 @@ class AccountingEntry(TenantMixin, Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     deleted_by_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # 收據（ADR 0015、R64）：PRIVATE_MEDIA_DIR 底下的相對路徑，不對外公開
+    receipt_path: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     category: Mapped["AccountingCategory"] = relationship("AccountingCategory")
 
     @property
     def category_name(self) -> str:
         return self.category.name
+
+    @property
+    def has_receipt(self) -> bool:
+        return bool(self.receipt_path)
+
+
+class AccountingClose(TenantMixin, Base):
+    """
+    關帳（ADR 0015、R63）：每家每月一列。is_closed 時該月的手動帳目鎖定。
+    snapshot＝關帳當下該月現金制／權責制的收入、支出、淨額與月底預收款。重新開帳只留最後一次的紀錄。
+    """
+
+    __tablename__ = "accounting_closes"
+    __table_args__ = (UniqueConstraint("tenant_id", "period", name="uq_accounting_closes_period"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    period: Mapped[date] = mapped_column(Date, nullable=False, comment="月份（該月 1 日）")
+    is_closed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    closed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    closed_by_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reopened_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reopened_by_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    snapshot: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

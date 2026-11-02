@@ -49,6 +49,9 @@ GUARDED = [
     "pages/admin/Accounting/components/EntriesTab.tsx",
     "pages/admin/Accounting/components/EntryFormModal.tsx",
     "pages/admin/Accounting/components/CategoriesTab.tsx",
+    "pages/admin/Accounting/components/DeferredTab.tsx",
+    "pages/admin/Accounting/components/ClosesTab.tsx",
+    "pages/admin/Accounting/components/ReceiptActions.tsx",
 ]
 
 # 健身專用的說法（美體店不該看到）

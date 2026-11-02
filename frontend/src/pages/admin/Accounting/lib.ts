@@ -16,7 +16,14 @@ export const ACCOUNTING_KEYS = [
   ['accounting-transactions'],
   ['accounting-entries'],
   ['accounting-categories'],
+  ['accounting-deferred'],
+  ['accounting-closes'],
 ];
+
+/** 已關帳的月份（YYYY-MM）集合 → 某天是否落在已關帳的月份（R63） */
+export function isClosedDay(closed: Set<string>, day: string | Dayjs) {
+  return closed.has(dayjs(day).format('YYYY-MM'));
+}
 
 /** 期間快速選項（RangePicker presets） */
 export function periodPresets(): { label: string; value: Range }[] {
@@ -38,8 +45,13 @@ export const SOURCE_LABEL: Record<Transaction['source'], string> = {
 };
 
 /** 下載期間明細 CSV（給會計） */
-export function exportTransactions(rows: Transaction[], range: Range, branchName: (id: number | null) => string) {
-  const name = `收支明細_${range[0].format('YYYYMMDD')}-${range[1].format('YYYYMMDD')}.csv`;
+export function exportTransactions(
+  rows: Transaction[],
+  range: Range,
+  branchName: (id: number | null) => string,
+  basisLabel: string,
+) {
+  const name = `收支明細_${basisLabel}_${range[0].format('YYYYMMDD')}-${range[1].format('YYYYMMDD')}.csv`;
   downloadCsv(name, [
     ['日期', '收支', '來源', '分類', '說明', '金額', '付款方式', '分店'],
     ...rows.map((r) => [

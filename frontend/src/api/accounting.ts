@@ -1,7 +1,14 @@
 import { apiClient } from './client';
 import type { PaymentMethod } from './purchases';
 
-/** 收支報表（ADR 0014、R57–R60）：現金制，收入＝已付款購買，支出＝已撥款鐘點，加上手動帳目 */
+/**
+ * 收支報表（ADR 0014、R57–R60）與第二期（ADR 0015、R61–R64）。
+ * 現金制：收入＝已付款購買，支出＝已撥款鐘點；權責制：上完課才算收入，人員費用依已結算鐘點的上課日。
+ */
+
+/** 計算方式 */
+export type Basis = 'cash' | 'accrual';
+export const BASIS_LABEL: Record<Basis, string> = { cash: '現金制', accrual: '權責制' };
 
 export type EntryKind = '收入' | '支出';
 export const ENTRY_KINDS: EntryKind[] = ['收入', '支出'];
@@ -36,6 +43,8 @@ export interface AccountingEntry {
   updated_at: string;
   deleted_at: string | null;
   deleted_by_name: string | null;
+  /** 有附收據（R64） */
+  has_receipt: boolean;
 }
 
 export interface EntryPayload {
@@ -75,6 +84,11 @@ export interface AccountingReport {
   zero_amount_count: number;
   /** 看單一分店時：全店共同的手動帳目 */
   shared: { income: number; expense: number } | null;
+  basis: Basis;
+  /** 權責制：期間內還沒有已結算鐘點的月份（YYYY-MM） */
+  months_without_payouts: string[];
+  /** 期間內已關帳的月份（YYYY-MM） */
+  closed_months: string[];
 }
 
 export interface TrendPoint {
@@ -101,6 +115,7 @@ export interface Period {
   start: string;
   end: string;
   branch_id?: number | null;
+  basis?: Basis;
 }
 
 /** branch_id 為 null（全部分店）時不送 */
@@ -113,9 +128,9 @@ export async function getReport(period: Period) {
   return data;
 }
 
-export async function getTrend(months: number, branchId: number | null) {
+export async function getTrend(months: number, branchId: number | null, basis: Basis = 'cash') {
   const { data } = await apiClient.get<TrendPoint[]>('/accounting/trend', {
-    params: branchId != null ? { months, branch_id: branchId } : { months },
+    params: branchId != null ? { months, basis, branch_id: branchId } : { months, basis },
   });
   return data;
 }
@@ -161,5 +176,85 @@ export async function updateEntry(id: number, payload: EntryPayload) {
 
 export async function deleteEntry(id: number) {
   const { data } = await apiClient.delete<AccountingEntry>(`/accounting/entries/${id}`);
+  return data;
+}
+
+// ---------- 收據（R64）：不公開，用帶權杖的請求取回檔案 ----------
+
+export async function uploadReceipt(entryId: number, file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await apiClient.post<AccountingEntry>(`/accounting/entries/${entryId}/receipt`, form);
+  return data;
+}
+
+export async function fetchReceipt(entryId: number) {
+  const { data } = await apiClient.get<Blob>(`/accounting/entries/${entryId}/receipt`, { responseType: 'blob' });
+  return data;
+}
+
+export async function deleteReceipt(entryId: number) {
+  const { data } = await apiClient.delete<AccountingEntry>(`/accounting/entries/${entryId}/receipt`);
+  return data;
+}
+
+// ---------- 預收款（R62） ----------
+
+export interface DeferredLine {
+  product_id: number;
+  label: string;
+  category: string;
+  count: number;
+  /** 還沒上的堂數 */
+  hours: number;
+  amount: number;
+}
+
+export interface Deferred {
+  as_of: string;
+  branch_id: number | null;
+  total: number;
+  hours: number;
+  lines: DeferredLine[];
+}
+
+export async function getDeferred(asOf: string, branchId: number | null) {
+  const { data } = await apiClient.get<Deferred>('/accounting/deferred', {
+    params: branchId != null ? { as_of: asOf, branch_id: branchId } : { as_of: asOf },
+  });
+  return data;
+}
+
+// ---------- 關帳（R63） ----------
+
+export interface CloseTotals {
+  income: number;
+  expense: number;
+  net: number;
+}
+
+export interface AccountingClose {
+  /** 該月 1 日 */
+  period: string;
+  is_closed: boolean;
+  closed_at: string;
+  closed_by_name: string | null;
+  reopened_at: string | null;
+  reopened_by_name: string | null;
+  snapshot: { cash?: CloseTotals; accrual?: CloseTotals; deferred?: number };
+}
+
+export async function listCloses() {
+  const { data } = await apiClient.get<AccountingClose[]>('/accounting/closes');
+  return data;
+}
+
+export async function closeMonth(month: string) {
+  const { data } = await apiClient.post<AccountingClose>('/accounting/closes', { month });
+  return data;
+}
+
+export async function reopenMonth(month: string) {
+  const { data } = await apiClient.post<AccountingClose>(`/accounting/closes/${month}/reopen`);
   return data;
 }
