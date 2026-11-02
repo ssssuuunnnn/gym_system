@@ -11,6 +11,8 @@ import { listProducts } from '../../api/products';
 import { listCoaches } from '../../api/coaches';
 import { listCourses } from '../../api/courses';
 import { useTerms } from '../../lib/terms';
+import { usePermissions } from '../../lib/permissions';
+import { SampleDataAlert } from '../../components/trial/SampleDataAlert';
 
 type ScheduleRow = {
   key: string;
@@ -28,6 +30,7 @@ type ScheduleRow = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { t } = useTerms();
+  const { can } = usePermissions();
   const today = dayjs();
   const todayStr = today.format('YYYY-MM-DD');
   const todayDow = today.day(); // 0=週日...6=週六，與 courses.day_of_week（1-6，週日無資料）同軸
@@ -114,6 +117,7 @@ export default function Dashboard() {
       <Typography.Title level={4} style={{ marginBottom: 16 }}>
         儀表板
       </Typography.Title>
+      {can('settings') && <SampleDataAlert />}
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <Card style={{ flex: '1 1 200px' }}>

@@ -10,6 +10,7 @@ import { ADMIN_MENU, ADMIN_MENU_GROUPS, allows, menuEntryFor, menuGroupLabel, me
 import { usePermissions } from '../lib/permissions';
 import { RECENT_MENU_LIMIT, useAdminMenuPrefs } from '../lib/useAdminMenuPrefs';
 import { NotificationBell } from './notifications/NotificationBell';
+import { TrialHeaderTag } from './trial/TrialHeaderTag';
 import { useTerms } from '../lib/terms';
 import { useShopTitle } from '../lib/usePageTitle';
 
@@ -95,7 +96,12 @@ export default function AppLayout() {
       brandName={settings?.short_name || settings?.company_name || t.systemName}
       brandLogoUrl={settings?.logo_url}
       userLabel={`${username}（${level ?? '管理員'}）`}
-      headerExtra={<NotificationBell />}
+      headerExtra={
+        <>
+          <TrialHeaderTag />
+          <NotificationBell />
+        </>
+      }
       onLogout={() => {
         logout();
         queryClient.clear();

@@ -37,6 +37,13 @@ export interface Tenant {
   updated_at: string;
   /** LINE 通知每月上限（則） */
   line_monthly_cap: number;
+  /** 試用到期時間（只有試用中的店家才有；伺服器 UTC，ADR 0013） */
+  trial_ends_at: string | null;
+  /** 試用剩幾天（無條件進位；已到期為 0） */
+  trial_days_left: number | null;
+  trial_expired: boolean;
+  /** self＝從形象頁自助申請 */
+  signup_source: string | null;
   stats: TenantStats;
 }
 
@@ -145,6 +152,12 @@ export async function setTenantStatus(id: number, status: TenantStatus, reason?:
   return data;
 }
 
+/** 延長試用：從今天或原到期日（較晚者）起再加幾天 */
+export async function extendTrial(id: number, days: number) {
+  const { data } = await platformClient.post<Tenant>(`/tenants/${id}/trial`, { days });
+  return data;
+}
+
 export async function listTenantAdmins(tenantId: number) {
   const { data } = await platformClient.get<TenantAdmin[]>(`/tenants/${tenantId}/admins`);
   return data;
@@ -227,5 +240,34 @@ export async function getLineUsage(month?: string) {
 
 export async function listLineLogs(params: { status?: LineLogStatus; limit?: number } = {}) {
   const { data } = await platformClient.get<LineLog[]>('/line/logs', { params });
+  return data;
+}
+
+/* ---------- 形象頁設定（docs/adr/0013-trial-signup.md） ---------- */
+
+export interface PlatformSettings {
+  brand_name: string;
+  /** 形象頁是否開放自助申請試用 */
+  signup_enabled: boolean;
+  contact_email: string | null;
+  show_email: boolean;
+  /** LINE 官方帳號 @ID 或 lin.ee／line.me 加好友網址 */
+  contact_line: string | null;
+  show_line: boolean;
+  contact_phone: string | null;
+  show_phone: boolean;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export type PlatformSettingsPayload = Omit<PlatformSettings, 'updated_by' | 'updated_at'>;
+
+export async function getPlatformSettings() {
+  const { data } = await platformClient.get<PlatformSettings>('/settings');
+  return data;
+}
+
+export async function updatePlatformSettings(payload: PlatformSettingsPayload) {
+  const { data } = await platformClient.put<PlatformSettings>('/settings', payload);
   return data;
 }

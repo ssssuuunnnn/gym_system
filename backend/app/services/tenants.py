@@ -34,6 +34,9 @@ MIN_PASSWORD_LENGTH = 8
 # 平台操作紀錄的操作代碼 → 顯示名稱
 AUDIT_ACTIONS = {
     "create_tenant": "開通店家",
+    "self_signup": "自助申請試用",
+    "extend_trial": "延長試用",
+    "update_platform_settings": "修改形象頁設定",
     "update_tenant": "修改店家資料",
     "set_status": "變更狀態",
     "create_tenant_admin": "新增店家管理員",

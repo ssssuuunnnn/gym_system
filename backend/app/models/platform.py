@@ -5,13 +5,15 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
 
 # 不屬於任何租戶的資料表（tests/test_tenancy.py 據此檢查其他表都有 tenant_id 與 RLS）
-PLATFORM_TABLE_NAMES = {"tenants", "platform_admins", "platform_audit_logs", "line_bind_attempts"}
+PLATFORM_TABLE_NAMES = {
+    "tenants", "platform_admins", "platform_audit_logs", "line_bind_attempts", "platform_settings", "trial_signups",
+}
 
 
 class PlatformAdmin(Base):
@@ -42,4 +44,43 @@ class PlatformAuditLog(Base):
     )
     action: Mapped[str] = mapped_column(String(50), nullable=False, comment="操作代碼，見 services/tenants.py AUDIT_ACTIONS")
     detail: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="變更內容（不含密碼）")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class PlatformSettings(Base):
+    """
+    平台形象頁設定（ADR 0013），只有一筆：品牌名稱、是否開放自助申請試用、聯絡方式。
+    聯絡方式各自有「是否顯示」開關；店家網址只能透過 platform_public_contact() 讀到顯示中的欄位。
+    """
+
+    __tablename__ = "platform_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    brand_name: Mapped[str] = mapped_column(String(60), nullable=False, default="店家預約管理系統")
+    signup_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    show_email: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # LINE 官方帳號：@ID 或加好友網址
+    contact_line: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    show_line: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    show_phone: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class TrialSignup(Base):
+    """形象頁的自助試用申請（ADR 0013）：限制同一 IP、手機、Email 的申請次數，也讓平台知道是誰申請的。"""
+
+    __tablename__ = "trial_signups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True, index=True)
+    store_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    contact_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # 只存數字（去掉空白、連字號）
+    phone: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    # 小寫
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    ip_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)

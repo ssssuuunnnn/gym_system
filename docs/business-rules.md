@@ -455,6 +455,36 @@
 - **實作**：`routers/news.py`（`require_perm("website")`／`require_perm("segments")`）
 - **測試**：`test_news_permissions`、`test_news_on_website`
 
+## 平台形象頁與自助試用（ADR 0013）
+
+### R53. 形象頁申請試用，填完必填欄位就馬上開通
+
+- **確認日期**：2026-11-01
+- **規則**：平台首頁 `platform.<主網域>/` 是平台的形象頁（系統介紹、適用行業、功能、常見問題、聯絡方式、申請表單）。必填：店名、行業類型（健身／美體）、店家網址（子網域，規則同平台開通，之後不能改）、聯絡人姓名、手機、Email、管理員帳號與密碼（至少 8 碼）、同意服務條款與個資告知。送出後立即開通：店家狀態「試用」、到期日＝送出時間＋30 天、主要管理者就是申請人（不必改密碼），並寫一筆操作紀錄「自助申請試用」。平台可在「形象頁設定」暫停開放申請，暫停時表單換成提示，仍可手動開通。
+- **實作**：`routers/platform_site.py`、`services/trial.signup`、`trial_signups`、`platform_settings.signup_enabled`
+- **測試**：`test_signup_end_to_end`、`test_validation_errors_rerender_form`、`test_signup_disabled`、`test_landing_only_on_platform_host`
+
+### R54. 防止濫用：同一支手機、同一個 Email 只能試用一次，同一個 IP 一天最多 3 次
+
+- **確認日期**：2026-11-01
+- **規則**：手機去掉空白與符號、Email 轉小寫後比對所有申請紀錄；重複時提示「請聯絡我們協助」。同一個 IP（只存雜湊）24 小時內最多送出 3 次成功的申請。表單有隱藏欄位，填了就當作機器人：顯示「申請已送出」但不建立任何資料。完成頁只顯示一小時內自助申請的店家，不能拿來查別家。
+- **實作**：`services/trial._validate`、`SIGNUP_IP_LIMIT`、`HONEYPOT_FIELD`
+- **測試**：`test_one_trial_per_phone_email_and_ip_limit`、`test_honeypot_pretends_success`、`test_done_page_does_not_leak_other_gyms`
+
+### R55. 試用到期後店家網址暫停，資料保留 60 天
+
+- **確認日期**：2026-11-01
+- **規則**：狀態仍是「試用」且已過到期日：店家網址的所有 API 回 403「試用已到期」（只留公開的 `/tenant/profile`），後台、會員、教練、LINE 會員入口的畫面都換成「試用已到期，請聯絡我們」並列出平台的聯絡方式；形象網站顯示暫停服務；背景工作（LINE 提醒、重試）不處理這家。資料保留 60 天，期間平台改為「啟用」或延長試用就馬上恢復（約 30 秒內）。第一期不自動刪除，逾期資料由平台人工處理。後台頁首顯示「試用剩 N 天」，最後 7 天變警示色。
+- **實作**：`deps.get_tenant`（`TRIAL_EXPIRED_DETAIL`）、`trial.running_tenant_ids`、前端 `components/trial/`
+- **測試**：`test_expired_trial_pauses_gym_and_extend_restores`
+
+### R56. 延長試用、轉為正式、聯絡方式顯示與範例資料
+
+- **確認日期**：2026-11-01
+- **規則**：平台在店家詳情「延長試用」，從今天或原到期日（較晚者）起加 1–365 天，只限試用中的店家，寫操作紀錄。設為「啟用」即轉為正式，不再有到期日。平台的 Email、LINE 官方帳號、電話各自有顯示開關，打開且有填的才會出現在形象頁與店家的到期頁／試用提示。開通時自動建立範例資料（店名、2 位服務人員、方案、健身另有一門團體課與方案、形象網站草稿）；店家可在儀表板一鍵清除：沒被用過的刪除，已有人購買或預約的方案改為下架、課程封存、服務人員保留，紀錄不受影響。
+- **實作**：`POST /platform/tenants/{id}/trial`、`GET/PUT /platform/settings`、`platform_public_contact()`、`trial.seed_sample_data`／`clear_sample_data`、`POST /system-settings/clear-sample-data`
+- **測試**：`test_expired_trial_pauses_gym_and_extend_restores`、`test_contact_visibility_toggles`、`test_signup_end_to_end`、`test_beauty_signup_sample_has_no_group_course`
+
 ---
 
 ## 堂數帳務的共通原則
@@ -484,4 +514,5 @@
 - 分店店長權限（管理員只管理部分分店）
 - 更細的權限（只能看／可以改）、自訂角色範本
 - 優惠券第二期：用會員名單批次發券、發券時 LINE 通知會員、使用統計與轉換率
+- 試用到期 60 天後自動刪除資料、線上付款轉為正式方案、自訂網域
 - 美體店：依療程長度佔用預約時段、抽成式人員費用、美體版 LINE 圖文選單

@@ -23,6 +23,7 @@ from app.routers import (
     member_tags,
     news,
     platform,
+    platform_site,
     products,
     purchases,
     reservations,
@@ -88,6 +89,7 @@ app.include_router(tenant_profile.router, prefix=settings.API_V1_PREFIX)
 app.include_router(member_tags.router, prefix=settings.API_V1_PREFIX)
 app.include_router(news.router, prefix=settings.API_V1_PREFIX)
 # 形象網站：首頁 /、/site/*、robots.txt、sitemap.xml（不在 /api/v1 底下）
+app.include_router(platform_site.router)
 app.include_router(site.router)
 
 

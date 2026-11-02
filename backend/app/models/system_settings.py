@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -27,9 +27,15 @@ class SystemSettings(TenantMixin, Base):
     payment_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 團體課程功能（ADR 0011）：None＝依行業預設（健身開、美體關）
     group_classes_setting: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # 自助試用開通時建立的範例資料 id（ADR 0013）：{"users": [...], "coaches": [...], "products": [...], "courses": [...]}
+    sample_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+    @property
+    def has_sample_data(self) -> bool:
+        return bool(self.sample_data)
 
     @property
     def group_classes_enabled(self) -> bool:

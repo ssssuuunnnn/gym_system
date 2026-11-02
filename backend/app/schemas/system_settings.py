@@ -29,6 +29,8 @@ class SystemSettingsOut(SystemSettingsBase):
     id: int
     updated_at: datetime
     group_classes_enabled: bool = True
+    # 還有自助試用開通時建立的範例資料（ADR 0013）
+    has_sample_data: bool = False
 
 
 class SystemSettingsLogoOut(BaseModel):

@@ -6,6 +6,7 @@
 
 from contextvars import ContextVar
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,8 @@ class TenantInfo:
     timezone: str
     # 行業類型（BusinessType 的成員名稱 fitness／beauty），決定用詞（services/terms.py）
     business_type: str = "fitness"
+    # 試用到期時間（UTC；只在狀態為試用時有值，ADR 0013）
+    trial_ends_at: datetime | None = None
 
 
 current_tenant: ContextVar[TenantInfo | None] = ContextVar("current_tenant", default=None)

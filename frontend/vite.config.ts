@@ -15,12 +15,8 @@ export default defineConfig({
       '/media': { target: BACKEND, changeOrigin: false },
       '/site': { target: BACKEND, changeOrigin: false },
       '^/(robots\\.txt|sitemap\\.xml)$': { target: BACKEND, changeOrigin: false },
-      '^/$': {
-        target: BACKEND,
-        changeOrigin: false,
-        // 平台後台的首頁仍是 SPA
-        bypass: (req) => (req.headers.host?.startsWith('platform.') ? '/index.html' : undefined),
-      },
+      // 平台網址的首頁是平台形象頁（docs/adr/0013），同樣由後端產生
+      '^/$': { target: BACKEND, changeOrigin: false },
     },
   },
 })

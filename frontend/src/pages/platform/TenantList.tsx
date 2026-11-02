@@ -6,10 +6,21 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { listTenants, TENANT_STATUSES, type Tenant, type TenantStatus } from '../../api/platform';
 import StatusTag from '../../components/StatusTag';
+import { TrialBadge, TRIAL_WARNING_DAYS } from '../../components/platform/TrialBadge';
 import { formatServerTime } from '../../lib/datetime';
 import { tenantUrl } from '../../lib/host';
 
-type StatusFilter = TenantStatus | '全部';
+type StatusFilter = TenantStatus | '全部' | '試用快到期' | '試用已到期';
+
+const soonExpiring = (t: Tenant) =>
+  t.status === '試用' && !t.trial_expired && t.trial_days_left != null && t.trial_days_left <= TRIAL_WARNING_DAYS;
+
+function matchesStatus(t: Tenant, filter: StatusFilter) {
+  if (filter === '全部') return true;
+  if (filter === '試用快到期') return soonExpiring(t);
+  if (filter === '試用已到期') return t.trial_expired;
+  return t.status === filter;
+}
 
 /** 平台管理後台首頁：所有店家、狀態與使用概況。 */
 export default function TenantList() {
@@ -24,7 +35,7 @@ export default function TenantList() {
     const q = keyword.trim().toLowerCase();
     return (tenants ?? []).filter(
       (t) =>
-        (status === '全部' || t.status === status) &&
+        matchesStatus(t, status) &&
         (!q || t.name.toLowerCase().includes(q) || t.subdomain.includes(q)),
     );
   }, [tenants, status, keyword]);
@@ -35,6 +46,7 @@ export default function TenantList() {
       total: all.length,
       active: all.filter((t) => t.status === '啟用').length,
       trial: all.filter((t) => t.status === '試用').length,
+      selfSignup: all.filter((t) => t.signup_source === 'self').length,
       reservations: all.reduce((sum, t) => sum + t.stats.reservations_this_month, 0),
     };
   }, [tenants]);
@@ -45,7 +57,14 @@ export default function TenantList() {
       key: 'name',
       render: (_, t) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{t.name}</div>
+          <div style={{ fontWeight: 500 }}>
+            {t.name}
+            {t.signup_source === 'self' && (
+              <Tag color="cyan" style={{ marginInlineStart: 8 }}>
+                自助申請
+              </Tag>
+            )}
+          </div>
           <Typography.Link
             href={tenantUrl(t.subdomain)}
             target="_blank"
@@ -63,7 +82,17 @@ export default function TenantList() {
       width: 80,
       render: (b: Tenant['business_type']) => <Tag color={b === '美體' ? 'magenta' : 'blue'}>{b}</Tag>,
     },
-    { title: '狀態', dataIndex: 'status', width: 90, render: (s: TenantStatus) => <StatusTag status={s} /> },
+    {
+      title: '狀態',
+      key: 'status',
+      width: 150,
+      render: (_, t) => (
+        <Space size={4}>
+          <StatusTag status={t.status} />
+          <TrialBadge tenant={t} />
+        </Space>
+      ),
+    },
     {
       title: '會員',
       key: 'members',
@@ -123,12 +152,16 @@ export default function TenantList() {
         {[
           { title: '店家總數', value: summary.total },
           { title: '啟用中', value: summary.active },
-          { title: '試用中', value: summary.trial },
+          { title: '試用中', value: summary.trial, suffix: `自助申請 ${summary.selfSignup}` },
           { title: '本月預約（全平台）', value: summary.reservations },
         ].map((s) => (
           <Col key={s.title} xs={12} md={6}>
             <Card size="small" loading={isLoading}>
-              <Statistic title={s.title} value={s.value} />
+              <Statistic
+                title={s.title}
+                value={s.value}
+                suffix={'suffix' in s && <span style={{ fontSize: 12, marginInlineStart: 8 }}>{s.suffix}</span>}
+              />
             </Card>
           </Col>
         ))}
@@ -145,7 +178,7 @@ export default function TenantList() {
           <Segmented<StatusFilter>
             value={status}
             onChange={setStatus}
-            options={['全部', ...TENANT_STATUSES]}
+            options={['全部', ...TENANT_STATUSES, '試用快到期', '試用已到期']}
           />
         </div>
         <Table

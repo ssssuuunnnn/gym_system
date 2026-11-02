@@ -12,7 +12,7 @@ from app.db import session as db_session
 from app.db.session import TENANT_INFO_KEY
 from app.models.coach import Coach
 from app.models.platform import PlatformAdmin
-from app.models.tenant import Tenant, TenantStatus
+from app.models.tenant import Tenant, TenantStatus, trial_expired
 from app.models.user import User, UserRole
 from app.services.tenants import SUBDOMAIN_RE
 
@@ -48,12 +48,26 @@ def _lookup_tenant(subdomain: str) -> tuple[TenantInfo | None, TenantStatus | No
     with db_session.SessionLocal() as s:
         tenant = s.query(Tenant).filter(Tenant.subdomain == subdomain).first()
         result = (
-            (TenantInfo(id=tenant.id, subdomain=tenant.subdomain, timezone=tenant.timezone, business_type=tenant.business_type.name), tenant.status)
+            (
+                TenantInfo(
+                    id=tenant.id,
+                    subdomain=tenant.subdomain,
+                    timezone=tenant.timezone,
+                    business_type=tenant.business_type.name,
+                    trial_ends_at=tenant.trial_ends_at if tenant.status == TenantStatus.trial else None,
+                ),
+                tenant.status,
+            )
             if tenant
             else (None, None)
         )
     _tenant_cache[subdomain] = (now, *result)
     return result
+
+
+# 試用到期（ADR 0013、R55）：除了這幾個網址，店家網址的 API 一律 403；前端讀店家資料後顯示「試用已到期」頁
+TRIAL_EXPIRED_DETAIL = "試用已到期"
+TRIAL_EXPIRED_ALLOWED = {f"{settings.API_V1_PREFIX}/tenant/profile"}
 
 
 async def get_tenant(request: Request) -> TenantInfo:
@@ -67,6 +81,8 @@ async def get_tenant(request: Request) -> TenantInfo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到這家店")
     if tenant_status == TenantStatus.suspended:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="此店家目前停用中")
+    if trial_expired(tenant_status, info.trial_ends_at) and request.url.path not in TRIAL_EXPIRED_ALLOWED:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=TRIAL_EXPIRED_DETAIL)
     current_tenant.set(info)
     return info
 
