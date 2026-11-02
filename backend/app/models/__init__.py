@@ -47,4 +47,4 @@ from app.models.line_oa import LineMemberEvent, LineMemberMessage, LineOaChannel
 from app.models.line_audience import LineAudience  # noqa: F401,E402
 from app.models.news import NewsBroadcast, NewsPost  # noqa: F401,E402
 from app.models.member_tag import MemberTag, MemberTagLink  # noqa: F401,E402
-from app.models.accounting import AccountingCategory, AccountingEntry, EntryKind  # noqa: F401,E402
+from app.models.accounting import AccountingCategory, AccountingClose, AccountingEntry, EntryKind  # noqa: F401,E402

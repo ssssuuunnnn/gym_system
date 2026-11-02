@@ -3,17 +3,24 @@
 """
 
 from datetime import date, datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 
+from app.core import clock
+from app.core.media import private_media_path, save_private_media
 from app.deps import get_db, require_perm
-from app.models.accounting import AccountingCategory, AccountingEntry, EntryKind
+from app.models.accounting import AccountingCategory, AccountingClose, AccountingEntry, EntryKind
 from app.models.user import User
 from app.schemas.accounting import (
     CategoryCreate,
     CategoryOut,
     CategoryUpdate,
+    CloseCreate,
+    CloseOut,
+    DeferredOut,
     EntryIn,
     EntryOut,
     ReportOut,
@@ -22,11 +29,24 @@ from app.schemas.accounting import (
 )
 from app.services import accounting
 from app.services.branches import check_branch_ids
-from app.services.staff import describe
+from app.models.user import StaffLevel
+from app.services.staff import describe, ensure_owner
+from app.services.staff import level_of as staff_level_of
 
 router = APIRouter(prefix="/accounting", tags=["accounting"])
 
 require_access = require_perm("accounting")
+
+BasisParam = Literal["cash", "accrual"]
+
+# 收據（R64）：Content-Type → 副檔名、檔頭
+RECEIPT_TYPES = {
+    "image/jpeg": (".jpg", (b"\xff\xd8\xff",)),
+    "image/png": (".png", (b"\x89PNG\r\n\x1a\n",)),
+    "application/pdf": (".pdf", (b"%PDF-",)),
+}
+RECEIPT_MEDIA_TYPES = {ext: ctype for ctype, (ext, _) in RECEIPT_TYPES.items()}
+RECEIPT_MAX_BYTES = 5 * 1024 * 1024
 
 
 # ---------- 分類 ----------
@@ -166,6 +186,7 @@ def list_entries(
 @router.post("/entries", response_model=EntryOut, status_code=status.HTTP_201_CREATED)
 def create_entry(payload: EntryIn, user: User = Depends(require_access), db: Session = Depends(get_db)):
     _validate_entry(db, payload)
+    accounting.ensure_open(db, payload.entry_date)
     now = datetime.utcnow()
     e = AccountingEntry(
         **payload.model_dump(), created_by_name=describe(user), updated_by_name=describe(user),
@@ -183,6 +204,7 @@ def update_entry(entry_id: int, payload: EntryIn, user: User = Depends(require_a
     if e.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="已刪除的帳目不能修改")
     _validate_entry(db, payload, current=e)
+    accounting.ensure_open(db, e.entry_date, payload.entry_date)
     for field, value in payload.model_dump().items():
         setattr(e, field, value)
     e.updated_by_name = describe(user)
@@ -197,10 +219,72 @@ def delete_entry(entry_id: int, user: User = Depends(require_access), db: Sessio
     """軟刪除：保留紀錄（誰、什麼時候刪的），報表不計（R59）。"""
     e = _get_entry(db, entry_id)
     if e.deleted_at is None:
+        accounting.ensure_open(db, e.entry_date)
         e.deleted_at = datetime.utcnow()
         e.deleted_by_name = describe(user)
         db.commit()
         db.refresh(e)
+    return _entry_out(e)
+
+
+# ---------- 收據（R64） ----------
+
+
+@router.post("/entries/{entry_id}/receipt", response_model=EntryOut)
+async def upload_receipt(
+    entry_id: int,
+    file: UploadFile = File(...),
+    user: User = Depends(require_access),
+    db: Session = Depends(get_db),
+):
+    e = _get_entry(db, entry_id)
+    if e.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="已刪除的帳目不能修改")
+    accounting.ensure_open(db, e.entry_date)
+    kind = RECEIPT_TYPES.get(file.content_type or "")
+    if kind is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="收據只接受 JPG、PNG 或 PDF")
+    data = await file.read()
+    if len(data) > RECEIPT_MAX_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="收據檔案不能超過 5MB")
+    ext, magics = kind
+    if not any(data.startswith(m) for m in magics):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="檔案內容與格式不符")
+    e.receipt_path = save_private_media("receipts", data, ext)
+    e.updated_by_name = describe(user)
+    e.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(e)
+    return _entry_out(e)
+
+
+@router.get("/entries/{entry_id}/receipt")
+def get_receipt(entry_id: int, _: User = Depends(require_access), db: Session = Depends(get_db)):
+    """收據檔案：只能經過這支 API 讀取（不在公開的 /media）；刪除的帳目也能看。"""
+    e = _get_entry(db, entry_id)
+    path = private_media_path(e.receipt_path) if e.receipt_path else None
+    if path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="沒有收據")
+    ext = "." + path.rsplit(".", 1)[-1].lower()
+    return FileResponse(
+        path,
+        media_type=RECEIPT_MEDIA_TYPES.get(ext, "application/octet-stream"),
+        filename=f"receipt-{e.id}{ext}",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.delete("/entries/{entry_id}/receipt", response_model=EntryOut)
+def delete_receipt(entry_id: int, user: User = Depends(require_access), db: Session = Depends(get_db)):
+    e = _get_entry(db, entry_id)
+    if e.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="已刪除的帳目不能修改")
+    accounting.ensure_open(db, e.entry_date)
+    e.receipt_path = None
+    e.updated_by_name = describe(user)
+    e.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(e)
     return _entry_out(e)
 
 
@@ -212,20 +296,22 @@ def get_report(
     start: date,
     end: date,
     branch_id: int | None = None,
+    basis: BasisParam = "cash",
     _: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
-    return accounting.report(db, start, end, branch_id)
+    return accounting.report(db, start, end, branch_id, basis)
 
 
 @router.get("/trend", response_model=list[TrendPoint])
 def get_trend(
     months: int = Query(12, ge=1, le=accounting.MAX_TREND_MONTHS),
     branch_id: int | None = None,
+    basis: BasisParam = "cash",
     _: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
-    return accounting.trend(db, months, branch_id)
+    return accounting.trend(db, months, branch_id, basis)
 
 
 @router.get("/transactions", response_model=list[TransactionOut])
@@ -234,11 +320,80 @@ def list_transactions(
     end: date,
     branch_id: int | None = None,
     kind: EntryKind | None = None,
+    basis: BasisParam = "cash",
     _: User = Depends(require_access),
     db: Session = Depends(get_db),
 ):
     accounting.check_range(start, end)
-    rows = accounting.transactions(db, start, end, branch_id)
+    rows = accounting.transactions(db, start, end, branch_id, basis)
     if kind is not None:
         rows = [r for r in rows if r.kind == kind]
     return [r.as_dict() for r in rows]
+
+
+@router.get("/deferred", response_model=DeferredOut)
+def get_deferred(
+    as_of: date | None = None,
+    branch_id: int | None = None,
+    _: User = Depends(require_access),
+    db: Session = Depends(get_db),
+):
+    """預收款（R62）；不填日期＝今天。"""
+    return accounting.deferred(db, as_of or clock.now_local().date(), branch_id)
+
+
+# ---------- 關帳（R63） ----------
+
+
+def _parse_month(month: str) -> date:
+    try:
+        return datetime.strptime(month, "%Y-%m").date().replace(day=1)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="月份格式為 YYYY-MM")
+
+
+@router.get("/closes", response_model=list[CloseOut])
+def list_closes(_: User = Depends(require_access), db: Session = Depends(get_db)):
+    return db.query(AccountingClose).order_by(AccountingClose.period.desc()).all()
+
+
+@router.post("/closes", response_model=CloseOut, status_code=status.HTTP_201_CREATED)
+def close_month(payload: CloseCreate, user: User = Depends(require_access), db: Session = Depends(get_db)):
+    """關帳：只能關已結束的月份；存下該月現金制、權責制數字與月底預收款的快照。"""
+    period = _parse_month(payload.month)
+    if clock.now_local().date() <= accounting.month_end(period):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="只能關已結束的月份")
+    row = db.query(AccountingClose).filter(AccountingClose.period == period).with_for_update().first()
+    if row is not None and row.is_closed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="這個月已經關帳")
+    snapshot = accounting.month_snapshot(db, period)
+    if row is None:
+        row = AccountingClose(period=period)
+        db.add(row)
+    row.is_closed = True
+    row.closed_at = datetime.utcnow()
+    row.closed_by_name = describe(user)
+    row.snapshot = snapshot
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.post("/closes/{month}/reopen", response_model=CloseOut)
+def reopen_month(month: str, user: User = Depends(require_access), db: Session = Depends(get_db)):
+    """重新開帳：只有主要管理者可以（R63）。"""
+    if staff_level_of(user) != StaffLevel.owner:
+        owner = ensure_owner(db)
+        db.commit()
+        if owner is None or owner.id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只有主要管理者可以重新開帳")
+    period = _parse_month(month)
+    row = db.query(AccountingClose).filter(AccountingClose.period == period).first()
+    if row is None or not row.is_closed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="這個月沒有關帳")
+    row.is_closed = False
+    row.reopened_at = datetime.utcnow()
+    row.reopened_by_name = describe(user)
+    db.commit()
+    db.refresh(row)
+    return row

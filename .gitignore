@@ -26,3 +26,7 @@ frontend/*.local
 
 # 正式環境的 Cloudflare Origin 憑證（只放在主機上）
 deploy/lightsail/certs/
+
+# 本機上傳檔（正式環境在 docker volume）
+backend/media/
+backend/private_media/
