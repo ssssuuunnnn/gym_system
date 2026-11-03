@@ -4,8 +4,9 @@ import type { ThemeConfig } from 'antd';
  * 前台（會員／教練）主題：以 ConfigProvider 巢狀套在 MemberLayout，覆寫 App.tsx 的後台主題。
  * 這裡是前台色票的唯一來源；元件一律透過 theme.useToken() 取用，不要在元件裡寫色碼。
  *
- * - 會員：品牌藍深一階 #0958d9（白字對比約 5.9:1，小字也清楚）
- * - 教練：深青綠 #006d75（白字對比約 6:1），讓身份一眼可分
+ * - 會員：跟著形象網站的品牌色（`frontTheme('member', brandColor)`；品牌色只能從 BRAND_COLORS 挑，
+ *   都確認過白字與白底／淺灰底 ≥ 4.5:1）。沒有網站時用品牌藍深一階 #0958d9（白字對比約 5.9:1）
+ * - 教練：固定深青綠 #006d75（白字對比約 6:1），不跟品牌色，讓身份一眼可分
  */
 export type FrontMode = 'member' | 'coach';
 
@@ -36,14 +37,26 @@ const base: ThemeConfig['token'] = {
   colorErrorBg: '#fff1f0',
 };
 
+/** 會員前台沒有品牌色時的主色 */
+export const DEFAULT_MEMBER_PRIMARY = '#0958d9';
+
 export const FRONT_THEMES: Record<FrontMode, ThemeConfig> = {
   member: {
-    token: { ...base, colorPrimary: '#0958d9', colorLink: '#0958d9', colorBgLayout: '#f3f5f9' },
+    token: { ...base, colorPrimary: DEFAULT_MEMBER_PRIMARY, colorLink: DEFAULT_MEMBER_PRIMARY, colorBgLayout: '#f3f5f9' },
   },
   coach: {
     token: { ...base, colorPrimary: '#006d75', colorLink: '#006d75', colorBgLayout: '#f1f6f6' },
   },
 };
+
+/**
+ * 前台主題：會員模式有品牌色時換掉主色與連結色（其餘色票不變）；教練模式不受影響。
+ */
+export function frontTheme(mode: FrontMode, brandColor?: string | null): ThemeConfig {
+  const theme = FRONT_THEMES[mode];
+  if (mode !== 'member' || !brandColor) return theme;
+  return { ...theme, token: { ...theme.token, colorPrimary: brandColor, colorLink: brandColor } };
+}
 
 /** 前台內容欄最大寬度：手機為主，桌機置中顯示 */
 export const FRONT_MAX_WIDTH = 560;

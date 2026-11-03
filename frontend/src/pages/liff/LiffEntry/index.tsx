@@ -5,7 +5,8 @@ import { getLineOaPublic, lineLogin, type LineOaPublic, type LoginToken } from '
 import { apiClient } from '../../../api/client';
 import { apiErrorMessage } from '../../../api/errors';
 import type { Member } from '../../../api/users';
-import { FRONT_MAX_WIDTH, FRONT_THEMES } from '../../../components/member/memberTheme';
+import { FRONT_MAX_WIDTH } from '../../../components/member/memberTheme';
+import { useFrontTheme } from '../../../components/member/useFrontTheme';
 import { useAuthStore } from '../../../store/auth';
 import { JoinPanel } from './components/JoinPanel';
 import { devMockIdToken, liffTarget } from './lib';
@@ -129,8 +130,9 @@ function LiffEntryInner() {
 
 export default function LiffEntry() {
   useShopTitle();
+  const frontThemeConfig = useFrontTheme('member');
   return (
-    <ConfigProvider theme={FRONT_THEMES.member}>
+    <ConfigProvider theme={frontThemeConfig}>
       <App>
         <LiffShell>
           <LiffEntryInner />

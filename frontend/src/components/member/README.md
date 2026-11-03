@@ -5,7 +5,8 @@
 | 檔案 | 用途 |
 |---|---|
 | `MemberLayout.tsx` | 前台版面：手機優先單欄＋底部分頁列；`mode="member"`（品牌藍）／`mode="coach"`（深青綠），處理強制改密碼與教練身份守衛 |
-| `memberTheme.ts` | 前台主題（`FRONT_THEMES`）、內容欄寬、分頁列高度。前台色碼只寫在這裡 |
+| `memberTheme.ts` | 前台主題（`FRONT_THEMES`、`frontTheme(mode, brandColor)`）、內容欄寬、分頁列高度。前台色碼只寫在這裡 |
+| `useFrontTheme.ts` | `useFrontTheme(mode)`：會員模式的主色跟著形象網站品牌色（`GET /tenant/profile` 的 `brand_color`），教練模式固定深青綠 |
 | `FrontPageHeader.tsx` | 頁首：小字（日期）＋大標，右側動作 |
 | `FrontCard.tsx` | 白底圓角卡片；`highlighted` 以主題色外框標示 |
 | `CoverTile.tsx` | 課程封面縮圖，沒有封面時以主題淺底＋圖示代替 |

@@ -517,3 +517,21 @@ def test_retention_purges_old_non_members(client, admin, gym, db):
     db.commit()
     names = {r["name"] for r in client.get(f"{API}/inquiries", headers=auth(admin)).json()}
     assert names == {"舊會員", "新詢問"}
+
+
+# ---------- 會員前台主色跟著品牌色 ----------
+
+
+def test_profile_brand_color_follows_published_site(client, admin):
+    profile = lambda: client.get(f"{API}/tenant/profile").json()["brand_color"]  # noqa: E731
+    assert profile() is None  # 還沒有網站
+    content = draft(client, admin)
+    content["brand_color"] = "#0B7A75"
+    assert save(client, admin, content).status_code == 200
+    assert profile() == "#0B7A75"  # 從沒發布過：用草稿的
+    publish(client, admin)
+    content["brand_color"] = "#722ED1"
+    assert save(client, admin, content).status_code == 200
+    assert profile() == "#0B7A75"  # 已發布：用線上版本，草稿要發布後才生效
+    publish(client, admin)
+    assert profile() == "#722ED1"

@@ -34,7 +34,8 @@ def test_terms_tables_have_the_same_keys():
 def test_fitness_profile_by_default(client, admin):
     # 還沒有系統設定時用平台開通時的名稱
     assert client.get(f"{API}/tenant/profile").json() == {
-        "name": "Alpha 健身", "business_type": "健身", "group_classes_enabled": True, "trial": None}
+        "name": "Alpha 健身", "business_type": "健身", "group_classes_enabled": True, "trial": None,
+        "brand_color": None}
     s = client.get(f"{API}/system-settings", headers=auth(admin)).json()
     assert s["company_name"] == "健身工作室管理系統" and s["group_classes_enabled"] is True
     labels = {p["code"]: p["label"] for p in client.get(f"{API}/staff/meta", headers=auth(admin)).json()["permissions"]}
