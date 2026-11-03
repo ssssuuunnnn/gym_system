@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core import colors
+
 # ---------- 共用常數 ----------
 
 SECTION_KEYS = ("hero", "about", "news", "schedule", "coaches", "pricing", "gallery", "faq", "trial", "contact")
@@ -20,8 +22,8 @@ SectionKey = Literal["hero", "about", "news", "schedule", "coaches", "pricing", 
 # 一定會顯示、不能關閉的段落
 REQUIRED_SECTIONS = {"hero", "about", "contact"}
 
-# 品牌色只能從預設色挑：每個顏色都確認過白字在上面、以及當文字放在白底／淺灰底都 ≥ 4.5:1；
-# light 是放在深色區塊（主視覺、方案價格）上的亮色版，對 #15181d ≥ 6:1。
+# 品牌色：可以從預設色挑，也可以自訂色碼（app/core/colors.py 檢查對比：白字在上面、以及當文字放在淺色底都 ≥ 4.5:1）。
+# 預設色的 light 是放在深色區塊（主視覺、方案價格）上的亮色版，對 #15181d ≥ 6:1；自訂色用 colors.light_variant() 算。
 BRAND_COLORS: dict[str, dict[str, str]] = {
     "#C3400D": {"name": "橘紅", "light": "#FF8A5B"},
     "#0B7A75": {"name": "青綠", "light": "#5FD3CC"},
@@ -29,7 +31,6 @@ BRAND_COLORS: dict[str, dict[str, str]] = {
     "#722ED1": {"name": "紫", "light": "#C29BFF"},
     "#1F1F1F": {"name": "黑", "light": "#E6E7EA"},
 }
-BrandColor = Literal["#C3400D", "#0B7A75", "#2F54EB", "#722ED1", "#1F1F1F"]
 DEFAULT_BRAND_COLOR = "#C3400D"
 
 # 版型：同一份內容、不同外觀。template 是排版（templates/site/<template>.html）：
@@ -318,7 +319,7 @@ class ContactSection(_Model):
 
 class SiteContent(_Model):
     theme: SiteTheme = DEFAULT_THEME
-    brand_color: BrandColor = DEFAULT_BRAND_COLOR
+    brand_color: str = DEFAULT_BRAND_COLOR
     seo: SeoSettings = Field(default_factory=SeoSettings)
     sections: list[SectionToggle] = Field(default_factory=lambda: [SectionToggle(key=k) for k in SECTION_KEYS])
     hero: HeroSection = Field(default_factory=HeroSection)
@@ -331,6 +332,16 @@ class SiteContent(_Model):
     faq: FaqSection = Field(default_factory=FaqSection)
     trial: TrialSection = Field(default_factory=TrialSection)
     contact: ContactSection = Field(default_factory=ContactSection)
+
+    @field_validator("brand_color", mode="before")
+    @classmethod
+    def _brand_color(cls, value):
+        if not isinstance(value, str):
+            raise ValueError("請輸入 6 碼色碼，例如 #C3400D")
+        problem = colors.brand_problem(value)
+        if problem:
+            raise ValueError(problem)
+        return colors.normalize_hex(value)
 
     @model_validator(mode="after")
     def _normalize_sections(self):
