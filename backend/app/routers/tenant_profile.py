@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from app.core.tenant_context import TenantInfo
 from app.deps import get_db, get_tenant
 from app.models.system_settings import SystemSettings
+from app.models.website import Website
+from app.schemas.website import BRAND_COLORS
 from app.models.tenant import BusinessType, Tenant, TenantStatus, trial_expired
 from app.services import terms
 from app.services import trial as trial_service
@@ -46,6 +48,18 @@ class TenantProfile(BaseModel):
     business_type: BusinessType
     group_classes_enabled: bool
     trial: TrialInfo | None = None
+    # 形象網站的品牌色（已發布的版本；從沒發布過就用草稿）：會員前台的主色。沒有網站時為 None（前台用預設色）
+    brand_color: str | None = None
+
+
+def _brand_color(db: Session) -> str | None:
+    site = db.query(Website).first()
+    if site is None:
+        return None
+    content = site.published or site.draft or {}
+    color = content.get("brand_color") if isinstance(content, dict) else None
+    # 只回傳預設色票裡的顏色（都確認過對比）
+    return color if color in BRAND_COLORS else None
 
 
 @router.get("/profile", response_model=TenantProfile)
@@ -68,5 +82,6 @@ def tenant_profile(tenant: TenantInfo = Depends(get_tenant), db: Session = Depen
             ),
         )
     return TenantProfile(
-        name=name, business_type=BusinessType[tenant.business_type], group_classes_enabled=enabled, trial=trial
+        name=name, business_type=BusinessType[tenant.business_type], group_classes_enabled=enabled, trial=trial,
+        brand_color=_brand_color(db),
     )

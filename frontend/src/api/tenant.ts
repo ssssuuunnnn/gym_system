@@ -11,6 +11,8 @@ export interface TenantProfile {
   group_classes_enabled: boolean;
   /** 試用中且有到期日的店家才有（ADR 0013） */
   trial: TrialInfo | null;
+  /** 形象網站的品牌色（已發布的版本，從沒發布過用草稿）：會員前台的主色；沒有網站時為 null */
+  brand_color: string | null;
 }
 
 /** 平台的聯絡方式（只有平台設定為顯示的欄位） */

@@ -14,7 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '../../store/auth';
 import { getMyCoachProfile, isPayableCoach } from '../../api/coaches';
-import { FRONT_MAX_WIDTH, FRONT_THEMES, TAB_BAR_HEIGHT, type FrontMode } from './memberTheme';
+import { FRONT_MAX_WIDTH, TAB_BAR_HEIGHT, type FrontMode } from './memberTheme';
+import { useFrontTheme } from './useFrontTheme';
 import { useTerms, type Terms } from '../../lib/terms';
 import { useShopTitle } from '../../lib/usePageTitle';
 
@@ -80,6 +81,7 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
   const { mustChangePassword, isCoach } = useAuthStore();
   const location = useLocation();
   const { t } = useTerms();
+  const frontThemeConfig = useFrontTheme(mode);
 
   // 教練類型不在 JWT 內（管理員可隨時調整），登入後另外讀取，決定是否顯示「我的鐘點」
   const { data: coachProfile } = useQuery({
@@ -103,7 +105,7 @@ export default function MemberLayout({ mode }: MemberLayoutProps) {
       : [coachToday(t), coachRecords(t), ...(isPayableCoach(coachProfile?.coach_types) ? [coachPayouts(t)] : []), COACH_ME];
 
   return (
-    <ConfigProvider theme={FRONT_THEMES[mode]}>
+    <ConfigProvider theme={frontThemeConfig}>
       <FrontTitle section={frontPageTitle(mode, location.pathname, tabs, t)} />
       <FrontShell tabs={tabs} />
     </ConfigProvider>
