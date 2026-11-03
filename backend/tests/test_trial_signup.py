@@ -86,7 +86,7 @@ def test_contact_visibility_toggles(platform_client, platform_admin, client):
 
 
 def test_line_ask_button_toggle(platform_client, platform_admin):
-    """R67：平台 LINE 官方帳號打開「顯示」才在形象頁出現「LINE 詢問」按鈕（頁首、首屏、申請區、聯絡區 QR、手機浮動）。"""
+    """R67：平台 LINE 官方帳號打開「顯示」才在形象頁出現「LINE 詢問」按鈕（頁首、申請區、聯絡區 QR、手機浮動；首屏不放）。"""
     headers = platform_auth(platform_admin)
     body = {
         "brand_name": "預約通",
@@ -102,8 +102,9 @@ def test_line_ask_button_toggle(platform_client, platform_admin):
         assert platform_client.put("/api/v1/platform/settings", json=body, headers=headers).status_code == 200
         page = platform_client.get("/").text
         url = "https://line.me/R/ti/p/@yuyuetong"
-        # 頁首、首屏、申請區、聯絡區、手機浮動按鈕
-        assert page.count(f'href="{url}"') == 5
+        # 頁首、申請區、聯絡區、手機浮動按鈕（首屏只留「免費試用」）
+        assert page.count(f'href="{url}"') == 4
+        assert "加入 LINE 詢問" not in page
         assert 'class="line-float"' in page
         assert 'class="line-qr"' in page and "<svg" in page
         assert "加入 @yuyuetong" in page

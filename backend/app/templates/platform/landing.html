@@ -12,7 +12,6 @@
     <p class="lead">給健身工作室與美容美體店的預約管理系統。會員線上預約、堂數自動扣抵、LINE 通知，還有自己的形象網站。</p>
     <div class="actions">
       {% if signup_enabled %}<a class="btn btn-dark btn-lg" href="#signup">免費試用 {{ trial_days }} 天</a>{% endif %}
-      {% if contact.line_url %}<a class="btn btn-line btn-lg" href="{{ contact.line_url }}" rel="noopener" target="_blank">{% include 'platform/_line_icon.html' %}加入 LINE 詢問</a>{% endif %}
       <a class="btn btn-text btn-lg" href="#features">看看有哪些功能 <span class="chev">›</span></a>
     </div>
 

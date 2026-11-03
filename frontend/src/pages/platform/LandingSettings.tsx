@@ -87,7 +87,7 @@ export default function LandingSettings() {
         <Card title="LINE 官方帳號詢問" style={{ marginBottom: 16 }}>
           <Typography.Paragraph type="secondary">
             讓有興趣的店家直接加平台的 LINE
-            官方帳號問問題。打開「在前台顯示」後，形象頁的頁首、首屏、申請表單旁、聯絡區（電腦版附 QR
+            官方帳號問問題。打開「在前台顯示」後，形象頁的頁首、申請表單旁、聯絡區（電腦版附 QR
             Code）和手機右下角都會出現「LINE 詢問」按鈕，試用到期的店家也會在「請聯絡我們」頁看到。
           </Typography.Paragraph>
           <Form.Item
