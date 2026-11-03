@@ -1,29 +1,14 @@
-import {
-  App,
-  Button,
-  Card,
-  Flex,
-  Grid,
-  Popconfirm,
-  Progress,
-  Tag,
-  Tooltip,
-  Typography,
-  theme,
-} from "antd";
-import { CheckCircleFilled, RightOutlined } from "@ant-design/icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
-import {
-  dismissOnboarding,
-  getOnboarding,
-  type OnboardingStepKey,
-} from "../../../../api/onboarding";
-import type { PermissionCode } from "../../../../api/staff";
-import { apiErrorMessage } from "../../../../api/errors";
-import { usePermissions } from "../../../../lib/permissions";
-import { useTerms, type Terms } from "../../../../lib/terms";
+import { App, Button, Card, Flex, Grid, Popconfirm, Progress, Tag, Tooltip, Typography, theme } from 'antd';
+import { CheckCircleFilled, GiftOutlined, RightOutlined } from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { dismissOnboarding, getOnboarding, type OnboardingStepKey } from '../../../../api/onboarding';
+import type { PermissionCode } from '../../../../api/staff';
+import { apiErrorMessage } from '../../../../api/errors';
+import { usePermissions } from '../../../../lib/permissions';
+import { useTerms, type Terms } from '../../../../lib/terms';
+import { formatServerTime } from '../../../../lib/datetime';
 
 interface StepCopy {
   title: string;
@@ -40,58 +25,58 @@ const registerUrl = () => `${window.location.origin}/register`;
 /** 每一步的文字與前往的頁面（依行業用詞）。完成與否由後端從實際資料判斷（services/onboarding.py）。 */
 function stepCopy(key: OnboardingStepKey, t: Terms): StepCopy {
   switch (key) {
-    case "profile":
+    case 'profile':
       return {
-        title: "確認店名、上傳 LOGO",
-        description: "會顯示在後台、會員頁面與形象網站",
-        path: "/admin/settings",
-        perm: "settings",
-        action: "前往系統設定",
+        title: '確認店名、上傳 LOGO',
+        description: '會顯示在後台、會員頁面與形象網站',
+        path: '/admin/settings',
+        perm: 'settings',
+        action: '前往系統設定',
       };
-    case "payment":
+    case 'payment':
       return {
-        title: "寫下付款方式",
-        description: "會員線上下單後會看到這段說明，例如轉帳帳號、到店付款",
-        path: "/admin/settings",
-        perm: "settings",
-        action: "前往系統設定",
+        title: '寫下付款方式',
+        description: '會員線上下單後會看到這段說明，例如轉帳帳號、到店付款',
+        path: '/admin/settings',
+        perm: 'settings',
+        action: '前往系統設定',
       };
-    case "staff":
+    case 'staff':
       return {
         title: `新增${t.staff}`,
         description: `會員預約時可以挑選${t.staff}，之後也用來計算${t.staffPay}`,
-        path: "/admin/coaches/new",
-        perm: "coaches",
+        path: '/admin/coaches/new',
+        perm: 'coaches',
         action: `新增${t.staff}`,
       };
-    case "plans":
+    case 'plans':
       return {
-        title: "建立方案",
+        title: '建立方案',
         description: `例如單次${t.trial}、10 ${t.unit}方案；會員買了方案才能預約`,
-        path: "/admin/products/new",
-        perm: "products",
-        action: "建立方案",
+        path: '/admin/products/new',
+        perm: 'products',
+        action: '建立方案',
       };
-    case "website":
+    case 'website':
       return {
-        title: "發布形象網站",
+        title: '發布形象網站',
         description: `讓客人在網路上找到你，也能直接預約${t.trial}`,
-        path: "/admin/website",
-        perm: "website",
-        action: "編輯形象網站",
+        path: '/admin/website',
+        perm: 'website',
+        action: '編輯形象網站',
       };
-    case "members":
+    case 'members':
       return {
-        title: "迎接第一位會員",
-        description: "把註冊網址傳給客人，或在會員管理直接新增",
-        path: "/admin/members",
-        perm: "members",
-        action: "前往會員管理",
+        title: '迎接第一位會員',
+        description: '把註冊網址傳給客人，或在會員管理直接新增',
+        path: '/admin/members',
+        perm: 'members',
+        action: '前往會員管理',
         extra: (
           <Typography.Text
             copyable={{
               text: registerUrl(),
-              tooltips: ["複製註冊網址", "已複製"],
+              tooltips: ['複製註冊網址', '已複製'],
             }}
             type="secondary"
             style={{ fontSize: 13 }}
@@ -100,13 +85,13 @@ function stepCopy(key: OnboardingStepKey, t: Terms): StepCopy {
           </Typography.Text>
         ),
       };
-    case "line":
+    case 'line':
       return {
-        title: "串接 LINE 官方帳號",
-        description: "會員可以在 LINE 裡加入、預約，並收到預約提醒",
-        path: "/admin/settings",
-        perm: "settings",
-        action: "前往設定",
+        title: '串接 LINE 官方帳號',
+        description: '會員可以在 LINE 裡加入、預約，並收到預約提醒',
+        path: '/admin/settings',
+        perm: 'settings',
+        action: '前往設定',
       };
   }
 }
@@ -125,25 +110,31 @@ export function SetupChecklist() {
   // 手機寬度：按鈕放到說明下面，文字不會被擠成一直條
   const narrow = !Grid.useBreakpoint().sm;
   const { data } = useQuery({
-    queryKey: ["onboarding"],
+    queryKey: ['onboarding'],
     queryFn: getOnboarding,
   });
 
   const dismissMutation = useMutation({
     mutationFn: dismissOnboarding,
     onSuccess: (next) => {
-      queryClient.setQueryData(["onboarding"], next);
-      message.success("已隱藏，之後可以在系統設定重新顯示");
+      queryClient.setQueryData(['onboarding'], next);
+      message.success('已隱藏，之後可以在系統設定重新顯示');
     },
     onError: (err) => message.error(apiErrorMessage(err)),
   });
 
+  // 剛完成清單、送出試用天數：恭喜一下，並更新頁首的「試用剩 N 天」
+  const justGranted = data?.bonus?.just_granted ?? false;
+  useEffect(() => {
+    if (!justGranted) return;
+    message.success(`開店設定完成！已多送你 ${data?.bonus?.days ?? 0} 天試用`);
+    queryClient.invalidateQueries({ queryKey: ['tenant-profile'] });
+  }, [justGranted, data?.bonus?.days, message, queryClient]);
+
   if (!data || data.dismissed) return null;
 
   const percent = Math.round((data.done_count / data.required_count) * 100);
-  const nextKey =
-    data.steps.find((s) => !s.done && !s.optional)?.key ??
-    data.steps.find((s) => !s.done)?.key;
+  const nextKey = data.steps.find((s) => !s.done && !s.optional)?.key ?? data.steps.find((s) => !s.done)?.key;
 
   const hideButton = (
     <Popconfirm
@@ -165,27 +156,32 @@ export function SetupChecklist() {
       title={
         <Flex align="center" gap={12} wrap>
           <span>開店設定</span>
-          <Typography.Text
-            type="secondary"
-            style={{ fontSize: 13, fontWeight: 400 }}
-          >
+          <Typography.Text type="secondary" style={{ fontSize: 13, fontWeight: 400 }}>
             完成 {data.done_count} / {data.required_count} 項
           </Typography.Text>
         </Flex>
       }
       extra={hideButton}
     >
-      <Progress
-        percent={percent}
-        showInfo={false}
-        strokeColor={token.colorSuccess}
-        style={{ marginBottom: 12 }}
-      />
+      <Progress percent={percent} showInfo={false} strokeColor={token.colorSuccess} style={{ marginBottom: 12 }} />
+      {data.bonus?.status === 'available' && !data.completed && (
+        <Typography.Paragraph style={{ marginBottom: 12 }}>
+          <GiftOutlined style={{ color: token.colorPrimary, marginInlineEnd: 8 }} />
+          完成下面 {data.required_count} 項必做設定，再多送你{' '}
+          <Typography.Text strong>{data.bonus.days} 天</Typography.Text>
+          試用（還差 {data.required_count - data.done_count} 項）
+        </Typography.Paragraph>
+      )}
+      {data.bonus?.status === 'granted' && (
+        <Typography.Paragraph style={{ marginBottom: 12 }}>
+          <GiftOutlined style={{ color: token.colorSuccess, marginInlineEnd: 8 }} />
+          已多送你 {data.bonus.days} 天試用
+          {data.bonus.trial_ends_at && `，試用到 ${formatServerTime(data.bonus.trial_ends_at, 'YYYY-MM-DD')}`}
+        </Typography.Paragraph>
+      )}
       {data.completed && (
         <Typography.Paragraph style={{ marginBottom: 12 }}>
-          <CheckCircleFilled
-            style={{ color: token.colorSuccess, marginInlineEnd: 8 }}
-          />
+          <CheckCircleFilled style={{ color: token.colorSuccess, marginInlineEnd: 8 }} />
           基本設定都完成了，可以開始接受預約！清單用不到了的話，按右上角「隱藏清單」。
         </Typography.Paragraph>
       )}
@@ -195,16 +191,10 @@ export function SetupChecklist() {
           const allowed = can(copy.perm);
           const isNext = step.key === nextKey;
           const actionButton = (
-            <Tooltip
-              title={
-                allowed
-                  ? undefined
-                  : "你的帳號沒有這個功能的權限，請主要管理者處理"
-              }
-            >
+            <Tooltip title={allowed ? undefined : '你的帳號沒有這個功能的權限，請主要管理者處理'}>
               {allowed ? (
                 <Button
-                  type={isNext ? "primary" : "default"}
+                  type={isNext ? 'primary' : 'default'}
                   size="small"
                   icon={<RightOutlined />}
                   iconPosition="end"
@@ -225,47 +215,32 @@ export function SetupChecklist() {
               gap={12}
               align="flex-start"
               style={{
-                padding: "12px 0",
-                borderTop:
-                  index === 0
-                    ? undefined
-                    : `1px solid ${token.colorBorderSecondary}`,
+                padding: '12px 0',
+                borderTop: index === 0 ? undefined : `1px solid ${token.colorBorderSecondary}`,
               }}
             >
               <span
                 aria-hidden="true"
                 style={{
-                  flex: "none",
+                  flex: 'none',
                   width: 24,
                   height: 24,
                   marginTop: 2,
-                  borderRadius: "50%",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: 12,
                   fontWeight: 600,
                   color: isNext ? token.colorWhite : token.colorTextSecondary,
-                  background: isNext
-                    ? token.colorPrimary
-                    : token.colorFillTertiary,
+                  background: isNext ? token.colorPrimary : token.colorFillTertiary,
                 }}
               >
-                {step.done ? (
-                  <CheckCircleFilled
-                    style={{ color: token.colorSuccess, fontSize: 24 }}
-                  />
-                ) : (
-                  index + 1
-                )}
+                {step.done ? <CheckCircleFilled style={{ color: token.colorSuccess, fontSize: 24 }} /> : index + 1}
               </span>
               <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
                 <Flex gap={8} align="center" wrap>
-                  <Typography.Text
-                    strong={!step.done}
-                    type={step.done ? "secondary" : undefined}
-                    delete={step.done}
-                  >
+                  <Typography.Text strong={!step.done} type={step.done ? 'secondary' : undefined} delete={step.done}>
                     {copy.title}
                   </Typography.Text>
                   {step.optional && <Tag>選做</Tag>}
@@ -277,9 +252,7 @@ export function SetupChecklist() {
                       {copy.description}
                     </Typography.Text>
                     {copy.extra}
-                    {narrow && (
-                      <div style={{ marginTop: 6 }}>{actionButton}</div>
-                    )}
+                    {narrow && <div style={{ marginTop: 6 }}>{actionButton}</div>}
                   </>
                 )}
               </Flex>

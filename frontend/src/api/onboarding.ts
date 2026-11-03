@@ -10,12 +10,26 @@ export interface OnboardingStep {
   optional: boolean;
 }
 
+/** 必做全部完成時，試用中的店家多送的試用天數（R66） */
+export interface OnboardingBonus {
+  days: number;
+  /** available＝完成就送；granted＝已經送過 */
+  status: 'available' | 'granted';
+  granted_at: string | null;
+  /** 伺服器 UTC */
+  trial_ends_at: string | null;
+  /** 這次讀取時剛送出 */
+  just_granted: boolean;
+}
+
 export interface OnboardingChecklist {
   steps: OnboardingStep[];
   done_count: number;
   required_count: number;
   completed: boolean;
   dismissed: boolean;
+  /** 不是試用中的店家為 null */
+  bonus: OnboardingBonus | null;
 }
 
 export async function getOnboarding() {

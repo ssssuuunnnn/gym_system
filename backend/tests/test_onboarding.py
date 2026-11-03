@@ -114,3 +114,77 @@ def test_permissions(client, db, admin, member):
     clerk.permissions = ["dashboard", "settings"]
     db.commit()
     assert client.get(API, headers=auth(clerk)).status_code == 200
+
+
+# ---------- 完成送試用天數（R66） ----------
+
+import pytest  # noqa: E402
+from datetime import datetime, timedelta  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+
+from app import deps  # noqa: E402
+
+
+@pytest.fixture()
+def trial_alpha(owner_engine, tenants):
+    """把 alpha 暫時改成試用中（剩 5 天）；要排在 client／db 之前，測完（交易回滾後）再改回來。"""
+    ends = datetime.utcnow() + timedelta(days=5)
+    with owner_engine.begin() as conn:
+        conn.execute(
+            text("UPDATE tenants SET status='trial', trial_ends_at=:e, setup_bonus_at=NULL WHERE id=:id"),
+            {"e": ends, "id": tenants["alpha"]},
+        )
+    deps.clear_tenant_cache()
+    yield ends
+    with owner_engine.begin() as conn:
+        conn.execute(
+            text("UPDATE tenants SET status='active', trial_ends_at=NULL, setup_bonus_at=NULL WHERE id=:id"),
+            {"id": tenants["alpha"]},
+        )
+        conn.execute(text("DELETE FROM platform_audit_logs WHERE action='setup_bonus'"))
+    deps.clear_tenant_cache()
+
+
+def _complete_setup(db):
+    db.add(SystemSettings(company_name="Alpha 健身", logo_url="/media/alpha/system/x.png", payment_instructions="轉帳"))
+    coach_user = _user(db, "coach1")
+    db.add(Coach(user_id=coach_user.id, name="Alex", phone="0900"))
+    db.add(Product(name="私人課 10 堂", category=ProductCategory.single_course, session_hours=10, price=12000))
+    _user(db, "member1")
+    db.add(Website(draft={}, published={"theme": "bold"}))
+    db.commit()
+
+
+def test_setup_bonus_granted_once_when_complete(trial_alpha, client, db, admin):
+    body, _ = _state(client, admin)
+    assert body["bonus"]["status"] == "available" and body["bonus"]["days"] == 10
+    assert body["bonus"]["just_granted"] is False
+
+    _complete_setup(db)
+    body, _ = _state(client, admin)
+    assert body["completed"] is True
+    assert body["bonus"]["status"] == "granted" and body["bonus"]["just_granted"] is True
+    new_end = datetime.fromisoformat(body["bonus"]["trial_ends_at"])
+    assert abs(new_end - (trial_alpha + timedelta(days=10))) < timedelta(seconds=1)
+    # 試用剩餘天數馬上更新
+    assert client.get("/api/v1/tenant/profile").json()["trial"]["days_left"] == 15
+
+    # 再讀一次不會再送
+    body, _ = _state(client, admin)
+    assert body["bonus"]["status"] == "granted" and body["bonus"]["just_granted"] is False
+    assert datetime.fromisoformat(body["bonus"]["trial_ends_at"]) == new_end
+    # 函式本身也只送一次
+    assert db.execute(text("SELECT claim_setup_bonus()")).scalar() is None
+
+
+def test_no_bonus_for_active_tenants(client, db, admin):
+    _complete_setup(db)
+    body, _ = _state(client, admin)
+    assert body["completed"] is True and body["bonus"] is None
+
+
+def test_app_role_cannot_extend_trial_directly(trial_alpha, client, db, tenants):
+    with pytest.raises(Exception):
+        db.execute(text("UPDATE tenants SET trial_ends_at = trial_ends_at + interval '100 days' WHERE id=:id"),
+                   {"id": tenants["alpha"]})
+    db.rollback()

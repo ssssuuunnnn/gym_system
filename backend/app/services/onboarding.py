@@ -7,17 +7,22 @@
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, text
 from sqlalchemy.orm import Session
 
 from app.models.coach import Coach
 from app.models.line_oa import LineOaChannel
 from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
+from app.models.tenant import Tenant, TenantStatus
 from app.models.user import User, UserRole
 from app.models.website import Website
 from app.services.shop import _real
+
+# 必做步驟全部完成時，試用中的店家多送幾天試用（R66）。與 migration 0018 的 claim_setup_bonus() 一致
+SETUP_BONUS_DAYS = 10
 
 # 順序就是清單上的順序；optional 的不影響「完成」
 STEPS: tuple[tuple[str, bool], ...] = (
@@ -95,3 +100,37 @@ def checklist(db: Session) -> Checklist:
         steps=[Step(key=key, done=done[key], optional=optional) for key, optional in STEPS],
         dismissed=bool(row and row.onboarding_dismissed_at),
     )
+
+
+@dataclass
+class Bonus:
+    # available：完成就送；granted：已經送過；None：不是試用中（或沒有到期日），不適用
+    status: str | None
+    granted_at: datetime | None
+    trial_ends_at: datetime | None
+    just_granted: bool = False
+
+
+def bonus(db: Session, tenant_id: int) -> Bonus:
+    tenant = db.get(Tenant, tenant_id)
+    if tenant is None:
+        return Bonus(None, None, None)
+    if tenant.setup_bonus_at is not None:
+        return Bonus("granted", tenant.setup_bonus_at, tenant.trial_ends_at)
+    if tenant.status == TenantStatus.trial and tenant.trial_ends_at is not None:
+        return Bonus("available", None, tenant.trial_ends_at)
+    return Bonus(None, None, None)
+
+
+def claim_bonus(db: Session, tenant_id: int) -> Bonus:
+    """清單完成時呼叫：符合資格就延長試用（SECURITY DEFINER 函式），已經送過或不適用就不動。呼叫端 commit。"""
+    current = bonus(db, tenant_id)
+    if current.status != "available":
+        return current
+    new_end = db.execute(text("SELECT claim_setup_bonus()")).scalar()
+    if new_end is None:
+        return current
+    db.expire_all()
+    result = bonus(db, tenant_id)
+    result.just_granted = True
+    return result
