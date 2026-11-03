@@ -1,6 +1,6 @@
 # 自動部署到 AWS Lightsail（見 deploy/lightsail/README.md「自動部署」）
 #
-# main 的 CI 全部通過後自動部署那個 commit；也可以在 Actions 頁手動執行（Run workflow）。
+# main 的 CI 全部通過後自動部署那個 commit（只部署 main 最新的，見 check job）；也可以在 Actions 頁手動執行（Run workflow）。
 # 流程：用部署專用 IAM 使用者的金鑰（只能讀／改這台主機的防火牆）→ 暫時在 Lightsail 防火牆開 22 給這台 runner 的 IP
 #       → 執行 deploy/lightsail/deploy.sh → 不論成敗都把防火牆還原 → 確認網站有回應。
 name: Deploy
@@ -21,11 +21,39 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-    # 只部署「push 到 main 且 CI 成功」的 commit（PR 的 CI 不會觸發）
+  # 只部署 main 目前最新的 commit：連續合併兩個 PR 時，兩次 CI 完成的先後不一定，
+  # 較舊 commit 的部署可能比較晚跑而蓋掉新版（2026-11-03 #55／#56 就發生過）。
+  # 不是最新的就跳過——最新那個 commit 的 CI 通過後會自己部署。
+  check:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.latest.outputs.deploy }}
+      sha: ${{ steps.latest.outputs.sha }}
+    steps:
+      - id: latest
+        name: 確認是 main 最新的 commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          tip=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
+          echo "main 最新：$tip，這次要部署：$CANDIDATE"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手動執行一律部署 main 最新
+            echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "sha=$tip" >> "$GITHUB_OUTPUT"
+          elif [ "$tip" = "$CANDIDATE" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "sha=$CANDIDATE" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$CANDIDATE 不是 main 最新的 commit，跳過（交給最新 commit 的部署）"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -55,8 +83,8 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          # CI 觸發時部署 CI 跑過的那個 commit；手動執行時部署 main 最新
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # check job 確認過的 commit（main 最新）
+          ref: ${{ needs.check.outputs.sha }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
