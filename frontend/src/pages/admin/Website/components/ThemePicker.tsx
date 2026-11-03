@@ -1,11 +1,13 @@
 import { CheckCircleFilled } from '@ant-design/icons';
 import { theme } from 'antd';
-import { SITE_THEMES, type BrandColor, type SiteTheme } from '../../../../api/website';
+import { SITE_THEMES, type BrandColor, type SiteMode, type SiteTheme } from '../../../../api/website';
 
 export interface ThemePickerProps {
   value: SiteTheme;
   /** 目前的品牌色，縮圖會用它畫按鈕與重點色 */
   accent: BrandColor;
+  /** 淡色版或深色版：縮圖跟著換底色 */
+  mode: SiteMode;
   onChange: (value: SiteTheme) => void;
 }
 
@@ -13,13 +15,15 @@ export interface ThemePickerProps {
  * 形象網站版型選擇：每個版型一張縮圖（主視覺、標題、按鈕、卡片的示意），點選即切換；
  * 右側預覽會用實際內容顯示。縮圖顏色是網站版型本身的顏色（SITE_THEMES.swatch）。
  */
-export function ThemePicker({ value, accent, onChange }: ThemePickerProps) {
+export function ThemePicker({ value, accent, mode, onChange }: ThemePickerProps) {
   const { token } = theme.useToken();
   return (
     <div role="radiogroup" aria-label="版型" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
       {SITE_THEMES.map((t) => {
         const selected = value === t.key;
-        const s = t.swatch;
+        // 深色版：換成深色底，品牌色用亮一點的版本（網站上深色底也是這樣）
+        const s: Swatch = mode === 'dark' ? { ...t.swatch, ...t.dark } : t.swatch;
+        const thumbAccent = mode === 'dark' ? lighten(accent, 0.4) : accent;
         return (
           <button
             key={t.key}
@@ -39,7 +43,7 @@ export function ThemePicker({ value, accent, onChange }: ThemePickerProps) {
               color: token.colorText,
             }}
           >
-            <Thumb swatch={s} accent={accent} />
+            <Thumb swatch={s} accent={thumbAccent} />
             <div style={{ padding: '8px 10px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                 {t.name}
@@ -55,7 +59,22 @@ export function ThemePicker({ value, accent, onChange }: ThemePickerProps) {
   );
 }
 
-type Swatch = (typeof SITE_THEMES)[number]['swatch'];
+interface Swatch {
+  layout: string;
+  page: string;
+  hero: string;
+  heroText: string;
+  block: string;
+  radius: number;
+  serif: boolean;
+}
+
+/** 縮圖用：把色碼往白色混一點（深色版的品牌色示意，實際網站由後端 colors.light_variant 算） */
+function lighten(hex: string, amount: number) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount).toString(16).padStart(2, '0');
+  return `#${mix((n >> 16) & 255)}${mix((n >> 8) & 255)}${mix(n & 255)}`;
+}
 
 /** 依排版挑縮圖 */
 function Thumb({ swatch, accent }: { swatch: Swatch; accent: string }) {

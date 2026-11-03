@@ -34,6 +34,7 @@ export type BrandColor = string;
  * 版型（與後端 SITE_THEMES 一致）。同一份內容，只換外觀；swatch 是版型縮圖用的代表色與排版
  * （網站本身的顏色，不是後台介面的顏色）：stack＝由上而下段落、grid＝方格、editorial＝雜誌、sidebar＝側欄、
  * studio＝沉穩（米色底、深藍字、白卡）、guide＝導覽（左邊編號目錄、右邊編號章節）。
+ * dark 是深色版縮圖的底色與字色（與後端 static/site/dark.css 一致）。
  */
 export const SITE_THEMES = [
   {
@@ -42,6 +43,7 @@ export const SITE_THEMES = [
     description: '深色主視覺、粗體大字，運動感強烈',
     suits: '重訓、拳擊、CrossFit',
     swatch: { layout: 'stack', page: '#ffffff', hero: '#15181d', heroText: '#ffffff', block: '#f4f5f7', radius: 6, serif: false },
+    dark: { page: '#0f1114', hero: '#16191e', heroText: '#f1f2f4', block: '#1a1d22' },
   },
   {
     key: 'airy',
@@ -49,6 +51,7 @@ export const SITE_THEMES = [
     description: '白底、大量留白、圓角照片與柔和陰影',
     suits: '瑜珈、皮拉提斯、女性工作室',
     swatch: { layout: 'stack', page: '#ffffff', hero: '#f4f8fb', heroText: '#1e2a33', block: '#ffffff', radius: 12, serif: false },
+    dark: { page: '#111820', hero: '#18232d', heroText: '#eef3f7', block: '#18232d' },
   },
   {
     key: 'warm',
@@ -56,6 +59,7 @@ export const SITE_THEMES = [
     description: '米白大地色、襯線標題、拱形照片',
     suits: '社區型、復健、慢活教室',
     swatch: { layout: 'stack', page: '#faf5ee', hero: '#faf5ee', heroText: '#3b2f27', block: '#f7f0e7', radius: 40, serif: true },
+    dark: { page: '#1f1813', hero: '#1f1813', heroText: '#f3e9de', block: '#2a211b' },
   },
   {
     key: 'bento',
@@ -63,6 +67,7 @@ export const SITE_THEMES = [
     description: '首頁就是一整片大小不一的方塊：照片、下一堂課、方案、教練一眼看完',
     suits: '課程多、想讓客人馬上看到課表與價格',
     swatch: { layout: 'grid', page: '#eef0f3', hero: '#15181d', heroText: '#ffffff', block: '#ffffff', radius: 8, serif: false },
+    dark: { page: '#0d0f12', hero: '#23272e', heroText: '#f1f2f4', block: '#1a1d22' },
   },
   {
     key: 'editorial',
@@ -70,6 +75,7 @@ export const SITE_THEMES = [
     description: '像雜誌內頁：大襯線標題、編號章節、細線留白，方案排成價目表',
     suits: '有故事的品牌、精品工作室、想做出質感',
     swatch: { layout: 'editorial', page: '#fbf9f4', hero: '#fbf9f4', heroText: '#16140f', block: '#d9d4c7', radius: 0, serif: true },
+    dark: { page: '#15130f', hero: '#15130f', heroText: '#f2eee4', block: '#3a362d' },
   },
   {
     key: 'sidebar',
@@ -77,6 +83,7 @@ export const SITE_THEMES = [
     description: '像 App：左邊固定目錄、右邊一張張卡片，首頁就看到下一堂課與方案起價',
     suits: '課程與方案多、想讓客人快速找到資訊',
     swatch: { layout: 'sidebar', page: '#f3f4f6', hero: '#ffffff', heroText: '#14171c', block: '#ffffff', radius: 8, serif: false },
+    dark: { page: '#0f1115', hero: '#1a1d23', heroText: '#f1f2f4', block: '#1a1d23' },
   },
   {
     key: 'studio',
@@ -84,6 +91,7 @@ export const SITE_THEMES = [
     description: '米色底、深藍粗體大字、白色圓角卡片，課表排成一週時間軸',
     suits: '物理治療、皮拉提斯、美容美體、想給人專業可靠的感覺',
     swatch: { layout: 'studio', page: '#f4eee3', hero: '#fffdf8', heroText: '#13294b', block: '#ffffff', radius: 12, serif: false },
+    dark: { page: '#0c1628', hero: '#112039', heroText: '#eef2f8', block: '#14243d' },
   },
   {
     key: 'guide',
@@ -91,12 +99,16 @@ export const SITE_THEMES = [
     description: '像一份清楚的說明頁：左邊編號目錄、右邊 01、02 章節，細線卡片與深藍按鈕',
     suits: '規則與方案多、想讓客人一次看懂的店家',
     swatch: { layout: 'guide', page: '#ffffff', hero: '#f7f7fb', heroText: '#182838', block: '#e1e5eb', radius: 12, serif: false },
+    dark: { page: '#0d131b', hero: '#111923', heroText: '#eef1f5', block: '#283240' },
   },
 ] as const;
 export type SiteTheme = (typeof SITE_THEMES)[number]['key'];
+/** 色調：淡色版（各版型原本的樣子）或深色版 */
+export type SiteMode = 'light' | 'dark';
 
 export interface SiteContent {
   theme: SiteTheme;
+  mode: SiteMode;
   brand_color: BrandColor;
   seo: { title: string; description: string; og_image_url: string | null };
   sections: { key: SectionKey; visible: boolean }[];

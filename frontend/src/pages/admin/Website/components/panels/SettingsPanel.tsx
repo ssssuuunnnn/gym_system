@@ -1,4 +1,4 @@
-import { Form, Input, Typography, theme } from 'antd';
+import { Form, Input, Segmented, Typography, theme } from 'antd';
 import type { SiteContent } from '../../../../../api/website';
 import { BrandColorPicker } from '../BrandColorPicker';
 import { SiteImageUploader } from '../../../../../components/SiteImageUploader';
@@ -19,7 +19,24 @@ export function SettingsPanel({ content, onChange }: SettingsPanelProps) {
   return (
     <Form layout="vertical">
       <Form.Item label="版型" extra="同一份內容換不同外觀，隨時可以切換。按「儲存草稿」後右側預覽會更新，「發布到網站」後才會上線。">
-        <ThemePicker value={content.theme} accent={content.brand_color} onChange={(t) => onChange({ theme: t })} />
+        <ThemePicker
+          value={content.theme}
+          accent={content.brand_color}
+          mode={content.mode}
+          onChange={(t) => onChange({ theme: t })}
+        />
+      </Form.Item>
+
+      <Form.Item label="色調" extra="每個版型都有淡色版與深色版；深色版的品牌色會自動換成比較亮的顏色，文字才看得清楚。">
+        <Segmented
+          aria-label="色調"
+          value={content.mode}
+          onChange={(v) => onChange({ mode: v as SiteContent['mode'] })}
+          options={[
+            { label: '淡色版', value: 'light' },
+            { label: '深色版', value: 'dark' },
+          ]}
+        />
       </Form.Item>
 
       <Form.Item

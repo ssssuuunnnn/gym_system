@@ -37,19 +37,21 @@ DEFAULT_BRAND_COLOR = "#C3400D"
 # bold＝由上而下段落（活力／清爽／溫暖共用，後兩者再載入 theme-<key>.css 覆寫顏色與形狀）、bento＝方格、
 # editorial＝雜誌（編號章節、不對稱雙欄）、sidebar＝側欄（左邊固定目錄、右邊卡片）、
 # studio＝沉穩（米色底、深藍粗體字、白色圓角卡片、課表時間軸、深藍色帶）。
-# theme_color 用於手機瀏覽器網址列；fonts 是額外載入的 Google Fonts。
+# theme_color／dark_color 是淡色版／深色版的手機瀏覽器網址列顏色；fonts 是額外載入的 Google Fonts。
+# 每個版型都有淡色、深色兩種（SiteContent.mode），深色版在版型樣式之後再載入 static/site/dark.css。
 SITE_THEMES: dict[str, dict[str, str]] = {
-    "bold": {"name": "活力", "template": "bold", "theme_color": "#15181d", "fonts": ""},
-    "airy": {"name": "清爽", "template": "bold", "theme_color": "#ffffff", "fonts": ""},
-    "warm": {"name": "溫暖", "template": "bold", "theme_color": "#faf5ee", "fonts": "&family=Noto+Serif+TC:wght@600;700"},
-    "bento": {"name": "方格", "template": "bento", "theme_color": "#eef0f3", "fonts": ""},
-    "editorial": {"name": "雜誌", "template": "editorial", "theme_color": "#fbf9f4", "fonts": "&family=Noto+Serif+TC:wght@600;700;900"},
-    "sidebar": {"name": "側欄", "template": "sidebar", "theme_color": "#f3f4f6", "fonts": ""},
-    "studio": {"name": "沉穩", "template": "studio", "theme_color": "#f4eee3", "fonts": ""},
-    "guide": {"name": "導覽", "template": "guide", "theme_color": "#f7f7fb", "fonts": ""},
+    "bold": {"name": "活力", "template": "bold", "theme_color": "#15181d", "dark_color": "#0f1114", "fonts": ""},
+    "airy": {"name": "清爽", "template": "bold", "theme_color": "#ffffff", "dark_color": "#111820", "fonts": ""},
+    "warm": {"name": "溫暖", "template": "bold", "theme_color": "#faf5ee", "dark_color": "#1f1813", "fonts": "&family=Noto+Serif+TC:wght@600;700"},
+    "bento": {"name": "方格", "template": "bento", "theme_color": "#eef0f3", "dark_color": "#0d0f12", "fonts": ""},
+    "editorial": {"name": "雜誌", "template": "editorial", "theme_color": "#fbf9f4", "dark_color": "#15130f", "fonts": "&family=Noto+Serif+TC:wght@600;700;900"},
+    "sidebar": {"name": "側欄", "template": "sidebar", "theme_color": "#f3f4f6", "dark_color": "#0f1115", "fonts": ""},
+    "studio": {"name": "沉穩", "template": "studio", "theme_color": "#f4eee3", "dark_color": "#0c1628", "fonts": ""},
+    "guide": {"name": "導覽", "template": "guide", "theme_color": "#f7f7fb", "dark_color": "#0d131b", "fonts": ""},
 }
 SiteTheme = Literal["bold", "airy", "warm", "bento", "editorial", "sidebar", "studio", "guide"]
 DEFAULT_THEME = "bold"
+SiteMode = Literal["light", "dark"]
 
 # 網站圖片只能是本站上傳的檔案：/media/<子網域>/site/<uuid>.<jpg|png>（子網域由路由再比對）
 SITE_IMAGE_RE = re.compile(r"^/media/[a-z0-9-]{1,63}/site/[0-9a-f]{32}\.(jpg|png)$")
@@ -320,6 +322,8 @@ class ContactSection(_Model):
 
 class SiteContent(_Model):
     theme: SiteTheme = DEFAULT_THEME
+    # 色調：淡色版（各版型原本的樣子）或深色版
+    mode: SiteMode = "light"
     brand_color: str = DEFAULT_BRAND_COLOR
     seo: SeoSettings = Field(default_factory=SeoSettings)
     sections: list[SectionToggle] = Field(default_factory=lambda: [SectionToggle(key=k) for k in SECTION_KEYS])

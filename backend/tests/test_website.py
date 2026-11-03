@@ -15,6 +15,7 @@ from app.models.inquiry import Inquiry, InquiryStatus
 from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
 from app.models.user import User, UserRole
+from app.schemas.website import SITE_THEMES
 from tests.conftest import auth
 
 API = "/api/v1"
@@ -311,6 +312,39 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert "明天 19:00" in stat and "壺鈴循環" in stat
         assert "位教練" in html and "十年肌力訓練經驗" in html
         assert html.count('name="consent"') == 1
+
+
+@pytest.mark.parametrize("theme", list(SITE_THEMES))
+def test_dark_mode(client, admin, gym, coach, plans, course, theme):
+    """每個版型都有淡色、深色兩種：深色版 body 多 mode-dark、在版型樣式之後載入 dark.css、網址列用深色；預設是淡色版。"""
+    full_site(client, admin, coach.id, [plans[0].id])
+    content = draft(client, admin)
+    assert content["mode"] == "light"  # 預設
+    content["theme"] = theme
+    content["mode"] = "dark"
+    assert save(client, admin, content).status_code == 200
+    publish(client, admin)
+    html = client.get("/").text
+    assert f'<body class="theme-{theme} mode-dark">' in html
+    assert f'<meta name="theme-color" content="{SITE_THEMES[theme]["dark_color"]}">' in html
+    # dark.css 要在版型自己的樣式之後才蓋得過
+    head = html.split("</head>")[0]
+    assert head.index("/site/static/dark.css") > head.index("/site/static/site.css")
+    layout_css = {"bold": None, "airy": "theme-airy.css", "warm": "theme-warm.css"}.get(theme, f"{theme}.css")
+    if layout_css:
+        assert head.index("/site/static/dark.css") > head.index(f"/site/static/{layout_css}")
+    assert client.get("/site/static/dark.css").status_code == 200
+    # 最新消息頁也是深色
+    assert "mode-dark" in client.get("/site/news").text
+
+    content["mode"] = "light"
+    save(client, admin, content)
+    publish(client, admin)
+    html = client.get("/").text
+    assert "dark.css" not in html and "mode-dark" not in html
+
+    content["mode"] = "dim"
+    assert save(client, admin, content).status_code == 422
 
 
 @pytest.mark.parametrize("theme", ["bento", "sidebar", "studio", "guide"])

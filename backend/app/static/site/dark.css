@@ -1,0 +1,188 @@
+/*
+ * 形象網站「深色版」（每個版型都有淡色／深色兩種，店家在 網站設定 → 色調 選）。
+ * 在版型的樣式之後載入（_layout.html），body 加上 mode-dark；淡色版完全不受影響。
+ *
+ * 品牌色：深色底上把 --accent 換成 --accent-light（預設色是調好的亮色版，自訂色由 colors.light_variant 算出，
+ * 對 #15181D 與 #13294B 都 ≥ 6:1），所以所有「品牌色字」自動變亮；
+ * 原本「品牌色底＋白字」的地方（按鈕、今天、推薦標籤…）改成深色字 --on-accent（對亮色品牌色 ≥ 6:1）。
+ */
+
+/* ---------- 共用 ---------- */
+.mode-dark {
+  --accent: var(--accent-light);
+  --on-accent: #14171c;
+  --ink: #f1f2f4;
+  --ink-2: #c9ccd2;
+  --muted: #a3a8b0;
+  --line: #2c3138;
+  --tint: #181b20;
+  --dark: #1c1f25;
+  --dark-2: #262a31;
+  --on-dark-muted: #c9ccd2;
+  --ok: #6fd89a;
+  --error: #ff9b8f;
+  --surface: #1a1d22;
+  --input: #14171b;
+  --input-line: #4a515b;
+  color-scheme: dark;
+  background: #0f1114;
+  color: var(--ink);
+}
+.mode-dark .btn-accent, .mode-dark .nav a.btn, .mode-dark .brand-mark { color: var(--on-accent); }
+.mode-dark .btn-outline { background: transparent; color: var(--ink); border-color: var(--input-line); }
+.mode-dark .btn-ghost { color: var(--ink); border-color: var(--input-line); }
+.mode-dark .skip:focus { background: var(--surface); color: var(--ink); }
+
+/* 頁首、手機選單、手機底部按鈕 */
+.mode-dark .site-header { background: rgba(15, 17, 20, 0.94); border-bottom-color: var(--line); }
+.mode-dark .brand, .mode-dark .nav a { color: var(--ink); }
+.mode-dark .menu summary { color: var(--ink); }
+.mode-dark .menu[open] > nav, .mode-dark .mobile-cta { background: #0f1114; border-color: var(--line); }
+
+/* 卡片、課表、常見問題、表單 */
+.mode-dark .class-card, .mode-dark .faq details, .mode-dark .features li { background: var(--surface); border-color: var(--line); }
+.mode-dark .no-class { border-color: var(--input-line); }
+.mode-dark .coach img, .mode-dark .coach-photo-empty, .mode-dark .gallery figure, .mode-dark .news-item img, .mode-dark .news-cover { background: var(--surface); }
+.mode-dark .coach-photo-empty { color: var(--muted); }
+.mode-dark .trial-form input[type="text"], .mode-dark .trial-form input[type="tel"], .mode-dark .trial-form select {
+  background: var(--input); color: var(--ink); border-color: var(--input-line); }
+.mode-dark .trial-form ::placeholder { color: #7d838c; }
+.mode-dark .trial-form .check { color: var(--ink-2); }
+.mode-dark .notice, .mode-dark .privacy p { background: var(--surface); color: var(--ink-2); }
+.mode-dark .info dd { color: var(--ink-2); }
+.mode-dark .map { background: var(--surface); filter: brightness(0.85); }
+.mode-dark .news-summary, .mode-dark .news-body, .mode-dark .prose { color: var(--ink-2); }
+
+/* 頁尾 */
+.mode-dark .site-footer { background: #0a0b0d; color: var(--muted); border-top: 1px solid var(--line); }
+.mode-dark .footer-links a { color: var(--ink); }
+
+/* ---------- 活力（bold）：整頁深色，段落用深淺交錯 ---------- */
+.mode-dark.theme-bold .dark { background: #16191e; }
+.mode-dark.theme-bold .plan { background: var(--dark-2); }
+.mode-dark.theme-bold .plan-featured { background: var(--accent); color: var(--on-accent); }
+.mode-dark.theme-bold .plan-featured .plan-kind, .mode-dark.theme-bold .plan-featured .plan-desc { color: var(--on-accent); }
+
+/* ---------- 清爽（airy）：深灰藍、柔和邊框 ---------- */
+.mode-dark.theme-airy {
+  --ink: #eef3f7; --ink-2: #c3ccd4; --muted: #9eaab5; --line: #2a3640; --tint: #16202a;
+  --surface: #18232d; --soft: color-mix(in srgb, var(--accent) 14%, #111820);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  background: #111820;
+}
+.mode-dark.theme-airy .site-header, .mode-dark.theme-airy .menu[open] > nav, .mode-dark.theme-airy .mobile-cta { background: rgba(17, 24, 32, 0.95); }
+.mode-dark.theme-airy .dark { background: var(--soft); color: var(--ink); }
+.mode-dark.theme-airy #pricing.dark { background: #111820; }
+.mode-dark.theme-airy .btn-ghost { background: transparent; border-color: #3d4b57; }
+.mode-dark.theme-airy .features li, .mode-dark.theme-airy .plan, .mode-dark.theme-airy .plan-featured { background: var(--surface); color: var(--ink); }
+.mode-dark.theme-airy .plan-featured { border-color: var(--accent); }
+.mode-dark.theme-airy .faq details { border-color: var(--line); }
+.mode-dark.theme-airy .site-footer { background: #0d131a; }
+
+/* ---------- 溫暖（warm）：深咖啡、米色字 ---------- */
+.mode-dark.theme-warm {
+  --ink: #f3e9de; --ink-2: #e0d3c4; --muted: #bfae9c; --line: #43362c; --tint: #2a211b; --cream: #1f1813;
+  --dark: #17110d; --dark-2: #30261f; --on-dark-muted: #e0d3c4; --surface: #2a211b; --input-line: #6b5a4b;
+  background: var(--cream);
+}
+.mode-dark.theme-warm .site-header, .mode-dark.theme-warm .menu[open] > nav, .mode-dark.theme-warm .mobile-cta { background: rgba(31, 24, 19, 0.96); }
+.mode-dark.theme-warm #top.dark { background: var(--cream); color: var(--ink); }
+.mode-dark.theme-warm #top .btn-ghost { color: var(--ink); border-color: var(--input-line); }
+.mode-dark.theme-warm .features li, .mode-dark.theme-warm .class-card, .mode-dark.theme-warm .faq details { background: var(--surface); border-color: var(--line); }
+.mode-dark.theme-warm .day-head { border-bottom-color: var(--ink-2); }
+.mode-dark.theme-warm .trial-form input[type="text"], .mode-dark.theme-warm .trial-form input[type="tel"], .mode-dark.theme-warm .trial-form select { background: #17110d; border-color: var(--input-line); }
+.mode-dark.theme-warm .plan-featured { background: var(--surface); color: var(--ink); border: 2px solid var(--accent); }
+.mode-dark.theme-warm .site-footer { background: var(--dark); }
+
+/* ---------- 方格（bento）：近黑底、深灰方塊 ---------- */
+.mode-dark.theme-bento { --page: #0d0f12; --soft: color-mix(in srgb, var(--accent) 16%, #1a1d22); --tint: #23272e; background: var(--page); }
+.mode-dark.theme-bento .site-header { background: rgba(13, 15, 18, 0.92); }
+.mode-dark.theme-bento .tile, .mode-dark.theme-bento .t-features li { background: var(--surface); }
+.mode-dark.theme-bento .t-hero { background: #23272e; }
+.mode-dark.theme-bento .t-label { background: var(--soft); }
+.mode-dark.theme-bento .t-next, .mode-dark.theme-bento .t-plan-featured { background: var(--accent); color: var(--on-accent); }
+.mode-dark.theme-bento .t-next *, .mode-dark.theme-bento .t-plan-featured * { color: var(--on-accent); }
+.mode-dark.theme-bento .t-coach { background: #2a2e35; }
+.mode-dark.theme-bento .site-footer { background: transparent; border-top: 0; }
+
+/* ---------- 雜誌（editorial）：墨黑紙、米白字 ---------- */
+.mode-dark.theme-editorial {
+  --paper: #15130f; --ink: #f2eee4; --ink-2: #d4cfc2; --muted: #a8a296; --line: #3a362d; --tint: #1f1c17;
+  background: var(--paper);
+}
+.mode-dark.theme-editorial .site-header { background: rgba(21, 19, 15, 0.96); border-bottom-color: var(--ink); }
+.mode-dark.theme-editorial .menu[open] > nav, .mode-dark.theme-editorial .mobile-cta { background: var(--paper); }
+.mode-dark.theme-editorial .trial-form input[type="text"], .mode-dark.theme-editorial .trial-form input[type="tel"], .mode-dark.theme-editorial .trial-form select {
+  background: transparent; border-color: var(--ink); }
+.mode-dark.theme-editorial .site-footer { background: var(--paper); border-top: 3px double var(--ink); }
+
+/* ---------- 側欄（sidebar）：深灰底、深色卡片 ---------- */
+.mode-dark.theme-sidebar {
+  --page: #0f1115; --soft: color-mix(in srgb, var(--accent) 14%, #1a1d23); --surface: #1a1d23;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: var(--page);
+}
+.mode-dark.theme-sidebar .card, .mode-dark.theme-sidebar .menu[open] > nav { background: var(--surface); }
+.mode-dark.theme-sidebar .sb-side { background: #15171c; border-right-color: var(--line); }
+.mode-dark.theme-sidebar .sb-features li, .mode-dark.theme-sidebar .sb-coach, .mode-dark.theme-sidebar .sb-week .day-name,
+.mode-dark.theme-sidebar .faq details, .mode-dark.theme-sidebar .notice, .mode-dark.theme-sidebar .privacy p { background: #22262d; }
+.mode-dark.theme-sidebar .sb-coach img, .mode-dark.theme-sidebar .sb-coach .coach-photo-empty { background: #2a2e35; }
+.mode-dark.theme-sidebar .stat-accent, .mode-dark.theme-sidebar .tick, .mode-dark.theme-sidebar .badge,
+.mode-dark.theme-sidebar .sb-week .day-today .day-name, .mode-dark.theme-sidebar .sb-week .day-today .day-name .num { color: var(--on-accent); }
+.mode-dark.theme-sidebar .stat-accent * { color: var(--on-accent); }
+/* 上面把卡片、日期列換成深色底，品牌色底的這幾個要再蓋回來 */
+.mode-dark.theme-sidebar .card.stat-accent, .mode-dark.theme-sidebar .sb-week .day-today .day-name { background: var(--accent); }
+@media (max-width: 899px) {
+  .mode-dark.theme-sidebar .site-header { background: rgba(15, 17, 21, 0.94); }
+}
+
+/* ---------- 沉穩（studio）：深海軍藍底、米白字 ---------- */
+.mode-dark.theme-studio {
+  --navy: #eef2f8; --navy-2: #050b16; --text: #b9c4d6; --paper: #0c1628; --sand: #112039; --line: #24395a;
+  --surface: #14243d; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.3);
+  background: var(--paper); color: var(--text);
+}
+.mode-dark.theme-studio .site-header { background: rgba(12, 22, 40, 0.94); }
+.mode-dark.theme-studio .menu[open] > nav, .mode-dark.theme-studio .mobile-cta { background: var(--paper); }
+.mode-dark.theme-studio .brand-mark { background: var(--accent); color: var(--on-accent); }
+.mode-dark.theme-studio .nav a.btn, .mode-dark.theme-studio .btn-accent { color: var(--on-accent); }
+.mode-dark.theme-studio .st-btn-outline:hover { background: var(--navy); color: var(--paper); }
+.mode-dark.theme-studio .st-paper { background: #0f1b31; }
+.mode-dark.theme-studio .st-navy { background: #070f1d; }
+.mode-dark.theme-studio .st-badge, .mode-dark.theme-studio .st-frame, .mode-dark.theme-studio .st-fact, .mode-dark.theme-studio .st-card,
+.mode-dark.theme-studio .st-timeline .st-pill, .mode-dark.theme-studio .news-item { background: var(--surface); }
+.mode-dark.theme-studio .st-frame-bar span { background: #24395a; color: #eef2f8; }
+.mode-dark.theme-studio .st-cards .st-icon, .mode-dark.theme-studio .st-timeline .is-today .st-pill { color: var(--on-accent); }
+.mode-dark.theme-studio .st-timeline .is-today .st-pill { background: var(--accent); border-color: var(--accent); }
+.mode-dark.theme-studio .st-plan.featured { background: var(--surface); border-color: var(--accent); }
+.mode-dark.theme-studio .st-plan.featured h3, .mode-dark.theme-studio .st-plan.featured .st-price strong { color: #eef2f8; }
+.mode-dark.theme-studio .st-plan.featured .st-price, .mode-dark.theme-studio .st-plan.featured .st-plan-desc { color: var(--text); }
+.mode-dark.theme-studio .st-seats.full { color: var(--error); }
+.mode-dark.theme-studio .trial-form input[type="text"], .mode-dark.theme-studio .trial-form input[type="tel"], .mode-dark.theme-studio .trial-form select { background: var(--paper); border-color: #34507a; }
+.mode-dark.theme-studio .notice { background: var(--paper); }
+
+/* ---------- 導覽（guide）：深藍黑底、細線卡片、按鈕反白 ---------- */
+.mode-dark.theme-guide {
+  --ink: #eef1f5; --ink-2: #c3cad4; --muted: #98a2b0; --line: #283240; --tint: #111923;
+  --navy: #182838; --navy-line: #3a4a5e; --surface: #141c26; --soft: color-mix(in srgb, var(--accent) 14%, #0d131b);
+  background: #0d131b; color: var(--ink-2);
+}
+.mode-dark.theme-guide .site-header { background: rgba(13, 19, 27, 0.96); box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4); }
+.mode-dark.theme-guide .menu[open] > nav, .mode-dark.theme-guide .mobile-cta { background: #0d131b; }
+.mode-dark.theme-guide .brand-mark { background: var(--accent); color: var(--on-accent); }
+.mode-dark.theme-guide .gd-btn-dark, .mode-dark.theme-guide a.gd-btn-dark { background: var(--ink); color: #0d131b; }
+.mode-dark.theme-guide .gd-btn-dark:hover { background: #ffffff; }
+.mode-dark.theme-guide .gd-btn-light { background: transparent; color: var(--ink); border-color: var(--navy-line); }
+.mode-dark.theme-guide .gd-btn-light:hover { border-color: var(--ink); }
+.mode-dark.theme-guide .gd-hero::before, .mode-dark.theme-guide .gd-hero::after { border-color: #1f2a37; }
+.mode-dark.theme-guide .gd-meta li { border-left-color: var(--navy-line); }
+.mode-dark.theme-guide .gd-hero-img { background: var(--surface); }
+.mode-dark.theme-guide .gd-facts { background: #0d131b; }
+.mode-dark.theme-guide .gd-card, .mode-dark.theme-guide .gd-day { background: var(--surface); }
+.mode-dark.theme-guide .gd-day.is-today { background: var(--soft); }
+.mode-dark.theme-guide .gd-day-name em { color: var(--on-accent); }
+.mode-dark.theme-guide .gd-seats { color: var(--ok); }
+.mode-dark.theme-guide .trial-form input[type="text"], .mode-dark.theme-guide .trial-form input[type="tel"], .mode-dark.theme-guide .trial-form select { border-color: var(--input-line); }
+.mode-dark.theme-guide .notice { border-color: var(--line); }
+.mode-dark.theme-guide .gd-panel { background: #16202d; border: 1px solid var(--line); }
+.mode-dark.theme-guide .site-footer { background: #090e14; }

@@ -22,10 +22,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Barlow+Condensed:wght@600;700{{ theme_fonts }}&display=swap">
 <link rel="stylesheet" href="/site/static/site.css?v=4">
 {% block styles %}{% endblock %}
+{#- 深色版：放在版型樣式之後覆寫 -#}
+{% if dark %}<link rel="stylesheet" href="/site/static/dark.css?v=1">{% endif %}
 <style>:root { --accent: {{ accent }}; --accent-light: {{ accent_light }}; }</style>
 <script type="application/ld+json">{{ json_ld | safe }}</script>
 </head>
-<body class="theme-{{ theme }}{% block body_class %}{% endblock %}">
+<body class="theme-{{ theme }}{% if dark %} mode-dark{% endif %}{% block body_class %}{% endblock %}">
 {% if preview %}<div class="preview-banner" role="status">預覽（草稿）・訪客看不到，按「發布到網站」後才會上線</div>{% endif %}
 <a class="skip" href="#main">跳到主要內容</a>
 
