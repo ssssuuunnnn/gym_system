@@ -29,6 +29,9 @@ class SystemSettings(TenantMixin, Base):
     group_classes_setting: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     # 自助試用開通時建立的範例資料 id（ADR 0013）：{"users": [...], "coaches": [...], "products": [...], "courses": [...]}
     sample_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # 開店設定清單（ADR 0016）：店家按「隱藏清單」的時間與操作人；NULL＝顯示
+    onboarding_dismissed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    onboarding_dismissed_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )

@@ -34,6 +34,7 @@ from app.routers import (
     coupons,
     tenant_profile,
     system_settings,
+    onboarding,
     time_slots,
     users,
     website,
@@ -74,6 +75,7 @@ app.include_router(time_slots.router, prefix=settings.API_V1_PREFIX)
 app.include_router(reservations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(system_settings.router, prefix=settings.API_V1_PREFIX)
+app.include_router(onboarding.router, prefix=settings.API_V1_PREFIX)
 app.include_router(platform.router, prefix=settings.API_V1_PREFIX)
 app.include_router(website.router, prefix=settings.API_V1_PREFIX)
 app.include_router(inquiries.router, prefix=settings.API_V1_PREFIX)
