@@ -155,32 +155,62 @@ def _complete_setup(db):
     db.commit()
 
 
-def test_setup_bonus_granted_once_when_complete(trial_alpha, client, db, admin):
+def test_setup_bonus_per_step_and_completion(trial_alpha, client, db, admin):
     body, _ = _state(client, admin)
-    assert body["bonus"]["status"] == "available" and body["bonus"]["days"] == 10
-    assert body["bonus"]["just_granted"] is False
+    b = body["bonus"]
+    assert b["status"] == "available" and b["earned_days"] == 0 and b["total_days"] == 10
+    assert b["days_per_step"] == 1 and b["completion_days"] == 4 and b["just_granted_days"] == 0
 
-    _complete_setup(db)
+    # 完成兩項：+2 天
+    db.add(SystemSettings(company_name="Alpha 健身", logo_url="/media/alpha/system/x.png", payment_instructions="轉帳"))
+    db.commit()
     body, _ = _state(client, admin)
+    b = body["bonus"]
+    assert b["just_granted_days"] == 2 and b["earned_days"] == 2
+    assert sorted(b["granted_steps"]) == ["payment", "profile"]
+    assert abs(datetime.fromisoformat(b["trial_ends_at"]) - (trial_alpha + timedelta(days=2))) < timedelta(seconds=1)
+    assert client.get("/api/v1/tenant/profile").json()["trial"]["days_left"] == 7
+
+    # 再讀一次不重複送；改掉付款說明（步驟變回未完成）也不收回、之後再完成也不再送
+    assert _state(client, admin)[0]["bonus"]["just_granted_days"] == 0
+    row = db.query(SystemSettings).first()
+    row.payment_instructions = ""
+    db.commit()
+    assert _state(client, admin)[0]["bonus"]["earned_days"] == 2
+    row.payment_instructions = "轉帳"
+    db.commit()
+    assert _state(client, admin)[0]["bonus"]["just_granted_days"] == 0
+
+    # 其餘四項一起完成：+4（每項）+4（全部完成）
+    coach_user = _user(db, "coach1")
+    db.add(Coach(user_id=coach_user.id, name="Alex", phone="0900"))
+    db.add(Product(name="私人課 10 堂", category=ProductCategory.single_course, session_hours=10, price=12000))
+    _user(db, "member1")
+    db.add(Website(draft={}, published={"theme": "bold"}))
+    db.commit()
+    body, _ = _state(client, admin)
+    b = body["bonus"]
     assert body["completed"] is True
-    assert body["bonus"]["status"] == "granted" and body["bonus"]["just_granted"] is True
-    new_end = datetime.fromisoformat(body["bonus"]["trial_ends_at"])
-    assert abs(new_end - (trial_alpha + timedelta(days=10))) < timedelta(seconds=1)
-    # 試用剩餘天數馬上更新
-    assert client.get("/api/v1/tenant/profile").json()["trial"]["days_left"] == 15
+    assert b["status"] == "granted" and b["just_granted_days"] == 8 and b["earned_days"] == 10
+    assert abs(datetime.fromisoformat(b["trial_ends_at"]) - (trial_alpha + timedelta(days=10))) < timedelta(seconds=1)
+    assert _state(client, admin)[0]["bonus"]["just_granted_days"] == 0
 
-    # 再讀一次不會再送
-    body, _ = _state(client, admin)
-    assert body["bonus"]["status"] == "granted" and body["bonus"]["just_granted"] is False
-    assert datetime.fromisoformat(body["bonus"]["trial_ends_at"]) == new_end
-    # 函式本身也只送一次
-    assert db.execute(text("SELECT claim_setup_bonus()")).scalar() is None
+    # 函式不認得的步驟名稱、重複呼叫都不會再送
+    assert db.execute(text("SELECT claim_setup_bonus(ARRAY['line','hack','profile'], true)")).scalar() == 0
+
+
+def test_bonus_function_ignores_unknown_steps(trial_alpha, client, db, admin):
+    _state(client, admin)  # 讓 session 綁到 alpha
+    assert db.execute(text("SELECT claim_setup_bonus(ARRAY['line','x','x'], true)")).scalar() == 0
+    # 沒有全部完成，不送加碼
+    assert db.execute(text("SELECT claim_setup_bonus(ARRAY['profile','profile'], true)")).scalar() == 1
 
 
 def test_no_bonus_for_active_tenants(client, db, admin):
     _complete_setup(db)
     body, _ = _state(client, admin)
     assert body["completed"] is True and body["bonus"] is None
+    assert db.execute(text("SELECT claim_setup_bonus(ARRAY['profile'], true)")).scalar() == 0
 
 
 def test_app_role_cannot_extend_trial_directly(trial_alpha, client, db, tenants):

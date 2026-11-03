@@ -21,8 +21,9 @@ from app.models.user import User, UserRole
 from app.models.website import Website
 from app.services.shop import _real
 
-# 必做步驟全部完成時，試用中的店家多送幾天試用（R66）。與 migration 0018 的 claim_setup_bonus() 一致
-SETUP_BONUS_DAYS = 10
+# 試用中的店家：每完成一項必做 +1 天，全部完成再 +4 天（R66）。與 migration 0018 的 claim_setup_bonus() 一致
+BONUS_DAYS_PER_STEP = 1
+BONUS_COMPLETION_DAYS = 4
 
 # 順序就是清單上的順序；optional 的不影響「完成」
 STEPS: tuple[tuple[str, bool], ...] = (
@@ -104,33 +105,51 @@ def checklist(db: Session) -> Checklist:
 
 @dataclass
 class Bonus:
-    # available：完成就送；granted：已經送過；None：不是試用中（或沒有到期日），不適用
+    # available：還有天數可以拿；granted：全部拿到了；None：不是試用中（或沒有到期日），不適用
     status: str | None
-    granted_at: datetime | None
+    earned_days: int
+    total_days: int
+    granted_steps: list[str]
     trial_ends_at: datetime | None
-    just_granted: bool = False
+    just_granted_days: int = 0
+
+
+def _required_keys() -> list[str]:
+    return [key for key, optional in STEPS if not optional]
 
 
 def bonus(db: Session, tenant_id: int) -> Bonus:
+    required = _required_keys()
+    total = len(required) * BONUS_DAYS_PER_STEP + BONUS_COMPLETION_DAYS
     tenant = db.get(Tenant, tenant_id)
     if tenant is None:
-        return Bonus(None, None, None)
+        return Bonus(None, 0, total, [], None)
+    steps = [s for s in (tenant.setup_bonus_steps or []) if s in required]
+    earned = len(steps) * BONUS_DAYS_PER_STEP + (BONUS_COMPLETION_DAYS if tenant.setup_bonus_at else 0)
     if tenant.setup_bonus_at is not None:
-        return Bonus("granted", tenant.setup_bonus_at, tenant.trial_ends_at)
+        return Bonus("granted", earned, total, steps, tenant.trial_ends_at)
     if tenant.status == TenantStatus.trial and tenant.trial_ends_at is not None:
-        return Bonus("available", None, tenant.trial_ends_at)
-    return Bonus(None, None, None)
+        return Bonus("available", earned, total, steps, tenant.trial_ends_at)
+    if steps:  # 拿過部分天數後轉為正式：保留紀錄，不再送
+        return Bonus(None, earned, total, steps, None)
+    return Bonus(None, 0, total, [], None)
 
 
-def claim_bonus(db: Session, tenant_id: int) -> Bonus:
-    """清單完成時呼叫：符合資格就延長試用（SECURITY DEFINER 函式），已經送過或不適用就不動。呼叫端 commit。"""
+def claim_bonus(db: Session, tenant_id: int, c: Checklist) -> Bonus:
+    """依目前完成的步驟送天數（SECURITY DEFINER 函式；送過的步驟不再送，不收回）。呼叫端 commit。"""
     current = bonus(db, tenant_id)
     if current.status != "available":
         return current
-    new_end = db.execute(text("SELECT claim_setup_bonus()")).scalar()
-    if new_end is None:
+    done = [s.key for s in c.steps if s.done and not s.optional and s.key not in current.granted_steps]
+    if not done and not c.completed:
+        return current
+    days = db.execute(
+        text("SELECT claim_setup_bonus(CAST(:steps AS text[]), :completed)"),
+        {"steps": done, "completed": c.completed},
+    ).scalar() or 0
+    if days == 0:
         return current
     db.expire_all()
     result = bonus(db, tenant_id)
-    result.just_granted = True
+    result.just_granted_days = days
     return result

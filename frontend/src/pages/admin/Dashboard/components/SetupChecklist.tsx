@@ -123,13 +123,16 @@ export function SetupChecklist() {
     onError: (err) => message.error(apiErrorMessage(err)),
   });
 
-  // 剛完成清單、送出試用天數：恭喜一下，並更新頁首的「試用剩 N 天」
-  const justGranted = data?.bonus?.just_granted ?? false;
+  // 剛送出試用天數：恭喜一下，並更新頁首的「試用剩 N 天」
+  const justGranted = data?.bonus?.just_granted_days ?? 0;
+  const allGranted = data?.bonus?.status === 'granted';
   useEffect(() => {
     if (!justGranted) return;
-    message.success(`開店設定完成！已多送你 ${data?.bonus?.days ?? 0} 天試用`);
+    message.success(
+      allGranted ? `開店設定完成！這次多送你 ${justGranted} 天試用` : `完成一項設定，多送你 ${justGranted} 天試用`,
+    );
     queryClient.invalidateQueries({ queryKey: ['tenant-profile'] });
-  }, [justGranted, data?.bonus?.days, message, queryClient]);
+  }, [justGranted, allGranted, message, queryClient]);
 
   if (!data || data.dismissed) return null;
 
@@ -164,18 +167,17 @@ export function SetupChecklist() {
       extra={hideButton}
     >
       <Progress percent={percent} showInfo={false} strokeColor={token.colorSuccess} style={{ marginBottom: 12 }} />
-      {data.bonus?.status === 'available' && !data.completed && (
+      {data.bonus?.status === 'available' && (
         <Typography.Paragraph style={{ marginBottom: 12 }}>
           <GiftOutlined style={{ color: token.colorPrimary, marginInlineEnd: 8 }} />
-          完成下面 {data.required_count} 項必做設定，再多送你{' '}
-          <Typography.Text strong>{data.bonus.days} 天</Typography.Text>
-          試用（還差 {data.required_count - data.done_count} 項）
+          {`每完成一項必做設定多送 ${data.bonus.days_per_step} 天試用，全部完成再加送 ${data.bonus.completion_days} 天（已經拿到 `}
+          <Typography.Text strong>{data.bonus.earned_days}</Typography.Text> / {data.bonus.total_days} 天）
         </Typography.Paragraph>
       )}
       {data.bonus?.status === 'granted' && (
         <Typography.Paragraph style={{ marginBottom: 12 }}>
           <GiftOutlined style={{ color: token.colorSuccess, marginInlineEnd: 8 }} />
-          已多送你 {data.bonus.days} 天試用
+          已多送你 {data.bonus.earned_days} 天試用
           {data.bonus.trial_ends_at && `，試用到 ${formatServerTime(data.bonus.trial_ends_at, 'YYYY-MM-DD')}`}
         </Typography.Paragraph>
       )}
@@ -245,6 +247,15 @@ export function SetupChecklist() {
                   </Typography.Text>
                   {step.optional && <Tag>選做</Tag>}
                   {step.done && <Tag color="success">已完成</Tag>}
+                  {data.bonus?.status === 'available' &&
+                    !step.optional &&
+                    (data.bonus.granted_steps.includes(step.key) ? (
+                      <Tag color="success">已送 {data.bonus.days_per_step} 天</Tag>
+                    ) : (
+                      <Tag color="processing" icon={<GiftOutlined />}>
+                        +{data.bonus.days_per_step} 天
+                      </Tag>
+                    ))}
                 </Flex>
                 {!step.done && (
                   <>

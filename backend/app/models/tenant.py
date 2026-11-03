@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -48,7 +48,8 @@ class Tenant(Base):
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, comment="試用到期時間（UTC）")
     # self＝形象頁自助申請；平台或 CLI 開通的是 NULL
     signup_source: Mapped[str | None] = mapped_column(String(20), nullable=True, comment="self＝形象頁自助申請")
-    # 開店設定清單全部完成時送的試用天數（ADR 0016、R66）：送過的時間，每家只送一次
+    # 開店設定送試用天數（ADR 0016、R66）：已送過的步驟、以及「全部完成」加碼的時間（只由 claim_setup_bonus() 寫入）
+    setup_bonus_steps: Mapped[list | None] = mapped_column(JSON, nullable=True)
     setup_bonus_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     line_monthly_cap: Mapped[int] = mapped_column(
         Integer, nullable=False, default=300, server_default="300", comment="LINE 通知每月上限（則）"

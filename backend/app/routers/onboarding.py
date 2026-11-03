@@ -23,14 +23,19 @@ class StepOut(BaseModel):
 
 
 class BonusOut(BaseModel):
-    """完成送試用天數（R66）。status：available＝完成就送、granted＝已送；不是試用中的店家整個是 null。"""
+    """開店設定送試用天數（R66）。不是試用中的店家整個是 null。"""
 
-    days: int
+    # available：還有天數可以拿；granted：全部拿到了
     status: str
-    granted_at: datetime | None
+    days_per_step: int
+    completion_days: int
+    total_days: int
+    earned_days: int
+    # 已送過天數的步驟
+    granted_steps: list[str]
     trial_ends_at: datetime | None
-    # 這次讀取時剛送出（前端顯示恭喜訊息、重新讀取試用天數）
-    just_granted: bool
+    # 這次讀取時剛送出的天數（前端顯示恭喜訊息、重新讀取試用天數）
+    just_granted_days: int
 
 
 class ChecklistOut(BaseModel):
@@ -44,8 +49,8 @@ class ChecklistOut(BaseModel):
 
 def _out(db: Session, tenant_id: int, *, claim: bool = False) -> ChecklistOut:
     c = onboarding.checklist(db)
-    b = onboarding.claim_bonus(db, tenant_id) if claim and c.completed else onboarding.bonus(db, tenant_id)
-    if b.just_granted:
+    b = onboarding.claim_bonus(db, tenant_id, c) if claim else onboarding.bonus(db, tenant_id)
+    if b.just_granted_days:
         db.commit()
         clear_tenant_cache()  # 試用到期日跟著租戶快取，馬上生效
     return ChecklistOut(
@@ -55,11 +60,14 @@ def _out(db: Session, tenant_id: int, *, claim: bool = False) -> ChecklistOut:
         completed=c.completed,
         dismissed=c.dismissed,
         bonus=BonusOut(
-            days=onboarding.SETUP_BONUS_DAYS,
             status=b.status,
-            granted_at=b.granted_at,
+            days_per_step=onboarding.BONUS_DAYS_PER_STEP,
+            completion_days=onboarding.BONUS_COMPLETION_DAYS,
+            total_days=b.total_days,
+            earned_days=b.earned_days,
+            granted_steps=b.granted_steps,
             trial_ends_at=b.trial_ends_at,
-            just_granted=b.just_granted,
+            just_granted_days=b.just_granted_days,
         )
         if b.status
         else None,
@@ -76,7 +84,7 @@ def _settings(db: Session) -> SystemSettings:
 def get_checklist(
     db: Session = Depends(get_db), tenant: TenantInfo = Depends(get_tenant), _: User = Depends(require_access)
 ):
-    """讀清單；必做全部完成且符合資格時，順便送試用天數（R66，每家一次）。"""
+    """讀清單；試用中的店家順便依完成的步驟送試用天數（R66：每項 +1 天、全部完成再 +4 天，送過不再送）。"""
     return _out(db, tenant.id, claim=True)
 
 

@@ -10,16 +10,20 @@ export interface OnboardingStep {
   optional: boolean;
 }
 
-/** 必做全部完成時，試用中的店家多送的試用天數（R66） */
+/** 開店設定送試用天數（R66）：每完成一項必做 +1 天，全部完成再 +4 天 */
 export interface OnboardingBonus {
-  days: number;
-  /** available＝完成就送；granted＝已經送過 */
+  /** available＝還有天數可以拿；granted＝全部拿到了 */
   status: 'available' | 'granted';
-  granted_at: string | null;
+  days_per_step: number;
+  completion_days: number;
+  total_days: number;
+  earned_days: number;
+  /** 已送過天數的步驟 */
+  granted_steps: OnboardingStepKey[];
   /** 伺服器 UTC */
   trial_ends_at: string | null;
-  /** 這次讀取時剛送出 */
-  just_granted: boolean;
+  /** 這次讀取時剛送出的天數 */
+  just_granted_days: number;
 }
 
 export interface OnboardingChecklist {
