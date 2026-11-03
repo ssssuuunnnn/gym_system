@@ -1,0 +1,236 @@
+{#- 形象網站「導覽」排版：像一份清楚的說明頁。
+    淺灰主視覺（品牌色英文小標、兩段式大標題：逗號後半段用品牌色、深藍實心＋白框按鈕、細字資訊列），
+    下方一條「先了解這幾件事」重點列；內容區左邊是固定的「本頁內容」編號目錄，右邊是編號章節（01 / ABOUT US），
+    細線卡片、左側品牌色線的提醒框、深藍色的聯絡面板。段落順序照後台設定，主視覺不編號；手機改成單欄、目錄收起。 -#}
+{% extends 'site/_layout.html' %}
+{% block styles %}<link rel="stylesheet" href="/site/static/guide.css?v=1">{% endblock %}
+{% set KICKER = {'about': 'ABOUT US', 'schedule': 'CLASS SCHEDULE', 'coaches': 'OUR TEAM', 'pricing': 'PLANS & PRICING',
+                 'gallery': 'OUR SPACE', 'news': 'LATEST NEWS', 'faq': 'FAQ', 'trial': 'FREE TRIAL', 'contact': 'VISIT US'} %}
+{% set COUNT_WORD = {1: '一', 2: '兩', 3: '三'} %}
+{% macro arrow(dir='right') -%}
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{% if dir == 'down' %}<path d="M12 5v14M6 13l6 6 6-6"/>{% else %}<path d="M5 12h14M13 6l6 6-6 6"/>{% endif %}</svg>
+{%- endmacro %}
+{#- 章節編號：照段落順序，主視覺不算 -#}
+{% set numbered = sections | reject('equalto', 'hero') | list %}
+{% macro head(key, title, lead=None) -%}
+<div class="gd-head">
+  <p class="gd-kicker"><span class="num">{{ '%02d' % (numbered.index(key) + 1) }}</span> / {{ KICKER[key] }}</p>
+  <h2 id="{{ key }}-title">{{ title }}</h2>
+  {% if lead %}<p class="gd-lead">{{ lead }}</p>{% endif %}
+</div>
+{%- endmacro %}
+{% block main %}
+<main id="main" class="guide">
+
+{#- ---------- 主視覺 ---------- -#}
+{% if 'hero' in sections %}
+{% set tagline = c.hero.tagline or full_name %}
+{% set cut = tagline.find('，') if '，' in tagline else tagline.find(',') %}
+<section id="top" class="gd-hero" aria-labelledby="hero-title">
+  <div class="wrap gd-hero-row{% if not c.hero.image_url %} no-img{% endif %}">
+    <div class="gd-hero-text">
+      <p class="gd-eyebrow">{{ c.hero.eyebrow or 'WELCOME' }}</p>
+      <h1 id="hero-title">{% if cut > 0 and cut < tagline|length - 1 %}<span>{{ tagline[:cut + 1] }}</span><span class="gd-accent">{{ tagline[cut + 1:] }}</span>{% else %}<span>{{ tagline }}</span>{% endif %}</h1>
+      {% if c.hero.description %}<p class="gd-hero-lead">{{ c.hero.description }}</p>{% endif %}
+      <div class="gd-actions">
+        {% if 'trial' in sections %}<a class="gd-btn gd-btn-dark" href="#trial">預約{{ t.trial }} {{ arrow('down') }}</a>{% endif %}
+        {% if 'schedule' in sections %}<a class="gd-btn gd-btn-light" href="#schedule">看本週課表 {{ arrow('down') }}</a>
+        {% elif 'pricing' in sections %}<a class="gd-btn gd-btn-light" href="#pricing">看方案與價格 {{ arrow('down') }}</a>{% endif %}
+      </div>
+      <ul class="gd-meta">
+        {% if c.contact.hours %}<li>{{ c.contact.hours.splitlines()[0] }}</li>{% endif %}
+        {% if c.contact.phone %}<li><a href="tel:{{ c.contact.phone | replace(' ', '') }}">{{ c.contact.phone }}</a></li>{% endif %}
+        <li><a href="/login">會員登入 {{ arrow() }}</a></li>
+      </ul>
+    </div>
+    {% if c.hero.image_url %}<img class="gd-hero-img" src="{{ c.hero.image_url }}" alt="" width="1200" height="900" fetchpriority="high">{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{#- ---------- 先了解這幾件事（下一堂課、方案起價、服務人員） ---------- -#}
+{% set show_next = next_class and 'schedule' in sections %}
+{% set show_plan = plans and 'pricing' in sections %}
+{% set show_coach = coaches and 'coaches' in sections %}
+{% set fact_count = [show_next, show_plan, show_coach] | select | list | length %}
+{% if fact_count %}
+<section class="gd-facts" aria-label="重點資訊">
+  <div class="wrap gd-facts-row">
+    <p class="gd-facts-label">先了解這{{ COUNT_WORD[fact_count] }}件事</p>
+    {% if show_next %}
+    <a class="gd-fact" href="#schedule">
+      <strong>下一堂：{{ next_class.when }} {{ next_class.time }}</strong>
+      <span>{{ next_class.name }}・{{ next_class.coach }}</span>
+    </a>
+    {% endif %}
+    {% if show_plan %}
+    <a class="gd-fact" href="#pricing">
+      <strong>方案 NT$ {{ cheapest_plan.price }} 起</strong>
+      <span>共 {{ plans|length }} 種方案，買了就能線上{{ t.book }}</span>
+    </a>
+    {% endif %}
+    {% if show_coach %}
+    <a class="gd-fact" href="#coaches">
+      <strong>{{ coaches|length }} 位{{ t.staff }}</strong>
+      <span>{{ coaches[0].name }}{% if coaches|length > 1 %} 等{% endif %}</span>
+    </a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<div class="wrap gd-body">
+  {#- ---------- 本頁內容（桌機固定在左邊） ---------- -#}
+  <aside class="gd-toc" aria-label="本頁內容">
+    <p class="gd-toc-label">本頁內容 / CONTENTS</p>
+    <ol>
+      {#- 和章節同一套編號：照 numbered；體驗申請不在頁首選單裡，這裡另外給名稱 -#}
+      {% set nav_label = dict(nav) %}
+      {% for key in numbered %}<li><a href="#{{ key }}"><span class="num">{{ '%02d' % loop.index }}</span>{{ nav_label.get(key) or ('預約' ~ t.trial) }}</a></li>{% endfor %}
+    </ol>
+    <div class="gd-toc-help">
+      <p>需要進一步協助？</p>
+      {% if line_url %}<a href="{{ line_url }}" rel="noopener" target="_blank">LINE 詢問 {{ arrow() }}</a>
+      {% elif 'contact' in sections %}<a href="#contact">聯絡我們 {{ arrow() }}</a>{% endif %}
+      {% if 'trial' in sections %}<a href="#trial">預約{{ t.trial }} {{ arrow() }}</a>{% endif %}
+    </div>
+  </aside>
+
+  <div class="gd-content">
+  {% for key in numbered %}
+
+  {% if key == 'about' %}
+  <section id="about" class="gd-section" aria-labelledby="about-title">
+    {{ head('about', c.about.title) }}
+    {% if c.about.text %}<p class="gd-prose">{{ c.about.text }}</p>{% endif %}
+    {% if c.about.features %}
+    <ul class="gd-split">
+      {% for f in c.about.features %}
+      <li><h3>{{ f.title }}</h3>{% if f.text %}<p>{{ f.text }}</p>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  {% elif key == 'schedule' %}
+  <section id="schedule" class="gd-section" aria-labelledby="schedule-title">
+    {{ head('schedule', c.schedule.title, schedule_days[0].date ~ '（' ~ schedule_days[0].label[1:] ~ '）～ ' ~ schedule_days[-1].date ~ '（' ~ schedule_days[-1].label[1:] ~ '）的' ~ t.group) }}
+    <ol class="gd-days">
+      {% for d in schedule_days %}
+      <li class="gd-day{% if d.is_today %} is-today{% endif %}{% if not d.classes %} is-empty{% endif %}">
+        <p class="gd-day-name">{{ d.label }}<span class="num">{{ d.date }}</span>{% if d.is_today %}<em>今天</em>{% endif %}</p>
+        <div class="gd-day-classes">
+          {% for k in d.classes %}
+          <div class="gd-class">
+            <strong class="num">{{ k.time }}</strong>
+            <span class="gd-class-name">{{ k.name }}</span>
+            <span class="gd-class-meta">{{ k.coach }}{% if k.branch %}・{{ k.branch }}{% endif %}・{{ k.minutes }} 分</span>
+            {% if k.seats %}<span class="gd-seats{% if k.full %} full{% endif %}">{{ k.seats }}</span>{% endif %}
+          </div>
+          {% else %}
+          <p class="gd-class-meta">沒有{{ t.group }}</p>
+          {% endfor %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="gd-note">會員<a href="/login">登入</a>後可以直接{{ t.book }}；課表每天更新。</p>
+  </section>
+
+  {% elif key == 'coaches' %}
+  <section id="coaches" class="gd-section" aria-labelledby="coaches-title">
+    {{ head('coaches', c.coaches.title) }}
+    <div class="gd-grid">
+      {% for co in coaches %}
+      <article class="gd-card gd-coach">
+        {% if co.photo_url %}<img src="{{ co.photo_url }}" alt="{{ co.name }}" loading="lazy" width="88" height="88">{% else %}<span class="gd-coach-empty" aria-hidden="true">{{ co.name[:1] }}</span>{% endif %}
+        <div>
+          {% if co.specialty %}<p class="gd-card-label">{{ co.specialty }}</p>{% endif %}
+          <h3>{{ co.name }}</h3>
+          {% if co.bio %}<p class="gd-card-text">{{ co.bio }}</p>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif key == 'pricing' %}
+  <section id="pricing" class="gd-section" aria-labelledby="pricing-title">
+    {{ head('pricing', c.pricing.title) }}
+    <div class="gd-grid">
+      {% for p in plans %}
+      <div class="gd-card gd-plan">
+        <p class="gd-card-label">{{ p.kind or '方案' }}{% if p.hours %}・{{ p.hours }} {{ t.unit }}{% endif %}</p>
+        <h3>{{ p.name }}</h3>
+        <p class="gd-price"><span>NT$</span><strong class="num">{{ p.price }}</strong></p>
+        {% if p.description %}<p class="gd-card-text">{{ p.description }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if c.pricing.note %}
+    <div class="gd-callout">
+      <h3>購買前請留意</h3>
+      <p>{{ c.pricing.note }}</p>
+    </div>
+    {% endif %}
+  </section>
+
+  {% elif key == 'gallery' %}
+  <section id="gallery" class="gd-section" aria-labelledby="gallery-title">
+    {{ head('gallery', c.gallery.title) }}
+    <div class="gd-gallery">
+      {% for img in c.gallery.images %}
+      <figure{% if loop.first %} class="first"{% endif %}>
+        <img src="{{ img.url }}" alt="{{ img.caption }}" loading="lazy">
+        {% if img.caption %}<figcaption>{{ img.caption }}</figcaption>{% endif %}
+      </figure>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif key == 'news' %}
+  <section id="news" class="gd-section" aria-labelledby="news-title">
+    {{ head('news', c.news.title) }}
+    {% with items=news %}{% include 'site/_news_list.html' %}{% endwith %}
+    <a class="gd-link" href="/site/news">看全部消息 {{ arrow() }}</a>
+  </section>
+
+  {% elif key == 'faq' %}
+  <section id="faq" class="gd-section" aria-labelledby="faq-title">
+    {{ head('faq', c.faq.title) }}
+    <div class="faq">
+      {% for item in c.faq.items %}
+      <details{% if loop.first %} open{% endif %}>
+        <summary>{{ item.q }}</summary>
+        <p>{{ item.a }}</p>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif key == 'trial' %}
+  <section id="trial" class="gd-section" aria-labelledby="trial-title">
+    {{ head('trial', c.trial.title) }}
+    <div class="gd-card gd-form-card">
+      {% include 'site/_trial_form.html' %}
+    </div>
+  </section>
+
+  {% elif key == 'contact' %}
+  <section id="contact" class="gd-section" aria-labelledby="contact-title">
+    {{ head('contact', c.contact.title) }}
+    <div class="gd-panel">
+      {% include 'site/_contact_info.html' %}
+    </div>
+    {% if c.contact.address %}
+    <iframe class="map gd-map" title="{{ full_name }} 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q={{ c.contact.address | urlencode }}&output=embed"></iframe>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% endfor %}
+  </div>
+</div>
+</main>
+{% endblock %}

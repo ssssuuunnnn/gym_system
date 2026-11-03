@@ -33,7 +33,7 @@ export type BrandColor = string;
 /**
  * 版型（與後端 SITE_THEMES 一致）。同一份內容，只換外觀；swatch 是版型縮圖用的代表色與排版
  * （網站本身的顏色，不是後台介面的顏色）：stack＝由上而下段落、grid＝方格、editorial＝雜誌、sidebar＝側欄、
- * studio＝沉穩（米色底、深藍字、白卡）。
+ * studio＝沉穩（米色底、深藍字、白卡）、guide＝導覽（左邊編號目錄、右邊編號章節）。
  */
 export const SITE_THEMES = [
   {
@@ -84,6 +84,13 @@ export const SITE_THEMES = [
     description: '米色底、深藍粗體大字、白色圓角卡片，課表排成一週時間軸',
     suits: '物理治療、皮拉提斯、美容美體、想給人專業可靠的感覺',
     swatch: { layout: 'studio', page: '#f4eee3', hero: '#fffdf8', heroText: '#13294b', block: '#ffffff', radius: 12, serif: false },
+  },
+  {
+    key: 'guide',
+    name: '導覽',
+    description: '像一份清楚的說明頁：左邊編號目錄、右邊 01、02 章節，細線卡片與深藍按鈕',
+    suits: '規則與方案多、想讓客人一次看懂的店家',
+    swatch: { layout: 'guide', page: '#ffffff', hero: '#f7f7fb', heroText: '#182838', block: '#e1e5eb', radius: 12, serif: false },
   },
 ] as const;
 export type SiteTheme = (typeof SITE_THEMES)[number]['key'];

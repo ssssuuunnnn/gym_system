@@ -46,8 +46,9 @@ SITE_THEMES: dict[str, dict[str, str]] = {
     "editorial": {"name": "雜誌", "template": "editorial", "theme_color": "#fbf9f4", "fonts": "&family=Noto+Serif+TC:wght@600;700;900"},
     "sidebar": {"name": "側欄", "template": "sidebar", "theme_color": "#f3f4f6", "fonts": ""},
     "studio": {"name": "沉穩", "template": "studio", "theme_color": "#f4eee3", "fonts": ""},
+    "guide": {"name": "導覽", "template": "guide", "theme_color": "#f7f7fb", "fonts": ""},
 }
-SiteTheme = Literal["bold", "airy", "warm", "bento", "editorial", "sidebar", "studio"]
+SiteTheme = Literal["bold", "airy", "warm", "bento", "editorial", "sidebar", "studio", "guide"]
 DEFAULT_THEME = "bold"
 
 # 網站圖片只能是本站上傳的檔案：/media/<子網域>/site/<uuid>.<jpg|png>（子網域由路由再比對）

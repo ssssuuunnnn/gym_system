@@ -68,6 +68,8 @@ function Thumb({ swatch, accent }: { swatch: Swatch; accent: string }) {
       return <SidebarThumb swatch={swatch} accent={accent} />;
     case 'studio':
       return <StudioThumb swatch={swatch} accent={accent} />;
+    case 'guide':
+      return <GuideThumb swatch={swatch} accent={accent} />;
     default:
       return <StackThumb swatch={swatch} accent={accent} />;
   }
@@ -219,6 +221,42 @@ function StudioThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) 
         {[0, 1, 2].map((i) => (
           <div key={i} style={{ flex: 1, height: 12, borderRadius: 4, background: i === 1 ? s.block : 'rgba(255,255,255,0.15)' }} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** 導覽版型的縮圖：淺灰主視覺（品牌色小標、深藍＋品牌色兩行標題、深藍按鈕），下方左邊編號目錄、右邊章節與細框卡片 */
+function GuideThumb({ swatch: s, accent }: { swatch: Swatch; accent: string }) {
+  const { token } = theme.useToken();
+  return (
+    <div aria-hidden="true" style={{ background: s.page, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+      <div style={{ background: s.hero, padding: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div style={{ height: 3, width: 20, background: accent, borderRadius: 1 }} />
+        <div style={{ height: 7, width: '55%', background: s.heroText, borderRadius: 2 }} />
+        <div style={{ height: 7, width: '45%', background: accent, borderRadius: 2 }} />
+        <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+          <div style={{ height: 9, width: 28, background: s.heroText, borderRadius: 3 }} />
+          <div style={{ height: 9, width: 22, background: s.page, border: `1px solid ${s.block}`, borderRadius: 3 }} />
+        </div>
+      </div>
+      <div style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
+        <div style={{ width: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ height: 5, borderLeft: `2px solid ${i === 0 ? accent : s.block}`, paddingLeft: 2 }}>
+              <div style={{ height: 3, width: '80%', background: s.heroText, opacity: 0.3, borderRadius: 1 }} />
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ height: 3, width: 26, background: accent, borderRadius: 1 }} />
+          <div style={{ height: 5, width: '60%', background: s.heroText, borderRadius: 1 }} />
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[0, 1].map((i) => (
+              <div key={i} style={{ flex: 1, height: 12, border: `1px solid ${s.block}`, borderRadius: 3 }} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
