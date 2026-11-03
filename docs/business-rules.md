@@ -485,6 +485,13 @@
 - **實作**：`POST /platform/tenants/{id}/trial`、`GET/PUT /platform/settings`、`platform_public_contact()`、`trial.seed_sample_data`／`clear_sample_data`、`POST /system-settings/clear-sample-data`
 - **測試**：`test_expired_trial_pauses_gym_and_extend_restores`、`test_contact_visibility_toggles`、`test_signup_end_to_end`、`test_beauty_signup_sample_has_no_group_course`
 
+### R67. 形象頁的「LINE 詢問」按鈕
+
+- **確認日期**：2026-11-03
+- **規則**：平台的 LINE 官方帳號由平台人員在「形象頁設定 → LINE 官方帳號詢問」手動填寫（@ID 或 lin.ee／line.me 加好友網址），並用「在前台顯示」開關決定形象頁是否出現。打開且有填時，形象頁的頁首、首屏（免費試用旁）、申請表單上方（「還在考慮？」）、暫停申請的說明、聯絡區（電腦版附加好友 QR Code）與手機版右下角浮動按鈕都會出現「LINE 詢問」，讓有興趣的潛在客戶先用 LINE 問問題；關掉就全部不出現。試用到期的店家看到的聯絡方式也跟著這個開關。
+- **實作**：`platform_settings.contact_line`／`show_line`、`platform_public_contact()`、`routers/platform_site._qr_svg`（segno 產生行內 SVG）、`templates/platform/_base.html`／`landing.html`
+- **測試**：`test_line_ask_button_toggle`
+
 ---
 
 ## 收支報表（ADR 0014）

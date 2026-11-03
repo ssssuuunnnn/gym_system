@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/site/static/platform.css?v=4">
+<link rel="stylesheet" href="/site/static/platform.css?v=5">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -29,7 +29,10 @@
       <a href="/#faq">常見問題</a>
       {% if contact.any %}<a href="/#contact">聯絡我們</a>{% endif %}
     </nav>
-    <div class="top-cta">{% if signup_enabled %}<a class="btn btn-dark btn-sm" href="/#signup">免費試用</a>{% endif %}</div>
+    <div class="top-cta">
+      {% if contact.line_url %}<a class="btn btn-line btn-sm" href="{{ contact.line_url }}" rel="noopener" target="_blank">{% include 'platform/_line_icon.html' %}<span>LINE 詢問</span></a>{% endif %}
+      {% if signup_enabled %}<a class="btn btn-dark btn-sm" href="/#signup">免費試用</a>{% endif %}
+    </div>
   </div>
 </header>
 
@@ -38,12 +41,25 @@
 {% if contact.any %}
 <section id="contact" class="contact">
   <div class="wrap contact-row">
-    <h2>有問題？歡迎聯絡我們</h2>
+    <div class="contact-main">
+      <h2>有問題？歡迎聯絡我們</h2>
+    {% if contact.email or contact.phone %}
     <ul class="contact-list">
-      {% if contact.line_url %}<li><span class="label">LINE 官方帳號</span><a class="btn btn-line btn-sm" href="{{ contact.line_url }}" rel="noopener" target="_blank">加入 {{ contact.line }}</a></li>{% endif %}
       {% if contact.email %}<li><span class="label">Email</span><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></li>{% endif %}
       {% if contact.phone %}<li><span class="label">電話</span><a href="tel:{{ contact.phone | replace(' ', '') | replace('-', '') }}">{{ contact.phone }}</a></li>{% endif %}
     </ul>
+    {% endif %}
+    </div>
+    {% if contact.line_url %}
+    <div class="line-card">
+      {% if line_qr %}<figure class="line-qr" role="img" aria-label="加入 LINE 官方帳號的 QR Code">{{ line_qr | safe }}</figure>{% endif %}
+      <div>
+        <strong>用 LINE 問我們</strong>
+        <p>加入官方帳號，直接傳訊息問功能、價格或怎麼開始。<span class="desk-only">電腦上可以用手機掃左邊的 QR Code。</span></p>
+        <a class="btn btn-line" href="{{ contact.line_url }}" rel="noopener" target="_blank">{% include 'platform/_line_icon.html' %}加入{% if contact.line.startswith('@') %} {{ contact.line }}{% else %} LINE 官方帳號{% endif %}</a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </section>
 {% endif %}
@@ -84,5 +100,9 @@
     </div>
   </div>
 </footer>
+{% if contact.line_url %}
+{#- 手機版右下角的 LINE 詢問按鈕（滑到哪裡都點得到） -#}
+<a class="line-float" href="{{ contact.line_url }}" rel="noopener" target="_blank">{% include 'platform/_line_icon.html' %}LINE 詢問</a>
+{% endif %}
 </body>
 </html>
