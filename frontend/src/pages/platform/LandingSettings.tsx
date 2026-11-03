@@ -8,19 +8,22 @@ import { formatServerTime } from '../../lib/datetime';
 
 const CONTACTS = [
   { field: 'contact_email', show: 'show_email', label: 'Email', placeholder: 'service@example.com' },
-  {
-    field: 'contact_line',
-    show: 'show_line',
-    label: 'LINE 官方帳號',
-    placeholder: '@yourbrand 或 https://lin.ee/…',
-    extra: '填 @ID，或貼 lin.ee／line.me 開頭的加好友網址',
-  },
   { field: 'contact_phone', show: 'show_phone', label: '電話', placeholder: '02-1234-5678' },
 ] as const;
 
+/** 和後端 services/trial.PublicContact.line_url 相同：@ID 轉成加好友網址，lin.ee／line.me 網址照用 */
+function lineAddFriendUrl(value?: string | null): string | null {
+  const v = value?.trim();
+  if (!v) return null;
+  if (v.startsWith('https://lin.ee/') || v.startsWith('https://line.me/')) return v;
+  if (v.startsWith('@')) return `https://line.me/R/ti/p/${v}`;
+  return null;
+}
+
 /**
  * 形象頁設定（ADR 0013）：平台首頁 platform.<主網域>/ 的品牌名稱、是否開放自助申請試用、聯絡方式。
- * 聯絡方式各有「顯示」開關，打開的才會出現在形象頁、以及試用到期的店家看到的「請聯絡我們」頁。
+ * 聯絡方式各有「顯示」開關，打開的才會出現在形象頁、以及試用到期的店家看到的「請聯絡我們」頁；
+ * LINE 官方帳號打開後形象頁到處都有「LINE 詢問」按鈕（R67），讓潛在客戶先問問題。
  */
 export default function LandingSettings() {
   const { message } = App.useApp();
@@ -81,12 +84,46 @@ export default function LandingSettings() {
           )}
         </Card>
 
-        <Card title="聯絡方式">
+        <Card title="LINE 官方帳號詢問" style={{ marginBottom: 16 }}>
+          <Typography.Paragraph type="secondary">
+            讓有興趣的店家直接加平台的 LINE
+            官方帳號問問題。打開「在前台顯示」後，形象頁的頁首、申請表單旁、聯絡區（電腦版附 QR
+            Code）和手機右下角都會出現「LINE 詢問」按鈕，試用到期的店家也會在「請聯絡我們」頁看到。
+          </Typography.Paragraph>
+          <Form.Item
+            name="contact_line"
+            label="LINE 官方帳號"
+            htmlFor="landing-contact_line"
+            extra="填 @ID，或貼 lin.ee／line.me 開頭的加好友網址"
+          >
+            <Input id="landing-contact_line" placeholder="@yourbrand 或 https://lin.ee/…" maxLength={200} allowClear />
+          </Form.Item>
+          <Flex gap={12} align="center" wrap>
+            <Flex gap={8} align="center">
+              <Form.Item name="show_line" valuePropName="checked" noStyle>
+                <Switch id="landing-show_line" checkedChildren="顯示" unCheckedChildren="隱藏" />
+              </Form.Item>
+              <label htmlFor="landing-show_line">在前台顯示「LINE 詢問」按鈕</label>
+            </Flex>
+            <Form.Item noStyle dependencies={['contact_line']}>
+              {({ getFieldValue }) => {
+                const url = lineAddFriendUrl(getFieldValue('contact_line'));
+                return url ? (
+                  <Button size="small" icon={<ExportOutlined />} href={url} target="_blank" rel="noopener">
+                    測試加好友連結
+                  </Button>
+                ) : null;
+              }}
+            </Form.Item>
+          </Flex>
+        </Card>
+
+        <Card title="其他聯絡方式">
           <Typography.Paragraph type="secondary">
             打開「顯示」的才會出現在形象頁，以及試用到期的店家看到的「請聯絡我們」頁。
           </Typography.Paragraph>
           {CONTACTS.map((c) => (
-            <Form.Item key={c.field} label={c.label} htmlFor={`landing-${c.field}`} extra={'extra' in c ? c.extra : undefined}>
+            <Form.Item key={c.field} label={c.label} htmlFor={`landing-${c.field}`}>
               <Flex gap={12} align="center">
                 <Form.Item
                   name={c.field}
@@ -104,9 +141,17 @@ export default function LandingSettings() {
               </Flex>
             </Form.Item>
           ))}
-          <Form.Item noStyle dependencies={CONTACTS.flatMap((c) => [c.field, c.show])}>
+          <Form.Item
+            noStyle
+            dependencies={[...CONTACTS.flatMap((c) => [c.field, c.show]), 'contact_line', 'show_line']}
+          >
             {({ getFieldValue }) => {
-              const blankShown = CONTACTS.filter((c) => getFieldValue(c.show) && !getFieldValue(c.field)?.trim());
+              const blankShown = [
+                ...(getFieldValue('show_line') && !getFieldValue('contact_line')?.trim()
+                  ? [{ label: 'LINE 官方帳號' }]
+                  : []),
+                ...CONTACTS.filter((c) => getFieldValue(c.show) && !getFieldValue(c.field)?.trim()),
+              ];
               return blankShown.length ? (
                 <Alert
                   type="warning"

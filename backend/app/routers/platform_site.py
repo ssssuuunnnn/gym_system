@@ -10,8 +10,10 @@
 """
 
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from zoneinfo import ZoneInfo
 
+import segno
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -63,6 +65,12 @@ def _local_date(value: datetime | None) -> str:
     return f"{local.year}/{local.month}/{local.day}"
 
 
+@lru_cache(maxsize=8)
+def _qr_svg(url: str) -> str:
+    """加 LINE 好友網址的 QR Code（行內 SVG，電腦版用手機掃）。只由網址產生，不含其他文字。"""
+    return segno.make(url, error="m").svg_inline(scale=4, border=0, dark="#0a0a0a", omitsize=True)
+
+
 def _context(request: Request, db: Session) -> dict:
     row = trial_service.get_platform_settings(db)
     contact = trial_service.public_contact(db)
@@ -70,6 +78,8 @@ def _context(request: Request, db: Session) -> dict:
         "brand": row.brand_name,
         "signup_enabled": row.signup_enabled,
         "contact": contact,
+        # 平台 LINE 官方帳號（形象頁設定打開「顯示」才有）：頁首、首屏、申請區、聯絡區與手機浮動按鈕都會出現
+        "line_qr": _qr_svg(contact.line_url) if contact.line_url else None,
         "base_domain": settings.BASE_DOMAIN,
         "trial_days": trial_service.TRIAL_DAYS,
         "canonical": f"{_base_url(request)}/",

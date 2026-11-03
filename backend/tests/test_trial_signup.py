@@ -85,6 +85,55 @@ def test_contact_visibility_toggles(platform_client, platform_admin, client):
     assert bad.status_code == 422
 
 
+def test_line_ask_button_toggle(platform_client, platform_admin):
+    """R67：平台 LINE 官方帳號打開「顯示」才在形象頁出現「LINE 詢問」按鈕（頁首、申請區、聯絡區 QR、手機浮動；首屏不放）。"""
+    headers = platform_auth(platform_admin)
+    body = {
+        "brand_name": "預約通",
+        "signup_enabled": True,
+        "contact_email": None,
+        "show_email": False,
+        "contact_line": "@yuyuetong",
+        "show_line": True,
+        "contact_phone": None,
+        "show_phone": False,
+    }
+    try:
+        assert platform_client.put("/api/v1/platform/settings", json=body, headers=headers).status_code == 200
+        page = platform_client.get("/").text
+        url = "https://line.me/R/ti/p/@yuyuetong"
+        # 頁首、申請區、聯絡區、手機浮動按鈕（首屏只留「免費試用」）
+        assert page.count(f'href="{url}"') == 4
+        assert "加入 LINE 詢問" not in page
+        assert 'class="line-float"' in page
+        assert 'class="line-qr"' in page and "<svg" in page
+        assert "加入 @yuyuetong" in page
+
+        # lin.ee 網址照用，按鈕不顯示網址
+        res = platform_client.put(
+            "/api/v1/platform/settings", json={**body, "contact_line": "https://lin.ee/AbC123"}, headers=headers
+        )
+        assert res.status_code == 200
+        page = platform_client.get("/").text
+        assert 'href="https://lin.ee/AbC123"' in page and "加入 LINE 官方帳號" in page
+
+        # 暫停申請時，暫停說明裡也有 LINE 按鈕；「還在考慮？」那行跟著表單消失
+        platform_client.put(
+            "/api/v1/platform/settings", json={**body, "signup_enabled": False}, headers=headers
+        )
+        page = platform_client.get("/").text
+        assert "目前暫停開放線上申請" in page and "請透過 LINE 或" in page
+        assert "還在考慮？" not in page
+
+        # 關掉顯示：形象頁完全沒有 LINE
+        platform_client.put("/api/v1/platform/settings", json={**body, "show_line": False}, headers=headers)
+        page = platform_client.get("/").text
+        assert "line.me" not in page and "line-float" not in page and "line-qr" not in page
+        assert 'id="contact"' not in page  # 其他聯絡方式也都沒開
+    finally:
+        platform_client.put("/api/v1/platform/settings", json={**body, "show_line": False}, headers=headers)
+
+
 def test_settings_require_platform_admin(platform_client):
     assert platform_client.get("/api/v1/platform/settings").status_code == 401
 

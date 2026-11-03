@@ -324,11 +324,12 @@
       <span class="pill"><b>免費</b>試用 {{ trial_days }} 天</span>
       <h2>申請試用</h2>
       <p>填完必填欄位就會馬上開通，不需要信用卡。試用到期後資料會保留 60 天，想繼續使用請聯絡我們。</p>
+      {% if contact.line_url and signup_enabled %}<p class="signup-ask">還在考慮？<a href="{{ contact.line_url }}" rel="noopener" target="_blank">加入 LINE 官方帳號</a>先問問看也可以。</p>{% endif %}
     </div>
     <div class="signup-card glow">
       <div class="glow-inner">
         {% if not signup_enabled %}
-        <div class="notice"><strong>目前暫停開放線上申請</strong><p>{% if contact.any %}請透過下方的聯絡方式與我們聯繫。{% else %}請稍後再試。{% endif %}</p></div>
+        <div class="notice"><strong>目前暫停開放線上申請</strong><p>{% if contact.any %}請透過{% if contact.line_url %} LINE 或{% endif %}下方的聯絡方式與我們聯繫。{% else %}請稍後再試。{% endif %}</p>{% if contact.line_url %}<p><a class="btn btn-line" href="{{ contact.line_url }}" rel="noopener" target="_blank">{% include 'platform/_line_icon.html' %}加入 LINE 詢問</a></p>{% endif %}</div>
         {% else %}
         <form class="signup-form" method="post" action="/site/signup" novalidate>
           {% if errors.get('form') %}<p class="form-error" role="alert">{{ errors['form'] }}</p>{% elif errors %}<p class="form-error" role="alert">請修正標示的欄位後再送出</p>{% endif %}
