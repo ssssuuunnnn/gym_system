@@ -535,3 +535,38 @@ def test_profile_brand_color_follows_published_site(client, admin):
     assert profile() == "#0B7A75"  # 已發布：用線上版本，草稿要發布後才生效
     publish(client, admin)
     assert profile() == "#722ED1"
+
+
+# ---------- 自訂品牌色 ----------
+
+
+def test_custom_brand_color(client, admin):
+    content = draft(client, admin)
+    # 太淺：白字與淺底文字看不清楚
+    content["brand_color"] = "#FF6600"
+    bad = save(client, admin, content)
+    assert bad.status_code == 422 and "太淺" in bad.text
+    content["brand_color"] = "not-a-color"
+    assert "6 碼色碼" in save(client, admin, content).text
+    # 合格的自訂色：存成大寫 6 碼，網站用它當重點色並自動算出深色區塊用的亮色版
+    content["brand_color"] = "#a3c"
+    content["hero"].update(tagline="自訂色測試")
+    res = save(client, admin, content)
+    assert res.status_code == 200, res.text
+    assert res.json()["draft"]["brand_color"] == "#AA33CC"
+    publish(client, admin)
+    html = client.get("/").text
+    assert "--accent: #AA33CC" in html
+    assert client.get(f"{API}/tenant/profile").json()["brand_color"] == "#AA33CC"
+
+
+def test_preset_brand_colors_pass_contrast_rule():
+    from app.core import colors
+    from app.schemas.website import BRAND_COLORS
+
+    for hex_color in BRAND_COLORS:
+        assert colors.brand_problem(hex_color) is None, hex_color
+    assert colors.normalize_hex("abc") == "#AABBCC"
+    for custom in ("#1F1F1F", "#AA33CC", "#BA4A00", "#000000"):
+        light = colors.light_variant(custom)
+        assert all(colors.contrast(light, dark) >= colors.LIGHT_ON_DARK_CONTRAST for dark in colors.DARK_SURFACES)

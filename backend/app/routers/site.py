@@ -33,6 +33,7 @@ from app.models.news import NewsPost
 from app.models.product import Product, ProductCategory
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
+from app.core import colors
 from app.schemas.website import BRAND_COLORS, DEFAULT_BRAND_COLOR, DEFAULT_THEME, SITE_THEMES, SiteContent
 from app.services import line as line_service
 from app.services import terms
@@ -284,8 +285,9 @@ def site_context(
     names = shop_names(db, tenant.id, company)
     company_name, full_name = names.short, names.full
     base = _base_url(request)
-    brand = BRAND_COLORS.get(content.brand_color) or BRAND_COLORS[DEFAULT_BRAND_COLOR]
-    accent = content.brand_color if content.brand_color in BRAND_COLORS else DEFAULT_BRAND_COLOR
+    # 預設色用調好的亮色版；自訂色自動算（app/core/colors.py）
+    accent = content.brand_color or DEFAULT_BRAND_COLOR
+    accent_light = BRAND_COLORS[accent]["light"] if accent in BRAND_COLORS else colors.light_variant(accent)
 
     visible = [s.key for s in content.sections if s.visible]
     # 沒有開團體課程的店（美體店預設）不顯示課表（ADR 0011）
@@ -367,7 +369,7 @@ def site_context(
         full_name=full_name,
         logo_url=company.logo_url if company else None,
         accent=accent,
-        accent_light=brand["light"],
+        accent_light=accent_light,
         sections=sections,
         nav=[(key, label) for key in sections if (label := section_nav_label(key))],
         t=terms.terms(tenant.business_type),

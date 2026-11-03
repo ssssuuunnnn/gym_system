@@ -4,8 +4,8 @@ import type { ThemeConfig } from 'antd';
  * 前台（會員／教練）主題：以 ConfigProvider 巢狀套在 MemberLayout，覆寫 App.tsx 的後台主題。
  * 這裡是前台色票的唯一來源；元件一律透過 theme.useToken() 取用，不要在元件裡寫色碼。
  *
- * - 會員：跟著形象網站的品牌色（`frontTheme('member', brandColor)`；品牌色只能從 BRAND_COLORS 挑，
- *   都確認過白字與白底／淺灰底 ≥ 4.5:1）。沒有網站時用品牌藍深一階 #0958d9（白字對比約 5.9:1）
+ * - 會員：跟著形象網站的品牌色（`frontTheme('member', brandColor)`；品牌色是 BRAND_COLORS 預設色
+ *   或自訂色碼，後端都確認過白字與淺色底 ≥ 4.5:1）。沒有網站時用品牌藍深一階 #0958d9（白字對比約 5.9:1）
  * - 教練：固定深青綠 #006d75（白字對比約 6:1），不跟品牌色，讓身份一眼可分
  */
 export type FrontMode = 'member' | 'coach';

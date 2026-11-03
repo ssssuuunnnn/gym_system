@@ -14,7 +14,7 @@ from app.core.tenant_context import TenantInfo
 from app.deps import get_db, get_tenant
 from app.models.system_settings import SystemSettings
 from app.models.website import Website
-from app.schemas.website import BRAND_COLORS
+from app.core import colors
 from app.models.tenant import BusinessType, Tenant, TenantStatus, trial_expired
 from app.services import terms
 from app.services import trial as trial_service
@@ -48,7 +48,7 @@ class TenantProfile(BaseModel):
     business_type: BusinessType
     group_classes_enabled: bool
     trial: TrialInfo | None = None
-    # 形象網站的品牌色（已發布的版本；從沒發布過就用草稿）：會員前台的主色。沒有網站時為 None（前台用預設色）
+    # 形象網站的品牌色（預設色或自訂色碼；已發布的版本，從沒發布過就用草稿）：會員前台的主色。沒有網站時為 None（前台用預設色）
     brand_color: str | None = None
 
 
@@ -58,8 +58,10 @@ def _brand_color(db: Session) -> str | None:
         return None
     content = site.published or site.draft or {}
     color = content.get("brand_color") if isinstance(content, dict) else None
-    # 只回傳預設色票裡的顏色（都確認過對比）
-    return color if color in BRAND_COLORS else None
+    # 只回傳通過對比檢查的顏色（預設色或合格的自訂色）
+    if not isinstance(color, str) or colors.brand_problem(color):
+        return None
+    return colors.normalize_hex(color)
 
 
 @router.get("/profile", response_model=TenantProfile)

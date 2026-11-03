@@ -1,6 +1,6 @@
-import { Button, Form, Input, Space, Typography, theme } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
-import { BRAND_COLORS, type SiteContent } from '../../../../../api/website';
+import { Form, Input, Typography, theme } from 'antd';
+import type { SiteContent } from '../../../../../api/website';
+import { BrandColorPicker } from '../BrandColorPicker';
 import { SiteImageUploader } from '../../../../../components/SiteImageUploader';
 import { ThemePicker } from '../ThemePicker';
 
@@ -22,30 +22,12 @@ export function SettingsPanel({ content, onChange }: SettingsPanelProps) {
         <ThemePicker value={content.theme} accent={content.brand_color} onChange={(t) => onChange({ theme: t })} />
       </Form.Item>
 
-      <Form.Item label="品牌色" extra="按鈕、標題小字與重點色。每個顏色都確認過文字看得清楚。">
-        <Space wrap>
-          {BRAND_COLORS.map((c) => {
-            const selected = content.brand_color === c.hex;
-            return (
-              <Button
-                key={c.hex}
-                shape="circle"
-                aria-label={c.name}
-                aria-pressed={selected}
-                title={c.name}
-                onClick={() => onChange({ brand_color: c.hex })}
-                icon={selected ? <CheckOutlined style={{ color: token.colorWhite }} /> : undefined}
-                style={{
-                  width: 40,
-                  height: 40,
-                  background: c.hex,
-                  borderColor: selected ? token.colorPrimaryBorder : c.hex,
-                  boxShadow: selected ? `0 0 0 3px ${token.colorPrimaryBorder}` : 'none',
-                }}
-              />
-            );
-          })}
-        </Space>
+      <Form.Item
+        label="品牌色"
+        htmlFor="site-brand-hex"
+        extra="按鈕、標題小字與重點色，會員前台的主色也會跟著換。可以挑預設色，或輸入自己的 Hex 色碼（太淺的顏色文字會看不清楚，不能使用）。"
+      >
+        <BrandColorPicker value={content.brand_color} onChange={(hex) => onChange({ brand_color: hex })} />
       </Form.Item>
 
       <Form.Item htmlFor="site-settings-1" label="搜尋與分享標題" extra="留空時使用系統設定的公司名稱，改名後會自動更新">

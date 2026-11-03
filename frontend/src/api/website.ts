@@ -19,7 +19,7 @@ export const SECTION_LABEL: Record<SectionKey, string> = {
   contact: '交通與聯絡',
 };
 
-/** 品牌色（與後端 BRAND_COLORS 一致；每個都確認過文字對比） */
+/** 預設品牌色（與後端 BRAND_COLORS 一致；每個都確認過文字對比）。也可以自訂色碼，見 lib/brandColor.ts */
 export const BRAND_COLORS = [
   { hex: '#C3400D', name: '橘紅' },
   { hex: '#0B7A75', name: '青綠' },
@@ -27,7 +27,8 @@ export const BRAND_COLORS = [
   { hex: '#722ED1', name: '紫' },
   { hex: '#1F1F1F', name: '黑' },
 ] as const;
-export type BrandColor = (typeof BRAND_COLORS)[number]['hex'];
+/** 預設色或自訂的 6 碼大寫色碼（#RRGGBB） */
+export type BrandColor = string;
 
 /**
  * 版型（與後端 SITE_THEMES 一致）。同一份內容，只換外觀；swatch 是版型縮圖用的代表色與排版
