@@ -25,7 +25,7 @@
 - `nginx.conf`：取代 `frontend/nginx.conf` 的 server 設定（443 ＋ Origin 憑證 ＋ Cloudflare 真實 IP），路由規則與本機共用 `frontend/nginx/routes.conf`。
 - `setup-server.sh`：主機首次開機的初始化（Docker、swap、`/opt/gym-system`）。Lightsail 會把它接在自己的 `/bin/sh` 腳本後執行，只能寫 POSIX sh。
 - `init-env.sh`：第一次部署時用隨機值產生 `.env`，並顯示一次平台管理員密碼。
-- `deploy.sh`：從本機部署目前的 commit（GitHub Actions 的自動部署也是跑這支）。
+- `deploy.sh`：從本機部署目前的 commit（GitHub Actions 的自動部署也是跑這支）。主機上的程式碼會和該 commit 完全一致：先解到 `/opt/gym-system/.release`，再用 `rsync --delete` 同步，已刪除或改名的舊檔會清掉；最上層原本就有的檔案與資料夾（`.env` 等）和 `deploy/lightsail/certs/` 不會動。主機沒有 rsync 時會自動安裝。
 - `.github/workflows/deploy.yml`：main 的 CI 通過後自動部署，見下方「自動部署」。
 
 ## Cloudflare 設定（一次）

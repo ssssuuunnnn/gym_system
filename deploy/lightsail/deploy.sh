@@ -1,5 +1,5 @@
 #!/bin/sh
-# 從本機把目前的 commit（HEAD）部署到 Lightsail 主機：上傳原始碼 → 首次產生 .env → 重新 build 並啟動。
+# 從本機把目前的 commit（HEAD）部署到 Lightsail 主機：上傳原始碼（與 HEAD 完全一致，已刪除的檔案會清掉）→ 首次產生 .env → 重新 build 並啟動。
 # 用法：deploy/lightsail/deploy.sh [ubuntu@主機IP]（或設定 GYM_DEPLOY_HOST）；SSH 金鑰預設 ~/.ssh/gym-lightsail.pem。
 set -eu
 cd "$(dirname "$0")/../.."
@@ -13,7 +13,14 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 echo "==> 上傳 $(git rev-parse --short HEAD) 到 $HOST:/opt/gym-system"
-git archive --format=tar HEAD | $SSH "tar -x -C /opt/gym-system"
+# 先解到暫存目錄，再用 rsync --delete 同步：舊版本有、這版已刪除或改名的檔案要一併清掉。
+# （只解壓覆蓋的話，舊檔會留在主機上；例如 Dashboard.tsx 改成 Dashboard/index.tsx 後，
+#   留下來的舊 Dashboard.tsx 會被 import 優先選到，畫面一直是舊版。）
+# 保護：最上層原本就有的東西不刪（.env 等），deploy/lightsail/certs/ 整個保留。
+$SSH "rm -rf /opt/gym-system/.release && mkdir -p /opt/gym-system/.release"
+git archive --format=tar HEAD | $SSH "tar -x -C /opt/gym-system/.release"
+$SSH "command -v rsync >/dev/null || sudo apt-get install -y -qq rsync >/dev/null"
+$SSH "cd /opt/gym-system && rsync -a --delete --exclude=/.release --filter='P /*' --filter='P /deploy/lightsail/certs/***' .release/ ./ && rm -rf .release"
 
 $SSH "sh /opt/gym-system/deploy/lightsail/init-env.sh"
 
