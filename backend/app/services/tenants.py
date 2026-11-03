@@ -36,6 +36,7 @@ AUDIT_ACTIONS = {
     "create_tenant": "開通店家",
     "self_signup": "自助申請試用",
     "extend_trial": "延長試用",
+    "setup_bonus": "開店設定送試用天數",
     "update_platform_settings": "修改形象頁設定",
     "update_tenant": "修改店家資料",
     "set_status": "變更狀態",

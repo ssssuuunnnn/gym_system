@@ -3,16 +3,17 @@ import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import StatusTag from '../../components/StatusTag';
-import { listReservations, type Reservation } from '../../api/reservations';
-import { listPurchases } from '../../api/purchases';
-import { listMembers } from '../../api/users';
-import { listProducts } from '../../api/products';
-import { listCoaches } from '../../api/coaches';
-import { listCourses } from '../../api/courses';
-import { useTerms } from '../../lib/terms';
-import { usePermissions } from '../../lib/permissions';
-import { SampleDataAlert } from '../../components/trial/SampleDataAlert';
+import StatusTag from '../../../components/StatusTag';
+import { listReservations, type Reservation } from '../../../api/reservations';
+import { listPurchases } from '../../../api/purchases';
+import { listMembers } from '../../../api/users';
+import { listProducts } from '../../../api/products';
+import { listCoaches } from '../../../api/coaches';
+import { listCourses } from '../../../api/courses';
+import { useTerms } from '../../../lib/terms';
+import { usePermissions } from '../../../lib/permissions';
+import { SampleDataAlert } from '../../../components/trial/SampleDataAlert';
+import { SetupChecklist } from './components/SetupChecklist';
 
 type ScheduleRow = {
   key: string;
@@ -117,6 +118,7 @@ export default function Dashboard() {
       <Typography.Title level={4} style={{ marginBottom: 16 }}>
         儀表板
       </Typography.Title>
+      {can('settings') && <SetupChecklist />}
       {can('settings') && <SampleDataAlert />}
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>

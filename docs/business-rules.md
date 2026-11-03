@@ -543,6 +543,22 @@
 - 可替換、移除；帳目刪除後收據仍可查看。
 - 測試：`tests/test_accounting_phase2.py`（確認日期：2026-11-02）
 
+## 開店設定清單（ADR 0016）
+
+### R65. 開店設定清單依實際資料自動完成
+
+- 儀表板顯示「開店設定」清單給有系統設定權限的帳號：確認店名並上傳 LOGO、寫付款方式、新增教練／美容師、建立方案、發布形象網站、迎接第一位會員，以及選做的串接 LINE 官方帳號。
+- 每一步依實際資料判斷，範例資料不算；必做全部完成就顯示可以開始接受預約。
+- 清單可以隱藏（整間店共用），在系統設定重新顯示。
+- 實作：`services/onboarding.py`、`routers/onboarding.py`；測試：`tests/test_onboarding.py`（確認日期：2026-11-03）
+
+### R66. 開店設定送試用天數：每項 +1 天，全部完成再 +4 天
+
+- 試用中（有到期日、還沒到期）的店家，開店設定清單每完成一項必做步驟，試用期從原到期日延長 1 天；6 項全部完成再加送 4 天，最多 10 天。
+- 每一步只送一次，全部完成的加碼也只送一次；之後步驟又變成未完成不收回。選做的 LINE 串接不送天數。已轉為正式的店家不適用。
+- 由店家讀清單時自動送出，每次寫一筆平台操作紀錄「開店設定送試用天數」。
+- 實作：`claim_setup_bonus(done_steps, completed)`（migration `0018_setup_bonus`）、`tenants.setup_bonus_steps`／`setup_bonus_at`；測試：`test_setup_bonus_per_step_and_completion`、`test_bonus_function_ignores_unknown_steps`、`test_no_bonus_for_active_tenants`（確認日期：2026-11-03）
+
 ## 堂數帳務的共通原則
 
 以下為實作上的保證，支撐 R1–R3 與 R8，修改時不可破壞：

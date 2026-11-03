@@ -7,6 +7,7 @@ import { getSettings, updateSettings, uploadSettingsLogo } from '../../../api/se
 import { LineNotifyCard } from './components/LineNotifyCard';
 import { LineOaCard } from './components/LineOaCard';
 import { FeaturesCard } from './components/FeaturesCard';
+import { OnboardingRestore } from './components/OnboardingRestore';
 
 const { Text } = Typography;
 
@@ -178,6 +179,8 @@ export default function SystemSettings() {
           </div>
         </div>
       </div>
+
+      <OnboardingRestore />
 
       <Card title="基本資料">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 840 }}>
