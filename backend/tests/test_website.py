@@ -248,6 +248,7 @@ def test_text_is_escaped(client, admin, gym, coach, plans, course, db):
         ("editorial", "editorial.css", "#fbf9f4"),
         ("sidebar", "sidebar.css", "#f3f4f6"),
         ("studio", "studio.css", "#f4eee3"),
+        ("guide", "guide.css", "#f7f7fb"),
     ],
 )
 def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, theme_color):
@@ -261,7 +262,8 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
     html = client.get("/").text
     assert f'<body class="theme-{theme}">' in html
     assert f'<meta name="theme-color" content="{theme_color}">' in html
-    assert "小班制訓練，陪你練出改變" in html  # 內容不變
+    # 內容不變（導覽版型把標題在逗號後拆成兩段，下面另外檢查）
+    assert "小班制訓練，陪你練出改變" in html or theme == "guide"
     if stylesheet:
         assert f"/site/static/{stylesheet}" in html
         assert client.get(f"/site/static/{stylesheet}").status_code == 200
@@ -290,6 +292,17 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert "明天 19:00" in facts and "壺鈴循環" in facts and "位教練" in facts
         assert html.count('class="st-pill"') == 7 and "is-today" in html
         assert "十年肌力訓練經驗" in html and html.count('name="consent"') == 1
+    assert ('class="guide"' in html) == (theme == "guide")
+    if theme == "guide":
+        # 標題逗號後半段用品牌色；章節依段落順序編號（主視覺不編號），左邊目錄同樣編號
+        assert '<span>小班制訓練，</span><span class="gd-accent">陪你練出改變</span>' in html
+        kickers = [k.split("</span>")[0] for k in html.split('<p class="gd-kicker"><span class="num">')[1:]]
+        assert kickers == [f"{i:02d}" for i in range(1, len(kickers) + 1)] and len(kickers) >= 5
+        toc = html.split('class="gd-toc"')[1].split("</aside>")[0]
+        assert 'href="#schedule"' in toc and 'href="#pricing"' in toc and toc.count("<li>") == len(kickers)
+        facts = html.split('gd-facts-row"')[1].split("</section>")[0]
+        assert "先了解這三件事" in facts and "明天 19:00" in facts and "壺鈴循環" in facts and "位教練" in facts
+        assert "十年肌力訓練經驗" in html and html.count('name="consent"') == 1
     assert ('class="sb-side"' in html) == (theme == "sidebar")
     if theme == "sidebar":
         side = html.split('class="sb-side"')[1].split("</aside>")[0]
@@ -300,7 +313,7 @@ def test_themes(client, admin, gym, coach, plans, course, theme, stylesheet, the
         assert html.count('name="consent"') == 1
 
 
-@pytest.mark.parametrize("theme", ["bento", "sidebar", "studio"])
+@pytest.mark.parametrize("theme", ["bento", "sidebar", "studio", "guide"])
 def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plans, course, theme):
     """「方案起價」取最便宜的方案，不是後台排在第一個的。"""
     cheap = Product(name="體驗月票", category=ProductCategory.single_course, session_hours=4, price=3600)
@@ -316,6 +329,7 @@ def test_starting_price_is_the_cheapest_plan(client, admin, db, gym, coach, plan
         "bento": 'class="tile t-plan-teaser"',
         "sidebar": 'class="card stat" href="#pricing"',
         "studio": 'class="st-fact" href="#pricing"',
+        "guide": 'class="gd-fact" href="#pricing"',
     }[theme]
     teaser = html.split(marker)[1].split("</a>")[0]
     assert "3,600" in teaser and "12,000" not in teaser
