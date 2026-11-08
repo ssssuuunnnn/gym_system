@@ -12,6 +12,7 @@
 """
 
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from zoneinfo import ZoneInfo
@@ -187,6 +188,15 @@ def _structured_data(ctx: dict) -> str:
     return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False).replace("</", "<\\/")
 
 
+GTM_ID_RE = re.compile(r"GTM-[A-Z0-9]{4,12}")
+
+
+def gtm_id() -> str | None:
+    """形象頁要載入的 GTM 容器 ID；格式不對就不載入（值會寫進頁面的 script）。"""
+    value = settings.GTM_ID.strip()
+    return value if GTM_ID_RE.fullmatch(value) else None
+
+
 def landing_lastmod() -> date:
     """sitemap 的 lastmod：形象頁設定最後修改日（品牌、聯絡方式都在這裡）。"""
     with db_session.PlatformSessionLocal() as db:
@@ -210,6 +220,7 @@ def _context(request: Request, db: Session) -> dict:
         "description": DESCRIPTION.format(days=trial_service.TRIAL_DAYS),
         "og_image": f"{origin}/site/static/brand/og-image.png",
         "faqs": faqs(),
+        "gtm_id": gtm_id(),
         "year": datetime.utcnow().year,
         "honeypot": trial_service.HONEYPOT_FIELD,
     }
@@ -276,6 +287,8 @@ async def signup_done(request: Request, s: str = ""):
                 "url": f"{settings.PUBLIC_SCHEME}://{tenant.subdomain}.{settings.BASE_DOMAIN}",
                 "login_url": trial_service.login_url(tenant.subdomain),
                 "ends": _local_date(tenant.trial_ends_at),
+                # 給 GTM 的轉換事件（sign_up）用，只有行業類型，不含店名或聯絡資料
+                "business_type": tenant.business_type.name,
             }
     return _html(_templates().get_template("platform/signup_done.html").render(**ctx, shop=shop))
 

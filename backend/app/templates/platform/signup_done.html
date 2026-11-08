@@ -5,6 +5,7 @@
 <main id="main" class="page">
   <div class="wrap narrow done">
     {% if shop %}
+    {% if gtm_id %}<script>window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'sign_up',method:'self_service',business_type:{{ shop.business_type | tojson }}});</script>{% endif %}
     <span class="tag green"><i>✓</i>開通完成</span><br>
     <h1>「{{ shop.name }}」已經可以使用了</h1>
     <p class="lead dark">試用到 <strong>{{ shop.ends }}</strong>。請用剛剛設定的管理員帳號與密碼登入後台。</p>

@@ -4,6 +4,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{% if gtm_id %}
+{#- Google 代碼管理工具（只在平台形象頁，見 ADR 0017；ID 由後端驗證格式） -#}
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ gtm_id }}');</script>
+{% endif %}
 <title>{% block title %}{{ brand }}｜健身房、美容美體店的線上預約系統・免費試用 {{ trial_days }} 天{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ description }}{% endblock %}">
 <link rel="canonical" href="{% block canonical %}{{ canonical }}{% endblock %}">
@@ -33,6 +37,7 @@
 {% block head %}{% endblock %}
 </head>
 <body>
+{% if gtm_id %}<noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}" height="0" width="0" style="display:none;visibility:hidden" title="Google Tag Manager"></iframe></noscript>{% endif %}
 <a class="skip" href="#main">跳到主要內容</a>
 <header class="top">
   <div class="wrap top-row">

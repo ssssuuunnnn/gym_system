@@ -118,3 +118,26 @@ def test_gym_hosts_unchanged_in_apex_mode(apex_mode, client):
     assert client.get("/", follow_redirects=False).status_code in (302, 303)
     assert client.get("/site/terms").status_code == 404
     assert client.post("/site/signup", data={"store_name": "x"}).status_code == 404
+
+
+# ---------- Google 代碼管理工具（只在平台形象頁） ----------
+
+
+def test_gtm_only_when_configured(platform_client, client, monkeypatch, admin):
+    assert "googletagmanager" not in platform_client.get("/").text
+
+    monkeypatch.setattr(settings, "GTM_ID", "GTM-P57ZQDMK")
+    html = platform_client.get("/").text
+    assert "'dataLayer','GTM-P57ZQDMK'" in html
+    assert "ns.html?id=GTM-P57ZQDMK" in html
+    terms = platform_client.get("/site/terms").text
+    assert "googletagmanager" in terms and "網站使用分析" in terms
+
+    # 店家網址（形象網站、登入頁）不載入平台的追蹤碼
+    assert "googletagmanager" not in client.get("/", follow_redirects=True).text
+
+
+def test_gtm_rejects_malformed_id(platform_client, monkeypatch):
+    monkeypatch.setattr(settings, "GTM_ID", "GTM-X');alert(1)//")
+    html = platform_client.get("/").text
+    assert "googletagmanager" not in html and "alert(1)" not in html

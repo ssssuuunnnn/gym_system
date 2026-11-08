@@ -50,6 +50,8 @@ services:
       DEFAULT_TENANT: ""
       # 平台形象頁在主網域 https://<BASE_DOMAIN>/；platform.<BASE_DOMAIN> 只剩管理後台（ADR 0017）
       LANDING_ON_APEX: "true"
+      # 平台形象頁的 GTM 容器（只放形象頁）；要停用就在 .env 設 GTM_ID=
+      GTM_ID: ${GTM_ID-GTM-P57ZQDMK}
       SECRET_KEY: ${SECRET_KEY:?請在 .env 設定 SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
       # 前端與 API 同網址（nginx 反向代理），不需要跨網域
