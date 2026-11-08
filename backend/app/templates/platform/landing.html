@@ -1,6 +1,7 @@
 {% extends 'platform/_base.html' %}
 {% macro err(name) %}{% if errors.get(name) %}<span class="field-error" id="{{ name }}-error">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 {% macro invalid(name) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}{% endmacro %}
+{% block head %}<script type="application/ld+json">{{ json_ld | safe }}</script>{% endblock %}
 {% block main %}
 <main id="main">
 
@@ -9,7 +10,7 @@
   <div class="wrap">
     <span class="pill"><b>免費</b>試用 {{ trial_days }} 天・不用信用卡</span>
     <h1>預約、方案、會員<br>一個後台全搞定</h1>
-    <p class="lead">給健身工作室與美容美體店的預約管理系統。會員線上預約、堂數自動扣抵、LINE 通知，還有自己的形象網站。</p>
+    <p class="lead">給健身工作室與美容美體店的線上預約系統。會員線上預約、堂數自動扣抵、LINE 通知，還有自己的形象網站。</p>
     <div class="actions">
       {% if signup_enabled %}<a class="btn btn-dark btn-lg" href="#signup">免費試用 {{ trial_days }} 天</a>{% endif %}
       <a class="btn btn-text btn-lg" href="#features">看看有哪些功能 <span class="chev">›</span></a>
@@ -308,11 +309,8 @@
       <h2>常見問題</h2>
     </div>
     <div class="faq">
-      <details open><summary>試用需要付費或綁信用卡嗎？</summary><p>不需要。試用 {{ trial_days }} 天內所有功能都能使用，不會自動扣款。</p></details>
-      <details><summary>試用到期後會怎樣？</summary><p>到期後後台與會員預約會暫停，形象網站也會暫停顯示；資料保留 60 天，期間聯絡我們轉為正式即可繼續使用，資料都還在。</p></details>
-      <details><summary>開通後裡面是空的嗎？</summary><p>會先放好範例的服務人員、方案與網站草稿，讓你馬上看得到效果；不需要時可在後台一鍵清除。</p></details>
-      <details><summary>可以用自己的網址嗎？</summary><p>目前每家店使用 <code>你的網址.{{ base_domain }}</code>；自訂網域將於之後開放。</p></details>
-      <details><summary>會員要下載 App 嗎？</summary><p>不用。會員用手機瀏覽器或 LINE 就能預約、查看方案與預約紀錄。</p></details>
+      {% for f in faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ f.q }}</summary><p>{{ f.a }}</p></details>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -395,7 +393,7 @@
     var value = input.value;
     if (!value) { hint.textContent = defaultText; hint.className = 'hint'; return; }
     timer = setTimeout(function () {
-      fetch('/api/v1/platform/public/check-subdomain?subdomain=' + encodeURIComponent(value))
+      fetch('/site/check-subdomain?subdomain=' + encodeURIComponent(value))
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (input.value !== value) return;
