@@ -413,9 +413,11 @@ def _published(db: Session) -> SiteContent | None:
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, sent: int | None = None):
-    # 平台網址的首頁是平台形象頁（ADR 0013）
-    if platform_site.is_platform_host(request):
+    # 平台形象頁（ADR 0013）：正式環境在主網域，本機在平台網址；搬到主網域後平台網址的首頁 301 轉過去（ADR 0017）
+    if platform_site.is_landing_host(request):
         return platform_site.render_landing(request)
+    if (moved := platform_site.moved_landing(request)) is not None:
+        return moved
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return tenant
@@ -619,12 +621,15 @@ async def submit_inquiry(request: Request, background_tasks: BackgroundTasks):
 
 @router.get("/robots.txt", response_class=PlainTextResponse)
 async def robots(request: Request):
-    if platform_site.is_platform_host(request):
-        # 平台網址只開放形象頁與服務條款，管理後台不給搜尋引擎
+    if platform_site.is_landing_host(request):
+        # 形象頁網址只開放形象頁與服務條款（本機的平台網址同時是管理後台，後台不給搜尋引擎）
         return PlainTextResponse(
             "User-agent: *\nAllow: /$\nAllow: /site/static/\nAllow: /site/terms\nDisallow: /\n"
             f"Sitemap: {_base_url(request)}/sitemap.xml\n"
         )
+    if platform_site.is_platform_host(request):
+        # 形象頁搬到主網域後，平台網址只剩管理後台
+        return PlainTextResponse("User-agent: *\nDisallow: /\n")
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return PlainTextResponse("User-agent: *\nDisallow: /\n")
@@ -640,15 +645,19 @@ async def robots(request: Request):
 
 @router.get("/sitemap.xml")
 async def sitemap(request: Request):
-    if platform_site.is_platform_host(request):
+    if platform_site.is_landing_host(request):
         base = _base_url(request)
+        day = platform_site.landing_lastmod().isoformat()
         body = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            f"  <url><loc>{base}/</loc></url>\n  <url><loc>{base}/site/terms</loc></url>\n"
+            f"  <url><loc>{base}/</loc><lastmod>{day}</lastmod></url>\n"
+            f"  <url><loc>{base}/site/terms</loc><lastmod>{day}</lastmod></url>\n"
             "</urlset>\n"
         )
         return Response(body, media_type="application/xml")
+    if platform_site.is_platform_host(request):
+        return Response(status_code=404)
     tenant = await _resolve_tenant(request)
     if isinstance(tenant, HTMLResponse):
         return tenant
