@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     BASE_DOMAIN: str = "localhost"
     # 沒有子網域時（本機 localhost、IP）使用的租戶；正式環境應留空，未知網址回 404。
     DEFAULT_TENANT: str = ""
+    # 平台形象頁放在哪裡（ADR 0017）：False＝platform.<BASE_DOMAIN>/（本機開發）；True＝主網域 <BASE_DOMAIN>/，
+    # platform.<BASE_DOMAIN> 只剩管理後台，首頁與形象頁網址 301 轉到主網域。正式環境設 True（docker-compose.prod.yml）。
+    LANDING_ON_APEX: bool = False
+    # 平台形象頁的 Google 代碼管理工具（GTM）容器 ID，例如 GTM-XXXXXXX；留空＝不載入（本機、測試）。
+    # 只放在平台形象頁，不放店家網站、後台與會員前台（那些頁面有店家顧客的個資，見 ADR 0017）。
+    GTM_ID: str = ""
 
     SECRET_KEY: str = "change-me-to-a-random-secret"
     ALGORITHM: str = "HS256"

@@ -17,7 +17,7 @@
 | 防火牆 | 443 只開放 [Cloudflare IP](https://www.cloudflare.com/ips-v4)；22 只開放管理者 IP ＋ Lightsail 瀏覽器 SSH |
 | 備份 | Lightsail 每日自動快照（UTC 18:00＝台灣 02:00，保留 7 份） |
 | SSH | `ssh -i ~/.ssh/gym-lightsail.pem ubuntu@<固定 IP>`（金鑰對 `gym-system-key`） |
-| 網址 | 健身房 `https://<子網域>.bookdex.cc`，平台管理後台 `https://platform.bookdex.cc`；主網域本身不是健身房 |
+| 網址 | 平台形象頁 `https://bookdex.cc`（`www` 轉到這裡），健身房 `https://<子網域>.bookdex.cc`，平台管理後台 `https://platform.bookdex.cc/login`（首頁轉到主網域） |
 
 ## 檔案
 
@@ -30,7 +30,7 @@
 
 ## Cloudflare 設定（一次）
 
-1. **DNS**：新增 `A` 紀錄，名稱 `*`，內容＝固定 IP，Proxy 狀態＝已代理（橘色雲）。已存在的其他紀錄（例如 `www`）優先於萬用紀錄，不受影響。
+1. **DNS**：新增兩筆 `A` 紀錄，名稱 `*` 與 `@`（主網域，平台形象頁在這裡，見 ADR 0017），內容＝固定 IP，Proxy 狀態＝已代理（橘色雲）。`www` 由萬用紀錄接住，nginx 會 301 到主網域。
 2. **SSL/TLS → 概觀**：加密模式選 **Full (strict)**。
 3. **SSL/TLS → 原始伺服器 → 建立憑證**：RSA、主機名稱 `*.bookdex.cc` 與 `bookdex.cc`、有效期 15 年。把「原始憑證」存成 `deploy/lightsail/certs/origin.pem`、「私密金鑰」存成 `deploy/lightsail/certs/origin.key`（此目錄在 `.gitignore`，`deploy.sh` 會上傳到主機）。
 4. **SSL/TLS → 邊緣憑證**：開啟「一律使用 HTTPS」。
