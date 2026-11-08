@@ -58,11 +58,11 @@ jobs:
     timeout-minutes: 30
     environment:
       name: production
-      url: https://platform.sunkuo.cc
+      url: https://platform.bookdex.cc
     env:
       AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
       LIGHTSAIL_INSTANCE: ${{ vars.LIGHTSAIL_INSTANCE || 'gym-system' }}
-      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://platform.sunkuo.cc/robots.txt' }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://platform.bookdex.cc/robots.txt' }}
     steps:
       - name: 檢查設定
         env:

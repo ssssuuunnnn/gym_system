@@ -3,7 +3,7 @@
 最省錢的單機部署：一台 Lightsail 主機跑 `docker-compose.prod.yml`（PostgreSQL、後端、nginx 全在同一台），網域 DNS 與對外 HTTPS 由 Cloudflare 處理。用量變大後再換 ECS＋RDS。
 
 ```
-使用者 ─HTTPS─► Cloudflare Proxy（*.sunkuo.cc 免費憑證）
+使用者 ─HTTPS─► Cloudflare Proxy（*.bookdex.cc 免費憑證）
                    │ HTTPS（Origin Certificate，SSL 模式 Full (strict)）
                    ▼
         Lightsail gym-system（ap-southeast-2，固定 IP gym-system-ip）
@@ -17,7 +17,7 @@
 | 防火牆 | 443 只開放 [Cloudflare IP](https://www.cloudflare.com/ips-v4)；22 只開放管理者 IP ＋ Lightsail 瀏覽器 SSH |
 | 備份 | Lightsail 每日自動快照（UTC 18:00＝台灣 02:00，保留 7 份） |
 | SSH | `ssh -i ~/.ssh/gym-lightsail.pem ubuntu@<固定 IP>`（金鑰對 `gym-system-key`） |
-| 網址 | 健身房 `https://<子網域>.sunkuo.cc`，平台管理後台 `https://platform.sunkuo.cc`；主網域本身不是健身房 |
+| 網址 | 健身房 `https://<子網域>.bookdex.cc`，平台管理後台 `https://platform.bookdex.cc`；主網域本身不是健身房 |
 
 ## 檔案
 
@@ -32,7 +32,7 @@
 
 1. **DNS**：新增 `A` 紀錄，名稱 `*`，內容＝固定 IP，Proxy 狀態＝已代理（橘色雲）。已存在的其他紀錄（例如 `www`）優先於萬用紀錄，不受影響。
 2. **SSL/TLS → 概觀**：加密模式選 **Full (strict)**。
-3. **SSL/TLS → 原始伺服器 → 建立憑證**：RSA、主機名稱 `*.sunkuo.cc` 與 `sunkuo.cc`、有效期 15 年。把「原始憑證」存成 `deploy/lightsail/certs/origin.pem`、「私密金鑰」存成 `deploy/lightsail/certs/origin.key`（此目錄在 `.gitignore`，`deploy.sh` 會上傳到主機）。
+3. **SSL/TLS → 原始伺服器 → 建立憑證**：RSA、主機名稱 `*.bookdex.cc` 與 `bookdex.cc`、有效期 15 年。把「原始憑證」存成 `deploy/lightsail/certs/origin.pem`、「私密金鑰」存成 `deploy/lightsail/certs/origin.key`（此目錄在 `.gitignore`，`deploy.sh` 會上傳到主機）。
 4. **SSL/TLS → 邊緣憑證**：開啟「一律使用 HTTPS」。
 
 ## 部署
@@ -41,13 +41,13 @@
 deploy/lightsail/deploy.sh ubuntu@<固定 IP>   # 或 export GYM_DEPLOY_HOST=ubuntu@<固定 IP>
 ```
 
-第一次部署會產生 `.env` 並印出平台管理員 `ops` 的密碼（只顯示一次）。之後到 `https://platform.sunkuo.cc` 登入、改密碼、開通健身房。後續更新：commit 後再跑一次 `deploy.sh`（啟動時自動跑 migration）。
+第一次部署會產生 `.env` 並印出平台管理員 `ops` 的密碼（只顯示一次）。之後到 `https://platform.bookdex.cc` 登入、改密碼、開通健身房。後續更新：commit 後再跑一次 `deploy.sh`（啟動時自動跑 migration）。
 
 ## 自動部署（GitHub Actions）
 
 `.github/workflows/deploy.yml`：main 的 CI 全部通過後，自動把那個 commit 部署到主機；也可以在 GitHub → Actions → Deploy → Run workflow 手動執行。
 
-流程：用部署專用 IAM 使用者的 access key（只能讀／改這台主機的防火牆）→ 讀出 Lightsail 防火牆規則，暫時把 22 埠開給這次的 runner IP → 執行 `deploy.sh` → 不論成敗都把防火牆原樣還原 → 確認 `https://platform.sunkuo.cc/robots.txt` 有回應。
+流程：用部署專用 IAM 使用者的 access key（只能讀／改這台主機的防火牆）→ 讀出 Lightsail 防火牆規則，暫時把 22 埠開給這次的 runner IP → 執行 `deploy.sh` → 不論成敗都把防火牆原樣還原 → 確認 `https://platform.bookdex.cc/robots.txt` 有回應。
 
 ### 一次性設定
 
@@ -100,7 +100,7 @@ unset K
 | Secret | `DEPLOY_KNOWN_HOSTS` | 步驟 1 `ssh-keyscan` 印出的那一行（建議設定；沒設定就第一次連線時直接接受） |
 | Secret | `AWS_ACCESS_KEY_ID`／`AWS_SECRET_ACCESS_KEY` | 步驟 2 寫入 |
 
-選用的 Variable：`LIGHTSAIL_INSTANCE`（預設 `gym-system`）、`AWS_REGION`（預設 `ap-southeast-2`）、`HEALTHCHECK_URL`（預設 `https://platform.sunkuo.cc/robots.txt`）。
+選用的 Variable：`LIGHTSAIL_INSTANCE`（預設 `gym-system`）、`AWS_REGION`（預設 `ap-southeast-2`）、`HEALTHCHECK_URL`（預設 `https://platform.bookdex.cc/robots.txt`）。
 
 想要部署前先人工按「核准」：在 `production` 環境勾 **Required reviewers** 並加上自己。
 
