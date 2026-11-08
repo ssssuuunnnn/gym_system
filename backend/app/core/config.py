@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    PROJECT_NAME: str = "健身工作室管理系統 API"
+    PROJECT_NAME: str = "Bookdex 預約簿 API"
     API_V1_PREFIX: str = "/api/v1"
 
     DATABASE_URL: str = "postgresql+psycopg://fitness_app:app_pw@localhost:5432/fitness_dev"

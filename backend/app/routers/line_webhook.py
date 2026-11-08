@@ -37,7 +37,7 @@ MAX_FAILED_ATTEMPTS = 5
 
 def _welcome() -> str:
     return (
-        f"歡迎使用「{settings.LINE_BOT_NAME}」！這是店家預約管理系統的通知帳號。\n"
+        f"歡迎使用「{settings.LINE_BOT_NAME}」！這是「Bookdex 預約簿」的店家通知帳號。\n"
         "請傳送店家後台「系統設定 › LINE 通知」顯示的 6 位數綁定碼，即可開始接收通知。"
     )
 

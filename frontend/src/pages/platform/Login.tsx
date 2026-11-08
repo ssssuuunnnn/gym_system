@@ -8,7 +8,7 @@ import { usePageTitle } from '../../lib/usePageTitle';
 
 /** 平台管理後台登入頁（platform.<主網域>/login），與各店家的登入頁分開。 */
 export default function PlatformLogin() {
-  usePageTitle('平台管理');
+  usePageTitle('Bookdex 預約簿｜平台管理');
   const navigate = useNavigate();
   const { message } = App.useApp();
   const { token, login } = usePlatformAuthStore();
@@ -35,7 +35,7 @@ export default function PlatformLogin() {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <Card style={{ width: 360 }}>
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>
-          平台管理
+          Bookdex 預約簿 平台管理
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ textAlign: 'center' }}>
           開通與管理各店家

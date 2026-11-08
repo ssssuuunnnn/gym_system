@@ -85,7 +85,7 @@ def public_contact(db: Session) -> PublicContact:
     """形象頁與店家的「試用已到期」頁顯示的聯絡方式（只有設定為顯示的）。店家網址也讀得到（SECURITY DEFINER 函式）。"""
     row = db.execute(text("SELECT * FROM platform_public_contact()")).mappings().first()
     if row is None:
-        return PublicContact(brand_name="店家預約管理系統")
+        return PublicContact(brand_name="Bookdex 預約簿")
     return PublicContact(brand_name=row["brand_name"], email=row["email"], line=row["line"], phone=row["phone"])
 
 

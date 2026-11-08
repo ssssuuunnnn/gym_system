@@ -56,7 +56,7 @@ class PlatformSettings(Base):
     __tablename__ = "platform_settings"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    brand_name: Mapped[str] = mapped_column(String(60), nullable=False, default="店家預約管理系統")
+    brand_name: Mapped[str] = mapped_column(String(60), nullable=False, default="Bookdex 預約簿")
     signup_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     show_email: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

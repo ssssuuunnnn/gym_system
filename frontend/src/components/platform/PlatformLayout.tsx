@@ -17,7 +17,7 @@ const platformMenuItems: BackOfficeMenuItem[] = [
 ];
 
 export default function PlatformLayout() {
-  usePageTitle('平台管理');
+  usePageTitle('Bookdex 預約簿｜平台管理');
   const navigate = useNavigate();
   const { token, username, logout } = usePlatformAuthStore();
 
@@ -28,7 +28,7 @@ export default function PlatformLayout() {
   return (
     <BackOfficeShell
       menuItems={platformMenuItems}
-      brandName="平台管理"
+      brandName="Bookdex 預約簿"
       userLabel={`${username}（平台管理員）`}
       headerExtra={
         <Button type="text" icon={<UserOutlined />} onClick={() => navigate('/account')}>

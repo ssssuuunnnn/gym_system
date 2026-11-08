@@ -1,4 +1,6 @@
-# 健身工作室管理系統
+# Bookdex 預約簿
+
+空間預約與會員管理 SaaS（健身工作室、美容美體店），網址 https://bookdex.cc。
 
 依「健身房預約系統 — Wireframe 頁面清單.md」設計文件建立的專案骨架。技術棧：React.js（Vite + TypeScript + Ant Design）＋ FastAPI（Python）＋ PostgreSQL。
 
