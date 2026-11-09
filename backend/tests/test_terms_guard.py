@@ -27,6 +27,8 @@ GUARDED = [
     "pages/member/BuyProduct/components/OrderSheet.tsx",
     "pages/member/BuyProduct/components/PlanCard.tsx",
     "pages/member/MyBookings/index.tsx",
+    "pages/member/MyBookings/components/BookingCard.tsx",
+    "pages/member/MyBookings/components/WeekStrip.tsx",
     "pages/member/MyProducts.tsx",
     "pages/member/MyCoupons.tsx",
     "pages/member/Me.tsx",
