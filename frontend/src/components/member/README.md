@@ -14,4 +14,5 @@
 
 前台頁面：`pages/member/Home`（首頁）、`pages/member/Book`（預約課程）、`pages/member/Me.tsx`（我的，會員與教練共用）、`pages/coach/Today`（今日課表）、`pages/coach/Attendance.tsx`（簽到紀錄）、`pages/coach/Payouts.tsx`（我的鐘點）。
 `pages/member/BuyProduct/`（購買方案：方案卡片＋底部面板，可從預約頁帶入想約的課）。
-既有的表格式頁面（我的預約、我的商品）仍在前台版面內，之後再逐步改成卡片式。
+`pages/member/MyBookings/`（我的預約：上方週列＋依日期排列的預約卡片，像手機行事曆的日程檢視；待確認是虛線斜紋卡片，已取消／未成立預設收起）。
+既有的表格式頁面（我的商品）仍在前台版面內，之後再逐步改成卡片式。
