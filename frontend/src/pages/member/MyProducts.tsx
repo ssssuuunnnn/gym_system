@@ -37,7 +37,7 @@ export default function MyProducts() {
     },
   });
 
-  const columns: ColumnsType<Purchase> = [
+  const baseColumns: ColumnsType<Purchase> = [
     {
       title: '商品',
       dataIndex: 'product_id',
@@ -84,6 +84,11 @@ export default function MyProducts() {
         ) : null,
     },
   ];
+  // 手機寬度下欄位標題不換行，表格改為左右滑動，避免標題被擠成直排
+  const columns: ColumnsType<Purchase> = baseColumns.map((col) => ({
+    ...col,
+    onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
+  }));
 
   return (
     <Card>
@@ -107,6 +112,7 @@ export default function MyProducts() {
         dataSource={purchases}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
+        scroll={{ x: 'max-content' }}
       />
     </Card>
   );
