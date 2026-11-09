@@ -13,6 +13,8 @@ export interface TenantProfile {
   trial: TrialInfo | null;
   /** 形象網站的品牌色（已發布的版本，從沒發布過用草稿）：會員前台的主色；沒有網站時為 null */
   brand_color: string | null;
+  /** 店家所在時區（IANA，例如 Asia/Taipei）；預約時間都是店家當地時間 */
+  timezone: string;
 }
 
 /** 平台的聯絡方式（只有平台設定為顯示的欄位） */

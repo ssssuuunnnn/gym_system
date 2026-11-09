@@ -15,6 +15,8 @@ export interface ReservationInfo {
   isGroup: boolean;
   /** 預約的分店 */
   branchName: string;
+  /** 分店地址（沒填為 null） */
+  branchAddress: string | null;
 }
 
 /**
@@ -41,6 +43,7 @@ export function useBookingLookups() {
       durationMinutes: course?.duration_minutes ?? DEFAULT_DURATION_MINUTES,
       isGroup: r.course_id != null,
       branchName: branches.nameOf(r.branch_id),
+      branchAddress: (r.branch_id != null ? branches.byId.get(r.branch_id)?.address : null) || null,
     };
   };
 

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { App, Button, Empty, Popconfirm, Skeleton, theme } from 'antd';
-import { PlusOutlined, RightOutlined } from '@ant-design/icons';
+import { CalendarOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -8,7 +8,9 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useAuthStore } from '../../../store/auth';
 import { listReservations, cancelReservation, markAttendance, type Reservation } from '../../../api/reservations';
 import { getSettings } from '../../../api/settings';
-import { classStart, hasStarted, isLateCancel, selfCheckInOpen } from '../../../lib/booking';
+import { classEnd, classStart, hasStarted, isLateCancel, selfCheckInOpen } from '../../../lib/booking';
+import { googleCalendarUrl } from '../../../lib/calendarLink';
+import { getTenantProfile } from '../../../api/tenant';
 import { isoWeekday } from '../../../lib/availability';
 import { weekdayLabel } from '../../../lib/weekday';
 import { useBookingLookups } from '../../../lib/useBookingLookups';
@@ -50,6 +52,7 @@ export default function MyBookings() {
   const reservations = useQuery({ queryKey: ['my-reservations'], queryFn: () => listReservations() });
   const { data: settings } = useQuery({ queryKey: ['system-settings'], queryFn: getSettings });
   const deadlineHours = settings?.cancel_deadline_hours;
+  const { data: profile } = useQuery({ queryKey: ['tenant-profile'], queryFn: getTenantProfile, staleTime: 5 * 60_000 });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
@@ -140,6 +143,29 @@ export default function MyBookings() {
             取消預約
           </Button>
         </Popconfirm>,
+      );
+    }
+    // 已確認、還沒結束的預約可以加到 Google 日曆（待確認的可能不會成立，先不給）
+    if (r.status === '已確認' && !r.attendance && !classEnd(r, info.durationMinutes).isBefore()) {
+      const shopName = profile?.name ?? '';
+      const url = googleCalendarUrl({
+        title: shopName ? `${info.title}｜${shopName}` : info.title,
+        start: classStart(r),
+        end: classEnd(r, info.durationMinutes),
+        timezone: profile?.timezone ?? 'Asia/Taipei',
+        location: info.branchAddress ?? [shopName, info.branchName].filter(Boolean).join(' '),
+        details: [
+          info.coachName ? `${t.staff}：${info.coachName}` : null,
+          r.people_count > 1 ? `人數：${r.people_count} 人` : null,
+          `查看或取消預約：${window.location.origin}/member/bookings`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      });
+      buttons.push(
+        <Button key="calendar" type="text" icon={<CalendarOutlined />} href={url} target="_blank" rel="noopener noreferrer">
+          加入行事曆
+        </Button>,
       );
     }
     if (isCoach && r.status === '已確認') {

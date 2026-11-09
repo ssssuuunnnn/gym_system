@@ -50,6 +50,8 @@ class TenantProfile(BaseModel):
     trial: TrialInfo | None = None
     # 形象網站的品牌色（預設色或自訂色碼；已發布的版本，從沒發布過就用草稿）：會員前台的主色。沒有網站時為 None（前台用預設色）
     brand_color: str | None = None
+    # 店家所在時區（IANA，例如 Asia/Taipei）：預約時間都是店家當地時間，「加入行事曆」連結要帶上
+    timezone: str = "Asia/Taipei"
 
 
 def _brand_color(db: Session) -> str | None:
@@ -86,4 +88,5 @@ def tenant_profile(tenant: TenantInfo = Depends(get_tenant), db: Session = Depen
     return TenantProfile(
         name=name, business_type=BusinessType[tenant.business_type], group_classes_enabled=enabled, trial=trial,
         brand_color=_brand_color(db),
+        timezone=tenant.timezone,
     )
