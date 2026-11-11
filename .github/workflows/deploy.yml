@@ -56,9 +56,7 @@ jobs:
     if: needs.check.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: production
-      url: https://platform.bookdex.cc
+    # 密鑰放在 repo 層級的 Actions secrets（不用 environment）：GitHub 免費方案的私人 repo 不能用環境密鑰
     env:
       AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
       LIGHTSAIL_INSTANCE: ${{ vars.LIGHTSAIL_INSTANCE || 'gym-system' }}
@@ -77,7 +75,7 @@ jobs:
           [ -n "$HOST" ] || missing="$missing 密鑰 DEPLOY_HOST"
           [ -n "$KEY" ] || missing="$missing 密鑰 DEPLOY_SSH_KEY"
           if [ -n "$missing" ]; then
-            echo "::error::production 環境還沒設定：$missing（見 deploy/lightsail/README.md「自動部署」）"
+            echo "::error::還沒設定 Actions 密鑰：$missing（Settings → Secrets and variables → Actions → Repository secrets，見 deploy/lightsail/README.md「自動部署」）"
             exit 1
           fi
 

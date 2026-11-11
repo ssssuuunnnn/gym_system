@@ -63,7 +63,7 @@ ssh-keyscan -t ed25519 <固定 IP>
 
 **2. AWS：部署專用的 IAM 使用者，只能改這台主機的防火牆**（用你自己的 AWS 帳號登入後，在 CloudShell 或本機執行）
 
-> 這個 AWS 項目的受管 SCP 禁止所有 `iam:*Provider*` 動作，**無法用 GitHub OIDC**，所以改用 IAM 使用者的 access key（存在 GitHub 的 production 環境）。
+> 這個 AWS 項目的受管 SCP 禁止所有 `iam:*Provider*` 動作，**無法用 GitHub OIDC**，所以改用 IAM 使用者的 access key（存在 GitHub repo 的 Actions secrets）。
 
 ```bash
 aws iam create-user --user-name gym-system-github-deploy
@@ -84,14 +84,16 @@ aws iam put-user-policy --user-name gym-system-github-deploy --policy-name light
 
 # 產生金鑰並直接寫進 GitHub（不在畫面上顯示）
 K=$(aws iam create-access-key --user-name gym-system-github-deploy --output json)
-echo "$K" | jq -r .AccessKey.AccessKeyId     | gh secret set AWS_ACCESS_KEY_ID --env production
-echo "$K" | jq -r .AccessKey.SecretAccessKey | gh secret set AWS_SECRET_ACCESS_KEY --env production
+echo "$K" | jq -r .AccessKey.AccessKeyId     | gh secret set AWS_ACCESS_KEY_ID
+echo "$K" | jq -r .AccessKey.SecretAccessKey | gh secret set AWS_SECRET_ACCESS_KEY
 unset K
 ```
 
 **輪替金鑰**：再跑一次最後三行產生新金鑰，確認部署成功後 `aws iam list-access-keys --user-name gym-system-github-deploy` 找出舊的，`aws iam delete-access-key --user-name gym-system-github-deploy --access-key-id <舊 ID>`。
 
-**3. GitHub：Settings → Environments → New environment，名稱 `production`**，在裡面新增：
+**3. GitHub：Settings → Secrets and variables → Actions → Repository secrets**，新增：
+
+> 用 repo 層級的密鑰而不是 Environment：GitHub 免費方案的**私人 repo 不能用環境密鑰**，repo 層級的公開／私人都能用。
 
 | 種類 | 名稱 | 值 |
 |---|---|---|
@@ -100,9 +102,8 @@ unset K
 | Secret | `DEPLOY_KNOWN_HOSTS` | 步驟 1 `ssh-keyscan` 印出的那一行（建議設定；沒設定就第一次連線時直接接受） |
 | Secret | `AWS_ACCESS_KEY_ID`／`AWS_SECRET_ACCESS_KEY` | 步驟 2 寫入 |
 
-選用的 Variable：`LIGHTSAIL_INSTANCE`（預設 `gym-system`）、`AWS_REGION`（預設 `ap-southeast-2`）、`HEALTHCHECK_URL`（預設 `https://platform.bookdex.cc/robots.txt`）。
+選用的 Variable（同一頁的 Variables 分頁）：`LIGHTSAIL_INSTANCE`（預設 `gym-system`）、`AWS_REGION`（預設 `ap-southeast-2`）、`HEALTHCHECK_URL`（預設 `https://platform.bookdex.cc/robots.txt`）。
 
-想要部署前先人工按「核准」：在 `production` 環境勾 **Required reviewers** 並加上自己。
 
 **4. 測試**：Actions → Deploy → Run workflow。之後每次 PR 合併進 main，CI 通過就會自動部署。
 
