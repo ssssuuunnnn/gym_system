@@ -22,7 +22,8 @@ img{max-width:100%}
 .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.86);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px)}
 .top-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;min-height:60px}
 .brand{display:inline-flex;align-items:center;gap:8px;font-weight:700;text-decoration:none;font-size:15px;letter-spacing:-.01em;justify-self:start}
-.brand-mark{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--ink);color:#fff;font-size:12px;font-weight:700}
+/* 品牌 logo：static/site/brand/logo.svg（淺底）、logo-dark.svg（頁尾深底） */
+.brand-logo{display:block;height:40px;width:auto}
 .top-nav{display:flex;align-items:center;gap:28px;font-size:14px}
 .top-nav a{color:var(--ink-2);text-decoration:none;font-weight:500}
 .top-nav a:hover{color:var(--ink)}
@@ -322,7 +323,6 @@ p{margin:0 0 12px}
 .foot-grid{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:32px;padding-bottom:64px}
 @media (max-width:760px){.foot-grid{grid-template-columns:1fr 1fr}.foot-grid > div:first-child{grid-column:1/-1}}
 .foot .brand{color:#fff}
-.foot .brand-mark{background:#fff;color:var(--ink)}
 .foot p{margin:12px 0 0;max-width:280px;font-size:13px;line-height:1.7}
 .foot h4{color:#fff;font-size:13px;font-weight:600;margin:0 0 14px}
 .foot ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}

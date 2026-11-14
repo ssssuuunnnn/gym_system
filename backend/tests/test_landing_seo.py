@@ -55,7 +55,7 @@ def test_landing_metadata_and_structured_data(platform_client):
 
 
 def test_brand_assets_are_served(platform_client):
-    for name in ("og-image.png", "favicon.svg", "favicon-32.png", "apple-touch-icon.png", "icon-512.png"):
+    for name in ("og-image.png", "favicon.svg", "favicon-32.png", "apple-touch-icon.png", "icon-512.png", "logo.svg", "logo-dark.svg"):
         assert platform_client.get(f"/site/static/brand/{name}").status_code == 200, name
 
 
