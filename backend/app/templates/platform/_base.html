@@ -26,7 +26,8 @@
 <meta name="twitter:title" content="{{ self.title() }}">
 <meta name="twitter:description" content="{{ self.description() }}">
 <meta name="twitter:image" content="{{ og_image }}">
-<link rel="icon" href="/site/static/brand/favicon.svg" type="image/svg+xml">
+{#- 品牌圖檔換圖時把 ?v= 加一：網址不變的話 Cloudflare 與瀏覽器會繼續給舊圖 -#}
+<link rel="icon" href="/site/static/brand/favicon.svg?v=2" type="image/svg+xml">
 <link rel="icon" href="/site/static/brand/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/site/static/brand/apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff">
@@ -41,7 +42,7 @@
 <a class="skip" href="#main">跳到主要內容</a>
 <header class="top">
   <div class="wrap top-row">
-    <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo.svg" alt="Bookdex" width="148" height="40"><span class="brand-name">預約簿</span></a>
+    <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo.svg?v=2" alt="Bookdex" width="148" height="40"><span class="brand-name">預約簿</span></a>
     <nav aria-label="主選單" class="top-nav">
       <a href="/#features">功能</a>
       <a href="/#who">適合誰</a>
@@ -88,7 +89,7 @@
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo-dark.svg" alt="Bookdex" width="148" height="40" loading="lazy"><span class="brand-name">預約簿</span></a>
+        <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo-dark.svg?v=2" alt="Bookdex" width="148" height="40" loading="lazy"><span class="brand-name">預約簿</span></a>
         <p>給健身工作室、美容美體店的線上預約與會員管理系統。</p>
       </div>
       <div>
