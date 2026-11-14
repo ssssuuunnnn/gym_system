@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/site/static/platform.css?v=5">
+<link rel="stylesheet" href="/site/static/platform.css?v=6">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -41,7 +41,7 @@
 <a class="skip" href="#main">跳到主要內容</a>
 <header class="top">
   <div class="wrap top-row">
-    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">{{ brand[:1] }}</span>{{ brand }}</a>
+    <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo.svg" alt="{{ brand }}" width="148" height="40"></a>
     <nav aria-label="主選單" class="top-nav">
       <a href="/#features">功能</a>
       <a href="/#who">適合誰</a>
@@ -88,7 +88,7 @@
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">{{ brand[:1] }}</span>{{ brand }}</a>
+        <a class="brand" href="/"><img class="brand-logo" src="/site/static/brand/logo-dark.svg" alt="{{ brand }}" width="148" height="40" loading="lazy"></a>
         <p>給健身工作室、美容美體店的線上預約與會員管理系統。</p>
       </div>
       <div>
